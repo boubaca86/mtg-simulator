@@ -1,0 +1,20 @@
+name: MTG Cloud Simulator
+
+on:
+  workflow_dispatch:
+
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download simulator
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run MTG simulations
+        run: python simulator.py
