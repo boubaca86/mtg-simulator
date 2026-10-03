@@ -3,6 +3,9 @@ name: MTG Cloud Simulator
 on:
   workflow_dispatch:
 
+  schedule:
+    - cron: "0 * * * *"
+
 jobs:
   simulate:
     runs-on: ubuntu-latest
