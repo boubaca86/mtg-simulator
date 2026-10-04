@@ -78,10 +78,12 @@ jobs:
           FORGE_EXIT=${PIPESTATUS[0]}
           set -e
 
-          GAMES_COMPLETED=$(grep -c "Game Result: Game" "$RESULTS/latest.log" || true)
-          ST_WINS=$(grep -c "Ai(1)-ST Forge Full has won" "$RESULTS/latest.log" || true)
-          BENCHMARK_WINS=$(grep -c "Ai(2)-Benchmark Red Forge has won" "$RESULTS/latest.log" || true)
-          DRAWS=$(grep -c "ended in a Draw" "$RESULTS/latest.log" || true)
+          # Count only Forge's final per-game result lines. The log also prints
+          # Game Outcome lines, which would otherwise double-count every win.
+          GAMES_COMPLETED=$(grep -c '^Game Result: Game ' "$RESULTS/latest.log" || true)
+          ST_WINS=$(grep '^Game Result: Game ' "$RESULTS/latest.log" | grep -c 'Ai(1)-ST Forge Full has won' || true)
+          BENCHMARK_WINS=$(grep '^Game Result: Game ' "$RESULTS/latest.log" | grep -c 'Ai(2)-Benchmark Red Forge has won' || true)
+          DRAWS=$(grep '^Game Result: Game ' "$RESULTS/latest.log" | grep -ci 'draw' || true)
 
           echo "$FORGE_EXIT" > "$RESULTS/exit_code.txt"
           printf '{\n  "forge_version": "%s",\n  "exit_code": %s,\n  "custom_cards": 11,\n  "games_requested": %s,\n  "games_completed": %s,\n  "st_wins": %s,\n  "benchmark_wins": %s,\n  "draws": %s\n}\n' \
@@ -93,6 +95,10 @@ jobs:
           if [ "$GAMES_COMPLETED" -ne "$FORGE_GAMES" ]; then
             echo "Forge exited normally but completed only $GAMES_COMPLETED/$FORGE_GAMES games."
             exit 2
+          fi
+          if [ $((ST_WINS + BENCHMARK_WINS + DRAWS)) -ne "$GAMES_COMPLETED" ]; then
+            echo "Result parser mismatch: wins + draws do not equal completed games."
+            exit 3
           fi
 
       - name: Save Forge full-deck result
