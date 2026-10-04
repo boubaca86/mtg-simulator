@@ -1,0 +1,7 @@
+{
+  "engine": "st_vs_benchmark_red_v2_fair_search",
+  "same_ai_architecture": true,
+  "hidden_information": "own hand + public zones + opponent hand count only",
+  "legality_failures": 0,
+  "last_run_utc": "2026-10-04T01:01:07.062460+00:00"
+}
