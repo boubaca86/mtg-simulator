@@ -1,0 +1,59 @@
+{
+  "experiment": "forge_information_set_ensemble_stage5",
+  "forge_tag": "forge-2.0.15",
+  "games_requested_per_arm": 4,
+  "seed": 20261004,
+  "arms": {
+    "single_full_default": {
+      "games_completed": 4,
+      "st_wins": 4,
+      "benchmark_wins": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "information_set_samples": 1,
+      "st_mode": "full",
+      "benchmark_mode": "default",
+      "st_win_rate": 1.0
+    },
+    "ensemble_full_default": {
+      "games_completed": 4,
+      "st_wins": 3,
+      "benchmark_wins": 1,
+      "draws": 0,
+      "timeouts": 0,
+      "information_set_samples": 3,
+      "st_mode": "full",
+      "benchmark_mode": "default",
+      "st_win_rate": 0.75
+    },
+    "single_default_full": {
+      "games_completed": 4,
+      "st_wins": 3,
+      "benchmark_wins": 1,
+      "draws": 0,
+      "timeouts": 0,
+      "information_set_samples": 1,
+      "st_mode": "default",
+      "benchmark_mode": "full",
+      "st_win_rate": 0.75
+    },
+    "ensemble_default_full": {
+      "games_completed": 4,
+      "st_wins": 3,
+      "benchmark_wins": 1,
+      "draws": 0,
+      "timeouts": 0,
+      "information_set_samples": 3,
+      "st_mode": "default",
+      "benchmark_mode": "full",
+      "st_win_rate": 0.75
+    }
+  },
+  "notes": [
+    "All full-simulation players use the Stage 4 hidden-information boundary.",
+    "single arms use one determinization per root decision.",
+    "ensemble arms score each candidate root action across three determinizations and use the mean score.",
+    "Only the chosen root action is retained; the next real priority window re-searches instead of following a multi-step plan tailored to one sampled hidden world.",
+    "This is root-sampled information-set search, not yet full IS-MCTS or a trained expert agent."
+  ]
+}
