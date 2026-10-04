@@ -1,31 +1,35 @@
 Error handling registered!
-01:15:02 [INFO ] GuiBase: ##########################################
-01:15:02 [INFO ] GuiBase: APP: Forge v.2.0.15-SNAPSHOT-09.28
-01:15:02 [INFO ] GuiBase: Java: 21.0.12.1 (Eclipse Adoptium)
-01:15:02 [INFO ] GuiBase: OS: Linux 6.17.0-1022-azure amd64
-01:15:02 [INFO ] GuiBase: RAM: 2048 MB max, 4 CPUs
-01:15:02 [INFO ] GuiBase: ##########################################
-java.util.MissingResourceException: Can't find bundle for base name en-US, locale en_US
-	at java.base/java.util.ResourceBundle.throwMissingResourceException(ResourceBundle.java:2059)
-	at java.base/java.util.ResourceBundle.getBundleImpl(ResourceBundle.java:1697)
-	at java.base/java.util.ResourceBundle.getBundleImpl(ResourceBundle.java:1600)
-	at java.base/java.util.ResourceBundle.getBundle(ResourceBundle.java:1283)
-	at forge.util.Localizer.setLanguage(Localizer.java:168)
-	at forge.util.Localizer.initialize(Localizer.java:44)
-	at forge.model.FModel.initialize(FModel.java:186)
-	at forge.view.SimulateMatch.simulate(SimulateMatch.java:40)
-	at forge.view.Main.main(Main.java:104)
-main > java.lang.NullPointerException: Cannot invoke "java.util.ResourceBundle.getBaseBundleName()" because "this.resourceBundle" is null
-	at forge.util.Localizer.setLanguage(Localizer.java:178)
-	at forge.util.Localizer.initialize(Localizer.java:44)
-	at forge.model.FModel.initialize(FModel.java:186)
-	at forge.view.SimulateMatch.simulate(SimulateMatch.java:40)
-	at forge.view.Main.main(Main.java:104)
-== Report a Crash ==
-java.lang.NullPointerException: Cannot invoke "java.util.ResourceBundle.getBaseBundleName()" because "this.resourceBundle" is null
-	at forge.util.Localizer.setLanguage(Localizer.java:178)
-	at forge.util.Localizer.initialize(Localizer.java:44)
-	at forge.model.FModel.initialize(FModel.java:186)
-	at forge.view.SimulateMatch.simulate(SimulateMatch.java:40)
-	at forge.view.Main.main(Main.java:104)
-
+01:19:33 [INFO ] GuiBase: ##########################################
+01:19:33 [INFO ] GuiBase: APP: Forge v.2.0.15-SNAPSHOT-09.28
+01:19:33 [INFO ] GuiBase: Java: 21.0.12.1 (Eclipse Adoptium)
+01:19:33 [INFO ] GuiBase: OS: Linux 6.17.0-1022-azure amd64
+01:19:33 [INFO ] GuiBase: RAM: 2048 MB max, 4 CPUs
+01:19:33 [INFO ] GuiBase: ##########################################
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 34010 archived files in 1 ms (25 parts) using thread pool
+Read cards: 4 files in 0 ms (1 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 854 files in 0 ms (8 parts) using thread pool
+Simulation mode
+Could not load deck - ST Forge Smoke.dck, match cannot start
