@@ -1,0 +1,31 @@
+Error handling registered!
+01:15:02 [INFO ] GuiBase: ##########################################
+01:15:02 [INFO ] GuiBase: APP: Forge v.2.0.15-SNAPSHOT-09.28
+01:15:02 [INFO ] GuiBase: Java: 21.0.12.1 (Eclipse Adoptium)
+01:15:02 [INFO ] GuiBase: OS: Linux 6.17.0-1022-azure amd64
+01:15:02 [INFO ] GuiBase: RAM: 2048 MB max, 4 CPUs
+01:15:02 [INFO ] GuiBase: ##########################################
+java.util.MissingResourceException: Can't find bundle for base name en-US, locale en_US
+	at java.base/java.util.ResourceBundle.throwMissingResourceException(ResourceBundle.java:2059)
+	at java.base/java.util.ResourceBundle.getBundleImpl(ResourceBundle.java:1697)
+	at java.base/java.util.ResourceBundle.getBundleImpl(ResourceBundle.java:1600)
+	at java.base/java.util.ResourceBundle.getBundle(ResourceBundle.java:1283)
+	at forge.util.Localizer.setLanguage(Localizer.java:168)
+	at forge.util.Localizer.initialize(Localizer.java:44)
+	at forge.model.FModel.initialize(FModel.java:186)
+	at forge.view.SimulateMatch.simulate(SimulateMatch.java:40)
+	at forge.view.Main.main(Main.java:104)
+main > java.lang.NullPointerException: Cannot invoke "java.util.ResourceBundle.getBaseBundleName()" because "this.resourceBundle" is null
+	at forge.util.Localizer.setLanguage(Localizer.java:178)
+	at forge.util.Localizer.initialize(Localizer.java:44)
+	at forge.model.FModel.initialize(FModel.java:186)
+	at forge.view.SimulateMatch.simulate(SimulateMatch.java:40)
+	at forge.view.Main.main(Main.java:104)
+== Report a Crash ==
+java.lang.NullPointerException: Cannot invoke "java.util.ResourceBundle.getBaseBundleName()" because "this.resourceBundle" is null
+	at forge.util.Localizer.setLanguage(Localizer.java:178)
+	at forge.util.Localizer.initialize(Localizer.java:44)
+	at forge.model.FModel.initialize(FModel.java:186)
+	at forge.view.SimulateMatch.simulate(SimulateMatch.java:40)
+	at forge.view.Main.main(Main.java:104)
+
