@@ -1,0 +1,30 @@
+name: Forge Expert AI Stage 7B — Transparent Baseline
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'stage7_value_baseline.py'
+      - '.github/workflows/forge-expert-ai-stage7b-baseline.yml'
+
+jobs:
+  baseline-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify trainer rejects hidden information and unlabeled data
+        run: |
+          python3 - <<'PY'
+          import json, subprocess, tempfile
+          base={'schema_version':'stage7a-v1','run_seed':1,'complete_action_identity':'a','acting_life':20,'opponent_life':20,'own_hand':[],'opponent_unknown_hand_count':7,'own_library_count':53,'opponent_library_count':53,'battlefield_public':[],'graveyard_public':[],'exile_public':[],'stack_public':[],'turn':1}
+          with tempfile.NamedTemporaryFile('w',delete=False) as f:
+              f.write(json.dumps(base)+'\n'); p=f.name
+          r=subprocess.run(['python3','stage7_value_baseline.py',p],text=True,capture_output=True)
+          assert r.returncode != 0 and 'lacks game_result labels' in (r.stdout+r.stderr)
+          bad=dict(base); bad['opponent_hand']=['SECRET']; bad['game_result']=1
+          with tempfile.NamedTemporaryFile('w',delete=False) as f:
+              f.write(json.dumps(bad)+'\n'); p=f.name
+          r=subprocess.run(['python3','stage7_value_baseline.py',p],text=True,capture_output=True)
+          assert r.returncode != 0 and 'hidden-information leakage' in (r.stdout+r.stderr)
+          print('Stage 7B baseline contract gate passed.')
+          PY
