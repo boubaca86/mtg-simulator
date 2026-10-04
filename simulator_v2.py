@@ -15,7 +15,7 @@ AUDIT_GAMES = 8
 OUT = Path("results/st_vs_benchmark_red_v2")
 OUT.mkdir(parents=True, exist_ok=True)
 core.RESULTS_DIR = OUT
-core.STATE_FILE = OUT / "summary.json"
+core.SUMMARY_FILE = OUT / "summary.json"
 core.HISTORY_FILE = OUT / "history.csv"
 core.CARD_STATS_FILE = OUT / "card_stats.json"
 core.REPORT_FILE = OUT / "latest_report.md"
@@ -77,6 +77,18 @@ def legal_actions(players,actor):
         out += [Action("whirl",idx=i) for i,_ in enumerate(opp.creatures())]
     return out
 
+def cast_permanent_action(me,opp,c):
+    # can_pay() is checked before this call. core.pay_card_cost() can return
+    # False only when Servo-Skull damage makes the caster lose life during
+    # payment; the mana was still actually paid, so that is not an illegal cast.
+    core.pay_card_cost(me,c)
+    me.hand.remove(c.name)
+    if me.is_st and me.telemetry is not None:
+        me.telemetry.st_cast[c.name] += 1
+    me.battlefield.append(core.Permanent(card=c,tapped=False,summoning_sick=(c.card_type=="creature" and not c.haste)))
+    if c.name=="Servo-Skull":
+        core.attach_servo_skull(me,opp)
+
 def apply(players,actor,a):
     me,opp=players[actor],players[1-actor]
     if a.kind=="pass": return
@@ -92,7 +104,7 @@ def apply(players,actor,a):
         target=cs[a.idx]; tax=target.card.ward
     if not core.can_pay(me,c,tax): raise IllegalAction("unpayable spell")
     if c.card_type in ("creature","artifact"):
-        if not core.cast_permanent(me,opp,c): raise IllegalAction("cast failed")
+        cast_permanent_action(me,opp,c)
         return
     core.pay_card_cost(me,c,tax); me.hand.remove(c.name); me.graveyard.append(c.name)
     if a.target=="player": opp.life-=c.damage
