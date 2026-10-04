@@ -45,6 +45,7 @@ def patch_picker(path: Path) -> None:
         int representativeValue = Integer.MIN_VALUE;
         String firstActionIdentity = null;
         boolean strategyFusionObserved = false;
+        int identifiedWorlds = 0;
 
         for (int sample = 0; sample < samples; sample++) {
 """
@@ -54,6 +55,7 @@ def patch_picker(path: Path) -> None:
             if (value.value == Integer.MIN_VALUE) {
                 continue;
             }
+            sumValue += value.value;
 """
     new = """            Score value = evaluateSa(shadowController, phase, candidateSAs, saIndex);
             if (value.value == Integer.MIN_VALUE) {
@@ -61,12 +63,14 @@ def patch_picker(path: Path) -> None:
             }
             String actionIdentity = shadowController.getBestRootActionIdentity();
             if (actionIdentity != null) {
+                identifiedWorlds++;
                 if (firstActionIdentity == null) {
                     firstActionIdentity = actionIdentity;
                 } else if (!firstActionIdentity.equals(actionIdentity)) {
                     strategyFusionObserved = true;
                 }
             }
+            sumValue += value.value;
 """
     text = replace_once(text, old, new, "per-world action audit")
 
@@ -76,6 +80,10 @@ def patch_picker(path: Path) -> None:
 """
     new = """        int avgValue = (int) (sumValue / validSamples);
         int avgAvailable = (int) (sumAvailable / validSamples);
+        if (identifiedWorlds > 0) {
+            System.out.println("EXPERT_INFOSET_AUDITED_CANDIDATE: candidate=" + saIndex
+                    + " identifiedWorlds=" + identifiedWorlds + " samples=" + samples);
+        }
         if (strategyFusionObserved) {
             System.out.println("EXPERT_INFOSET_STRATEGY_FUSION: candidate=" + saIndex
                     + " samples=" + samples);
