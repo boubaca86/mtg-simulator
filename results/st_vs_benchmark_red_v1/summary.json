@@ -1,0 +1,115 @@
+{
+  "engine_version": "st_vs_benchmark_red_v1",
+  "runs": 1,
+  "total_games": 10000,
+  "st_wins": 8605,
+  "benchmark_wins": 1395,
+  "draws": 0,
+  "st_on_play_games": 5000,
+  "st_on_play_wins": 4370,
+  "st_on_draw_games": 5000,
+  "st_on_draw_wins": 4235,
+  "total_turns": 151138,
+  "card_stats": {
+    "Demolitionist S.T": {
+      "games_drawn": 6521,
+      "wins_when_drawn": 5608,
+      "games_cast": 4007,
+      "wins_when_cast": 3690,
+      "opening_hand_games": 3715,
+      "copies_drawn": 9035,
+      "copies_cast": 5107
+    },
+    "Drop Pod S.T": {
+      "games_drawn": 6496,
+      "wins_when_drawn": 5782,
+      "games_cast": 6492,
+      "wins_when_cast": 5782,
+      "opening_hand_games": 3814,
+      "copies_drawn": 9109,
+      "copies_cast": 9098
+    },
+    "Eradicator S.T": {
+      "games_drawn": 6418,
+      "wins_when_drawn": 5636,
+      "games_cast": 5136,
+      "wins_when_cast": 4909,
+      "opening_hand_games": 3445,
+      "copies_drawn": 8656,
+      "copies_cast": 6385
+    },
+    "Exterminatus S.T": {
+      "games_drawn": 2198,
+      "wins_when_drawn": 1815,
+      "games_cast": 0,
+      "wins_when_cast": 0,
+      "opening_hand_games": 972,
+      "copies_drawn": 2198,
+      "copies_cast": 0
+    },
+    "Infernus S.T": {
+      "games_drawn": 6503,
+      "wins_when_drawn": 5599,
+      "games_cast": 5867,
+      "wins_when_cast": 5234,
+      "opening_hand_games": 3719,
+      "copies_drawn": 9135,
+      "copies_cast": 7910
+    },
+    "Pyroclast Squad S.T": {
+      "games_drawn": 6515,
+      "wins_when_drawn": 5715,
+      "games_cast": 5874,
+      "wins_when_cast": 5366,
+      "opening_hand_games": 3671,
+      "copies_drawn": 9045,
+      "copies_cast": 7835
+    },
+    "Servitor": {
+      "games_drawn": 6736,
+      "wins_when_drawn": 5792,
+      "games_cast": 6713,
+      "wins_when_cast": 5782,
+      "opening_hand_games": 3755,
+      "copies_drawn": 9371,
+      "copies_cast": 18376
+    },
+    "Servo-Skull": {
+      "games_drawn": 2349,
+      "wins_when_drawn": 1941,
+      "games_cast": 2349,
+      "wins_when_cast": 1941,
+      "opening_hand_games": 1132,
+      "copies_drawn": 2349,
+      "copies_cast": 2349
+    },
+    "Terminator S.T": {
+      "games_drawn": 6616,
+      "wins_when_drawn": 5819,
+      "games_cast": 6012,
+      "wins_when_cast": 5528,
+      "opening_hand_games": 3738,
+      "copies_drawn": 9184,
+      "copies_cast": 7951
+    },
+    "Vindicator S.T": {
+      "games_drawn": 3867,
+      "wins_when_drawn": 3247,
+      "games_cast": 416,
+      "wins_when_cast": 391,
+      "opening_hand_games": 1800,
+      "copies_drawn": 4315,
+      "copies_cast": 442
+    },
+    "Whirlwind S.T": {
+      "games_drawn": 6295,
+      "wins_when_drawn": 5431,
+      "games_cast": 4661,
+      "wins_when_cast": 4259,
+      "opening_hand_games": 3370,
+      "copies_drawn": 8774,
+      "copies_cast": 5976
+    }
+  },
+  "last_run_utc": "2026-10-04T00:30:46.637278+00:00"
+}
