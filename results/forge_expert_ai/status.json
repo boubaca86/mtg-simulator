@@ -1,0 +1,53 @@
+{
+  "experiment": "forge_full_simulation_ai_stage3",
+  "forge_tag": "forge-2.0.15",
+  "games_requested_per_arm": 10,
+  "seed": 20261004,
+  "arms": {
+    "default_default": {
+      "games_completed": 10,
+      "st_wins": 7,
+      "benchmark_wins": 3,
+      "draws": 0,
+      "timeouts": 0,
+      "st_mode": "default",
+      "benchmark_mode": "default",
+      "st_win_rate": 0.7
+    },
+    "full_full": {
+      "games_completed": 10,
+      "st_wins": 7,
+      "benchmark_wins": 3,
+      "draws": 0,
+      "timeouts": 0,
+      "st_mode": "full",
+      "benchmark_mode": "full",
+      "st_win_rate": 0.7
+    },
+    "full_default": {
+      "games_completed": 10,
+      "st_wins": 8,
+      "benchmark_wins": 2,
+      "draws": 0,
+      "timeouts": 0,
+      "st_mode": "full",
+      "benchmark_mode": "default",
+      "st_win_rate": 0.8
+    },
+    "default_full": {
+      "games_completed": 10,
+      "st_wins": 7,
+      "benchmark_wins": 3,
+      "draws": 0,
+      "timeouts": 0,
+      "st_mode": "default",
+      "benchmark_mode": "full",
+      "st_win_rate": 0.7
+    }
+  },
+  "notes": [
+    "default = Forge heuristic AI",
+    "full = Forge USE_FULL_SIMULATION search AI",
+    "This is a stronger search mode, not yet a trained or proven expert-human agent."
+  ]
+}

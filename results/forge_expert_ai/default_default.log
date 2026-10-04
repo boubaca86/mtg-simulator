@@ -1,0 +1,144 @@
+Error handling registered!
+02:31:49 [INFO ] GuiBase: ##########################################
+02:31:49 [INFO ] GuiBase: APP: Forge v.2.0.15-SNAPSHOT-10.04
+02:31:49 [INFO ] GuiBase: Java: 17.0.20.1 (Eclipse Adoptium)
+02:31:49 [INFO ] GuiBase: OS: Linux 6.17.0-1022-azure amd64
+02:31:49 [INFO ] GuiBase: RAM: 3072 MB max, 4 CPUs
+02:31:49 [INFO ] GuiBase: ##########################################
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33980 files in 0 ms (25 parts) using thread pool
+Read cards: 11 files in 0 ms (1 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 854 files in 0 ms (8 parts) using thread pool
+Simulation mode
+Ai(1)-ST Forge Full vs Ai(2)-Benchmark Red Forge - ten games of Constructed seed 20261004
+Goblin Piker Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 03s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Forge Full has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Forge Full: 1 Ai(2)-Benchmark Red Forge: 0 
+
+Game Result: Game 1 ended in 4381 ms. Ai(1)-ST Forge Full has won!
+
+Lightning Elemental Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 02s
+Game Outcome: Turn 11
+Game Outcome: Ai(1)-ST Forge Full has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Forge Full: 2 Ai(2)-Benchmark Red Forge: 0 
+
+Game Result: Game 2 ended in 3082 ms. Ai(1)-ST Forge Full has won!
+
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Elemental Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Forge Full has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Forge Full: 2 Ai(2)-Benchmark Red Forge: 1 
+
+Game Result: Game 3 ended in 1081 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Elemental Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Shock Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 5
+Game Outcome: Ai(1)-ST Forge Full has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Forge Full: 2 Ai(2)-Benchmark Red Forge: 2 
+
+Game Result: Game 4 ended in 516 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Forge Full has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Forge Full: 3 Ai(2)-Benchmark Red Forge: 2 
+
+Game Result: Game 5 ended in 1136 ms. Ai(1)-ST Forge Full has won!
+
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 01s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Forge Full has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Forge Full: 4 Ai(2)-Benchmark Red Forge: 2 
+
+Game Result: Game 6 ended in 1239 ms. Ai(1)-ST Forge Full has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 01s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Forge Full has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Forge Full: 5 Ai(2)-Benchmark Red Forge: 2 
+
+Game Result: Game 7 ended in 1306 ms. Ai(1)-ST Forge Full has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Piker Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 01s
+Game Outcome: Turn 12
+Game Outcome: Ai(1)-ST Forge Full has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Forge Full: 6 Ai(2)-Benchmark Red Forge: 2 
+
+Game Result: Game 8 ended in 1430 ms. Ai(1)-ST Forge Full has won!
+
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Forge Full has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Forge Full: 7 Ai(2)-Benchmark Red Forge: 2 
+
+Game Result: Game 9 ended in 1067 ms. Ai(1)-ST Forge Full has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Forge Full has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Forge Full: 7 Ai(2)-Benchmark Red Forge: 3 
+
+Game Result: Game 10 ended in 1107 ms. Ai(2)-Benchmark Red Forge has won!
+
