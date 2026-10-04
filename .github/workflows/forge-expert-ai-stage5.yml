@@ -1,0 +1,177 @@
+name: Forge Expert AI Stage 5 — Multi-Sample Search
+
+on:
+  workflow_dispatch:
+    inputs:
+      games_per_arm:
+        description: "Games for each Stage 5 strength arm"
+        required: true
+        default: "4"
+      seed:
+        description: "Forge RNG seed"
+        required: true
+        default: "20261004"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/forge-expert-ai-stage5.yml"
+      - "patch_forge_infoset_ensemble.py"
+      - "patch_forge_information_set.py"
+      - "patch_forge_expert_cli.py"
+      - "forge_export.py"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: forge-expert-ai-stage5
+  cancel-in-progress: false
+
+env:
+  FORGE_TAG: "forge-2.0.15"
+  GAMES_PER_ARM: ${{ inputs.games_per_arm || '4' }}
+  FORGE_SEED: ${{ inputs.seed || '20261004' }}
+
+jobs:
+  infoset-ensemble:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout simulator repository
+        uses: actions/checkout@v7
+
+      - name: Install Java 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Export full S.T custom set and decks
+        run: python3 forge_export.py --user-dir "$HOME/.forge"
+
+      - name: Clone Forge source
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch "$FORGE_TAG" https://github.com/Card-Forge/forge.git forge-src
+          test -f forge-src/pom.xml
+
+      - name: Patch Forge for Stage 5 expert search
+        run: |
+          set -euo pipefail
+          python3 patch_forge_expert_cli.py \
+            forge-src/forge-gui-desktop/src/main/java/forge/view/SimulateMatch.java
+          python3 patch_forge_information_set.py \
+            forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java
+          python3 patch_forge_infoset_ensemble.py \
+            --game-simulator forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java \
+            --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java \
+            --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+
+          grep -n "informationSetSamples" \
+            forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          grep -n "INFORMATION_SET_SAMPLE" \
+            forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java
+          grep -n "isRootDecision" \
+            forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java
+
+      - name: Build Stage 5 Forge
+        working-directory: forge-src
+        run: |
+          set -euo pipefail
+          mvn -B -pl forge-gui-desktop -am \
+            -DskipTests \
+            -Dcheckstyle.skip=true \
+            package
+
+          FORGE_JAR="$(find forge-gui-desktop/target -type f -name '*-jar-with-dependencies.jar' -print -quit)"
+          if [ -z "$FORGE_JAR" ]; then
+            echo "Stage 5 Forge desktop jar was not found."
+            exit 1
+          fi
+
+          FORGE_JAR="$(realpath "$FORGE_JAR")"
+          FORGE_HOME="$(realpath forge-gui)"
+          test -f "$FORGE_HOME/res/languages/en-US.properties"
+
+          echo "FORGE_JAR=$FORGE_JAR" >> "$GITHUB_ENV"
+          echo "FORGE_HOME=$FORGE_HOME" >> "$GITHUB_ENV"
+
+      - name: Run Stage 5 information-set strength matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          RESULTS="$GITHUB_WORKSPACE/results/forge_expert_ai_stage5"
+          rm -rf "$RESULTS"
+          mkdir -p "$RESULTS"
+
+          run_arm() {
+            local key="$1"
+            local samples="$2"
+            local st_mode="$3"
+            local benchmark_mode="$4"
+
+            echo "============================================================"
+            echo "ARM: $key"
+            echo "INFORMATION-SET SAMPLES: $samples"
+            echo "S.T AI: $st_mode"
+            echo "BENCHMARK AI: $benchmark_mode"
+            echo "GAMES: $GAMES_PER_ARM"
+            echo "SEED: $FORGE_SEED"
+            echo "============================================================"
+
+            set +e
+            (
+              cd "$FORGE_HOME"
+              java -Xmx3g \
+                -Dforge.expert.infoset=true \
+                -Dforge.expert.infoset.samples="$samples" \
+                -jar "$FORGE_JAR" sim \
+                -D "$HOME/.forge/decks/constructed" \
+                -d "ST Forge Full.dck" "Benchmark Red Forge.dck" \
+                -x "$st_mode" "$benchmark_mode" \
+                -n "$GAMES_PER_ARM" \
+                -s "$FORGE_SEED" \
+                -q -c 180
+            ) 2>&1 | tee "$RESULTS/$key.log"
+            local forge_exit=${PIPESTATUS[0]}
+            set -e
+
+            echo "$forge_exit" > "$RESULTS/$key.exit_code.txt"
+            if [ "$forge_exit" -ne 0 ]; then
+              echo "Forge failed in arm $key with exit code $forge_exit"
+              exit "$forge_exit"
+            fi
+          }
+
+          run_arm single_full_default 1 full default
+          run_arm ensemble_full_default 3 full default
+          run_arm single_default_full 1 default full
+          run_arm ensemble_default_full 3 default full
+
+      - name: Build Stage 5 report
+        run: |
+          python3 forge_infoset_ensemble_report.py \
+            --results "$GITHUB_WORKSPACE/results/forge_expert_ai_stage5" \
+            --games "$GAMES_PER_ARM" \
+            --seed "$FORGE_SEED"
+
+      - name: Save Stage 5 result
+        if: always()
+        run: |
+          RESULTS="results/forge_expert_ai_stage5"
+          if [ ! -d "$RESULTS" ]; then
+            echo "No Stage 5 results directory to save."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$RESULTS/"
+          if git diff --cached --quiet; then
+            echo "No Stage 5 result changes to save."
+          else
+            git pull --rebase
+            git commit -m "Update Forge expert-AI Stage 5 result"
+            git push
+          fi
