@@ -9,7 +9,7 @@ The target is **expert-human-level decision quality while Forge remains the rule
 - Cloud execution: GitHub Actions.
 - Existing balance lab: Forge Default heuristic AI.
 
-## Stage 3 — search AI enabled in headless Forge
+## Stage 3 — search AI enabled in headless Forge — PASSED
 
 Forge already contains two simulation options in its AI module:
 
@@ -22,58 +22,58 @@ Normal headless `sim` mode does not expose these options. `patch_forge_expert_cl
 - `hybrid`
 - `full`
 
-Example after patching:
+The Stage 3 workflow successfully built patched Forge and completed all four benchmark arms using the real full-simulation mode. The initial 10-game-per-arm smoke result was:
+
+- default/default: S.T 7–3
+- full/full: S.T 7–3
+- full/default: S.T 8–2
+- default/full: S.T 7–3
+
+This sample is intentionally too small for a strength claim; its purpose was to prove the search mode works in cloud simulations.
+
+## Stage 4 — information boundary — IMPLEMENTED, VALIDATION PENDING
+
+Forge full simulation copies the real `Game`, including hidden zones. Even though its board evaluator uses opponent hand count rather than opponent hand identities, search should not inherit the actual unknown hand or actual future library order.
+
+`patch_forge_information_set.py` adds a determinization boundary inside `GameSimulator` when Forge is launched with:
 
 ```text
-java -jar forge.jar sim \
-  -d "ST Forge Full.dck" "Benchmark Red Forge.dck" \
-  -x full full \
-  -n 20 -s 20261004 -q
+-Dforge.expert.infoset=true
 ```
 
-The workflow `Forge Expert AI Stage 3 — Full Simulation` builds Forge from the official `forge-2.0.15` tag with this small CLI patch and runs four arms:
+For each search copy it:
 
-1. default S.T vs default Benchmark
-2. full-simulation S.T vs full-simulation Benchmark
-3. full-simulation S.T vs default Benchmark
-4. default S.T vs full-simulation Benchmark
+- preserves all public game state
+- preserves the acting player's own hidden information
+- preserves cards the acting player is explicitly allowed to look at
+- preserves opponent hand and library sizes
+- pools unknown opponent hand and library cards
+- resamples the unknown hand and future library order
+- uses a local deterministic RNG seed built only from public/count state, so it does not consume the real game's RNG stream
 
-The mixed arms are an initial strength check for Forge's search mode.
+The workflow `Forge Expert AI Stage 4 — Information Boundary` compares two full-simulation arms:
 
-## Why Stage 3 is not the final expert AI
+1. raw Forge full simulation
+2. full simulation with information-set determinization
 
-Forge's full-simulation mode is substantially closer to search-based play than the normal heuristic AI, but it is not a trained expert agent and should not be described as proven expert-human strength.
+This is a major anti-cheating step, but it is still a **single determinization** per search state, not full information-set search.
 
-The final architecture should add the following layers.
+## Stage 5 — multi-sample information-set search
 
-### Stage 4 — strict information boundary
-
-Create an immutable `AIView` that contains only information the acting player is entitled to know:
-
-- own hand identities
-- public battlefield, graveyard, stack, exile information
-- opponent hand count, not hidden identities
-- known/revealed hidden cards only
-- no future library order
-
-All expert-search code must accept `AIView`, not raw `Game` objects containing hidden zones.
-
-### Stage 5 — information-set search
-
-Search over plausible hidden opponent states instead of assuming perfect information.
+The next search upgrade is to evaluate each candidate action across multiple plausible hidden worlds rather than one sampled world.
 
 For each decision:
 
 1. generate legal actions through Forge
-2. sample opponent hands/library states consistent with known information
-3. simulate candidate actions across those samples
-4. model opponent best responses
+2. generate multiple opponent hand/library determinizations consistent with known information
+3. simulate every candidate action across the same determinization set
+4. model opponent responses in each world
 5. aggregate expected value and downside risk
 6. choose the action with the highest estimated match win probability
 
-This should use information-set MCTS or a related imperfect-information search method rather than ordinary perfect-information minimax.
+This should move toward information-set MCTS or a related imperfect-information search method rather than ordinary perfect-information search.
 
-### Stage 6 — expert value model
+## Stage 6 — expert value model
 
 Replace hand-written board scores with a learned evaluator that estimates match win probability from a legal-information state.
 
@@ -89,7 +89,7 @@ Training records should include:
 
 Self-play can then improve the evaluator continuously.
 
-### Stage 7 — specialist decision modules
+## Stage 7 — specialist decision modules
 
 Add dedicated search/evaluation for:
 
@@ -102,7 +102,7 @@ Add dedicated search/evaluation for:
 - sideboarding
 - tutor/search decisions
 
-### Stage 8 — expert validation
+## Stage 8 — expert validation
 
 Do not call the system expert-human until it passes external validation:
 
@@ -114,4 +114,4 @@ Do not call the system expert-human until it passes external validation:
 
 ## Balance-testing rule
 
-Until Stage 8 is reached, card-balance reports must name the AI used. A Forge Default result and a Forge Full-Simulation result are separate measurements and should not be treated as equivalent to expert-human balance results.
+Until Stage 8 is reached, card-balance reports must name the AI used. Forge Default, Forge Full Simulation, and information-set Full Simulation are separate measurements and should not be treated as equivalent to expert-human balance results.
