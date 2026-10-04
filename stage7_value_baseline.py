@@ -2,7 +2,8 @@
 """Stage 7B transparent value-model baseline.
 
 Consumes Stage 7 legal-information JSONL only. No Forge/card rules are changed.
-Rows are split by run_seed before fitting to prevent same-run leakage.
+Rows are split by complete game_group before fitting so decisions from one game can
+never straddle training and validation. run_seed remains provenance, not a split key.
 """
 from __future__ import annotations
 import argparse, json, math, random
@@ -18,11 +19,11 @@ def load(path):
         bad=FORBIDDEN & r.keys()
         if bad: raise ValueError(f'hidden-information leakage: {sorted(bad)}')
         if not r.get('complete_action_identity'): raise ValueError('missing complete action identity')
+        if not r.get('game_group'): raise ValueError('missing game_group; split must be by complete Forge game')
     return rows
 
 
 def features(r):
-    # Intentionally small and interpretable. Never inspect card identities in hidden zones.
     return [1.0,
             float(r.get('acting_life',0)), float(r.get('opponent_life',0)),
             float(len(r.get('own_hand',[]))),
@@ -73,14 +74,15 @@ def main():
         y=float(r[label])
         if not 0.0 <= y <= 1.0:
             raise SystemExit(f'Stage 7B BLOCKED: invalid game_result {y}; expected 0 loss, 0.5 draw, or 1 win.')
-    seeds=sorted({str(r['run_seed']) for r in rows}); random.Random(a.seed).shuffle(seeds)
-    n=max(1,int(round(len(seeds)*a.holdout))) if len(seeds)>1 else 0
-    held=set(seeds[:n]); train=[r for r in rows if str(r['run_seed']) not in held]; test=[r for r in rows if str(r['run_seed']) in held]
-    if not train or not test: raise SystemExit('Stage 7B BLOCKED: need at least two independent run_seed groups for leakage-safe holdout.')
+    groups=sorted({str(r['game_group']) for r in rows}); random.Random(a.seed).shuffle(groups)
+    n=max(1,int(round(len(groups)*a.holdout))) if len(groups)>1 else 0
+    held=set(groups[:n]); train=[r for r in rows if str(r['game_group']) not in held]; test=[r for r in rows if str(r['game_group']) in held]
+    if not train or not test: raise SystemExit('Stage 7B BLOCKED: need at least two complete games for leakage-safe holdout.')
+    if {r['game_group'] for r in train} & {r['game_group'] for r in test}: raise SystemExit('Stage 7B BLOCKED: same-game train/holdout leakage')
     y=lambda r: float(r[label])
     tx=[features(r) for r in train]; ty=[y(r) for r in train]; vx=[features(r) for r in test]; vy=[y(r) for r in test]
     w=fit(tx,ty)
     names=['bias','acting_life','opponent_life','own_hand_count','opponent_unknown_hand_count','own_library_count','opponent_library_count','battlefield_public_count','graveyard_public_count','exile_public_count','stack_public_count','turn']
-    print(json.dumps({'schema':'stage7b-linear-v1','train_rows':len(train),'holdout_rows':len(test),'train_seed_groups':len(set(str(r['run_seed']) for r in train)),'holdout_seed_groups':len(held),'train_logloss':logloss(w,tx,ty),'holdout_logloss':logloss(w,vx,vy),'weights':dict(zip(names,w))},sort_keys=True))
+    print(json.dumps({'schema':'stage7b-linear-v2-game-holdout','train_rows':len(train),'holdout_rows':len(test),'train_game_groups':len(set(str(r['game_group']) for r in train)),'holdout_game_groups':len(held),'train_logloss':logloss(w,tx,ty),'holdout_logloss':logloss(w,vx,vy),'weights':dict(zip(names,w))},sort_keys=True))
 
 if __name__=='__main__': main()
