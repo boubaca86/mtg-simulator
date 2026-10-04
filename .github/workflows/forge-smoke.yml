@@ -37,27 +37,49 @@ jobs:
           mkdir -p forge-dist
           curl --fail --location --retry 3 --output forge.tar.bz2 "$FORGE_URL"
           tar -xjf forge.tar.bz2 -C forge-dist
+
           FORGE_JAR="$(find forge-dist -type f -name 'forge-gui-desktop-*-jar-with-dependencies.jar' -print -quit)"
           if [ -z "$FORGE_JAR" ]; then
             echo "Forge desktop jar was not found after extraction."
-            find forge-dist -maxdepth 3 -type f | head -100
+            find forge-dist -maxdepth 4 -type f | head -150
             exit 1
           fi
+
+          # Forge's desktop release resolves res/ from the process working directory.
+          # Locate the shipped English language bundle and run Forge from the directory
+          # that contains res/ instead of from the GitHub repository root.
+          LANG_FILE="$(find forge-dist -type f -path '*/res/languages/en-US.properties' -print -quit)"
+          if [ -z "$LANG_FILE" ]; then
+            echo "Forge language resources were not found after extraction."
+            find forge-dist -maxdepth 5 -type d -name languages -print
+            exit 1
+          fi
+
+          FORGE_JAR="$(realpath "$FORGE_JAR")"
+          FORGE_HOME="$(dirname "$(dirname "$(dirname "$LANG_FILE")")")"
+          FORGE_HOME="$(realpath "$FORGE_HOME")"
+
+          test -f "$FORGE_HOME/res/languages/en-US.properties"
           echo "FORGE_JAR=$FORGE_JAR" >> "$GITHUB_ENV"
+          echo "FORGE_HOME=$FORGE_HOME" >> "$GITHUB_ENV"
           echo "Forge jar: $FORGE_JAR"
+          echo "Forge assets directory: $FORGE_HOME"
 
       - name: Run Forge S.T rules smoke test
         run: |
-          mkdir -p results/forge_smoke
+          mkdir -p "$GITHUB_WORKSPACE/results/forge_smoke"
           set +e
-          java -Xmx2g -jar "$FORGE_JAR" sim \
-            -D "$HOME/.forge/decks/constructed" \
-            -d "ST Forge Smoke.dck" "Benchmark Red Forge.dck" \
-            -n 20 -q -c 60 2>&1 | tee results/forge_smoke/latest.log
+          (
+            cd "$FORGE_HOME"
+            java -Xmx2g -jar "$FORGE_JAR" sim \
+              -D "$HOME/.forge/decks/constructed" \
+              -d "ST Forge Smoke.dck" "Benchmark Red Forge.dck" \
+              -n 20 -q -c 60
+          ) 2>&1 | tee "$GITHUB_WORKSPACE/results/forge_smoke/latest.log"
           FORGE_EXIT=${PIPESTATUS[0]}
-          echo "$FORGE_EXIT" > results/forge_smoke/exit_code.txt
+          echo "$FORGE_EXIT" > "$GITHUB_WORKSPACE/results/forge_smoke/exit_code.txt"
           printf '{\n  "forge_version": "%s",\n  "exit_code": %s,\n  "custom_cards": 4,\n  "games_requested": 20\n}\n' \
-            "$FORGE_VERSION" "$FORGE_EXIT" > results/forge_smoke/status.json
+            "$FORGE_VERSION" "$FORGE_EXIT" > "$GITHUB_WORKSPACE/results/forge_smoke/status.json"
           exit "$FORGE_EXIT"
 
       - name: Save Forge smoke-test log
