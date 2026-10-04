@@ -38,7 +38,6 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-          cache: maven
 
       - name: Export full S.T custom set and decks
         run: python3 forge_export.py --user-dir "$HOME/.forge"
@@ -47,9 +46,11 @@ jobs:
         run: |
           set -euo pipefail
           git clone --depth 1 --branch "$FORGE_TAG" https://github.com/Card-Forge/forge.git forge-src
+          test -f forge-src/pom.xml
 
       - name: Expose Forge full-simulation AI to CLI
         run: |
+          set -euo pipefail
           python3 patch_forge_expert_cli.py \
             forge-src/forge-gui-desktop/src/main/java/forge/view/SimulateMatch.java
           grep -n "AI search mode per player" \
@@ -147,6 +148,10 @@ jobs:
       - name: Save expert-AI benchmark result
         if: always()
         run: |
+          if [ ! -d results/forge_expert_ai ]; then
+            echo "No expert-AI results directory was produced; nothing to save."
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add results/forge_expert_ai/
