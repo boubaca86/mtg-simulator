@@ -1,0 +1,95 @@
+name: Forge Expert AI Stage 7A — Live Dataset Reproducibility
+
+on:
+  workflow_dispatch:
+    inputs:
+      games:
+        description: "Games per reproducibility pass"
+        required: true
+        default: "4"
+      seed:
+        description: "Forge RNG seed"
+        required: true
+        default: "20261004"
+  push:
+    branches: [main]
+    paths:
+      - "patch_forge_stage7_dataset_capture.py"
+      - "patch_forge_stage7_legal_extractor.py"
+      - ".github/workflows/forge-expert-ai-stage7a-live-dataset.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  live-dataset-reproducibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Export decks
+        run: python3 forge_export.py --user-dir "$HOME/.forge"
+      - name: Clone pinned Forge
+        run: git clone --depth 1 --branch forge-2.0.15 https://github.com/Card-Forge/forge.git forge-src
+      - name: Apply expert AI and Stage 7A patches
+        run: |
+          python3 patch_forge_expert_cli.py forge-src/forge-gui-desktop/src/main/java/forge/view/SimulateMatch.java
+          python3 patch_forge_information_set.py forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java
+          python3 patch_forge_infoset_ensemble.py --game-simulator forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python3 patch_forge_complete_action_identity.py forge-src/forge-ai/src/main/java/forge/ai/simulation/Plan.java
+          python3 patch_forge_strategy_fusion_audit.py --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python3 patch_forge_stage7_legal_extractor.py forge-src/forge-ai/src/main/java
+          python3 patch_forge_stage7_dataset_capture.py forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+      - name: Build patched Forge
+        working-directory: forge-src
+        run: |
+          mvn -B -pl forge-gui-desktop -am -DskipTests -Dcheckstyle.skip=true package
+          FORGE_JAR="$(find forge-gui-desktop/target -type f -name '*-jar-with-dependencies.jar' -print -quit)"
+          echo "FORGE_JAR=$(realpath "$FORGE_JAR")" >> "$GITHUB_ENV"
+          echo "FORGE_HOME=$(realpath forge-gui)" >> "$GITHUB_ENV"
+      - name: Run identical corpus twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          for PASS in 1 2; do
+            cd "$FORGE_HOME"
+            java -Xmx6g -Dforge.expert.infoset=true -Dforge.expert.infoset.samples=3 \
+              -Dforge.expert.stage7.dataset=true -Dforge.expert.stage7.matchup=st-vs-benchmark-red \
+              -jar "$FORGE_JAR" sim -D "$HOME/.forge/decks/constructed" \
+              -d "ST Forge Full.dck" "Benchmark Red Forge.dck" -x full default \
+              -n "${{ inputs.games || '4' }}" -s "${{ inputs.seed || '20261004' }}" -q -c 180 \
+              > "$GITHUB_WORKSPACE/stage7-pass${PASS}.log" 2>&1
+            cd "$GITHUB_WORKSPACE"
+            grep '^EXPERT_STAGE7_DATA: ' "stage7-pass${PASS}.log" | sed 's/^EXPERT_STAGE7_DATA: //' > "stage7-pass${PASS}.jsonl"
+          done
+      - name: Verify legal and reproducible dataset
+        run: |
+          test -s stage7-pass1.jsonl
+          test -s stage7-pass2.jsonl
+          diff -u stage7-pass1.jsonl stage7-pass2.jsonl
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rows = [json.loads(x) for x in Path('stage7-pass1.jsonl').read_text().splitlines() if x.strip()]
+          assert rows, 'no decision rows captured'
+          required = {'schema_version','run_seed','decision_index','acting_player','turn','phase','acting_life','opponent_life','own_hand','opponent_unknown_hand_count','own_library_count','opponent_library_count','battlefield_public','graveyard_public','exile_public','stack_public','matchup_id','complete_action_identity','infoset_sample_count'}
+          forbidden = {'opponent_hand','opponent_hand_cards','own_library','opponent_library','library_order','future_draws'}
+          for row in rows:
+              assert required <= row.keys(), required - row.keys()
+              assert not (forbidden & row.keys()), forbidden & row.keys()
+              assert row['infoset_sample_count'] == 3
+              assert row['complete_action_identity']
+          print(f'Stage 7A live dataset gate passed: {len(rows)} legal decision rows, byte-identical across two seeded runs.')
+          PY
+      - uses: actions/upload-artifact@v6
+        with:
+          name: stage7a-live-dataset
+          path: |
+            stage7-pass1.jsonl
+            stage7-pass2.jsonl
+            stage7-pass1.log
+            stage7-pass2.log
