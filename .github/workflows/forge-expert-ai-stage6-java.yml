@@ -1,0 +1,36 @@
+name: Forge Expert AI Stage 6 — Java Action Identity
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "patch_forge_complete_action_identity.py"
+      - ".github/workflows/forge-expert-ai-stage6-java.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  java-action-identity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Clone pinned Forge source
+        run: git clone --depth 1 --branch forge-2.0.15 https://github.com/Card-Forge/forge.git forge-src
+      - name: Patch complete-action identity into Forge Plan
+        run: |
+          python3 patch_forge_complete_action_identity.py forge-src/forge-ai/src/main/java/forge/ai/simulation/Plan.java
+          grep -n "completeActionIdentity" forge-src/forge-ai/src/main/java/forge/ai/simulation/Plan.java
+          grep -n 'append("|x=")' forge-src/forge-ai/src/main/java/forge/ai/simulation/Plan.java
+          grep -n 'append("|modes=")' forge-src/forge-ai/src/main/java/forge/ai/simulation/Plan.java
+          grep -n 'append("|targets=")' forge-src/forge-ai/src/main/java/forge/ai/simulation/Plan.java
+          grep -n 'append("|choices=")' forge-src/forge-ai/src/main/java/forge/ai/simulation/Plan.java
+      - name: Compile patched Forge AI module
+        working-directory: forge-src
+        run: mvn -B -pl forge-ai -am -DskipTests -Dcheckstyle.skip=true package
