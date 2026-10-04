@@ -1,13 +1,13 @@
 Error handling registered!
-01:19:33 [INFO ] GuiBase: ##########################################
-01:19:33 [INFO ] GuiBase: APP: Forge v.2.0.15-SNAPSHOT-09.28
-01:19:33 [INFO ] GuiBase: Java: 21.0.12.1 (Eclipse Adoptium)
-01:19:33 [INFO ] GuiBase: OS: Linux 6.17.0-1022-azure amd64
-01:19:33 [INFO ] GuiBase: RAM: 2048 MB max, 4 CPUs
-01:19:33 [INFO ] GuiBase: ##########################################
+01:23:39 [INFO ] GuiBase: ##########################################
+01:23:39 [INFO ] GuiBase: APP: Forge v.2.0.15-SNAPSHOT-09.28
+01:23:39 [INFO ] GuiBase: Java: 21.0.12.1 (Eclipse Adoptium)
+01:23:39 [INFO ] GuiBase: OS: Linux 6.17.0-1022-azure amd64
+01:23:39 [INFO ] GuiBase: RAM: 2048 MB max, 4 CPUs
+01:23:39 [INFO ] GuiBase: ##########################################
 Language 'en-US' loaded successfully.
 (ThreadUtil first call): Running with priority 5
-Read cards: 34010 archived files in 1 ms (25 parts) using thread pool
+Read cards: 34010 archived files in 0 ms (25 parts) using thread pool
 Read cards: 4 files in 0 ms (1 parts) using thread pool
 Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
 The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
@@ -32,4 +32,278 @@ The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set..
 Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
 Read cards: 854 files in 0 ms (8 parts) using thread pool
 Simulation mode
-Could not load deck - ST Forge Smoke.dck, match cannot start
+Ai(1)-ST Forge Smoke vs Ai(2)-Benchmark Red Forge - twenty  games of Constructed
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Pyroclast Squad S.T Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 01s
+Game Outcome: Turn 11
+Game Outcome: Ai(1)-ST Forge Smoke has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Forge Smoke: 1 Ai(2)-Benchmark Red Forge: 0 
+
+Game Result: Game 1 ended in 2650 ms. Ai(1)-ST Forge Smoke has won!
+
+Shock Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 01s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Forge Smoke has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Forge Smoke: 2 Ai(2)-Benchmark Red Forge: 0 
+
+Game Result: Game 2 ended in 1373 ms. Ai(1)-ST Forge Smoke has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Shock Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Forge Smoke has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Forge Smoke: 3 Ai(2)-Benchmark Red Forge: 0 
+
+Game Result: Game 3 ended in 788 ms. Ai(1)-ST Forge Smoke has won!
+
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Shock Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Piker Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Forge Smoke has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Forge Smoke: 4 Ai(2)-Benchmark Red Forge: 0 
+
+Game Result: Game 4 ended in 826 ms. Ai(1)-ST Forge Smoke has won!
+
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 03s
+Game Outcome: Turn 23
+Game Outcome: Ai(1)-ST Forge Smoke has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Forge Smoke: 4 Ai(2)-Benchmark Red Forge: 1 
+
+Game Result: Game 5 ended in 3680 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Piker Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 11
+Game Outcome: Ai(1)-ST Forge Smoke has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Forge Smoke: 5 Ai(2)-Benchmark Red Forge: 1 
+
+Game Result: Game 6 ended in 801 ms. Ai(1)-ST Forge Smoke has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Forge Smoke has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Forge Smoke: 6 Ai(2)-Benchmark Red Forge: 1 
+
+Game Result: Game 7 ended in 456 ms. Ai(1)-ST Forge Smoke has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Forge Smoke has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Forge Smoke: 7 Ai(2)-Benchmark Red Forge: 1 
+
+Game Result: Game 8 ended in 479 ms. Ai(1)-ST Forge Smoke has won!
+
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Forge Smoke has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Forge Smoke: 8 Ai(2)-Benchmark Red Forge: 1 
+
+Game Result: Game 9 ended in 541 ms. Ai(1)-ST Forge Smoke has won!
+
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Forge Smoke has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Forge Smoke: 9 Ai(2)-Benchmark Red Forge: 1 
+
+Game Result: Game 10 ended in 653 ms. Ai(1)-ST Forge Smoke has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Piker Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Elemental Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Forge Smoke has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Forge Smoke: 10 Ai(2)-Benchmark Red Forge: 1 
+
+Game Result: Game 11 ended in 612 ms. Ai(1)-ST Forge Smoke has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Shock Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 11
+Game Outcome: Ai(1)-ST Forge Smoke has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Forge Smoke: 11 Ai(2)-Benchmark Red Forge: 1 
+
+Game Result: Game 12 ended in 916 ms. Ai(1)-ST Forge Smoke has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Shock Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Shock Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Elemental Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 14
+Game Outcome: Ai(1)-ST Forge Smoke has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Forge Smoke: 11 Ai(2)-Benchmark Red Forge: 2 
+
+Game Result: Game 13 ended in 884 ms. Ai(2)-Benchmark Red Forge has won!
+
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Elemental Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Elemental Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Forge Smoke has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Forge Smoke: 12 Ai(2)-Benchmark Red Forge: 2 
+
+Game Result: Game 14 ended in 468 ms. Ai(1)-ST Forge Smoke has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Piker Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Forge Smoke has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Forge Smoke: 13 Ai(2)-Benchmark Red Forge: 2 
+
+Game Result: Game 15 ended in 527 ms. Ai(1)-ST Forge Smoke has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 13
+Game Outcome: Ai(1)-ST Forge Smoke has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Forge Smoke: 13 Ai(2)-Benchmark Red Forge: 3 
+
+Game Result: Game 16 ended in 860 ms. Ai(2)-Benchmark Red Forge has won!
+
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Shock Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Forge Smoke has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Forge Smoke: 14 Ai(2)-Benchmark Red Forge: 3 
+
+Game Result: Game 17 ended in 605 ms. Ai(1)-ST Forge Smoke has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Drop Pod S.T Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Drop Pod S.T Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 12
+Game Outcome: Ai(1)-ST Forge Smoke has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Forge Smoke: 15 Ai(2)-Benchmark Red Forge: 3 
+
+Game Result: Game 18 ended in 915 ms. Ai(1)-ST Forge Smoke has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Piker Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Elemental Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Forge Smoke has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Forge Smoke: 15 Ai(2)-Benchmark Red Forge: 4 
+
+Game Result: Game 19 ended in 448 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Drop Pod S.T Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Forge Smoke has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Forge Smoke: 15 Ai(2)-Benchmark Red Forge: 5 
+
+Game Result: Game 20 ended in 715 ms. Ai(2)-Benchmark Red Forge has won!
+
