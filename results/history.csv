@@ -1,2 +1,3 @@
 run,time_utc,games_this_run,player_a_wins_this_run,player_b_wins_this_run,total_games,player_a_total_wins,player_b_total_wins
 1,2026-10-04T00:06:19.730090+00:00,100000,49866,50134,100000,49866,50134
+2,2026-10-04T00:09:57.356131+00:00,100000,49864,50136,200000,99730,100270

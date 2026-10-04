@@ -1,9 +1,9 @@
 {
-  "runs": 1,
-  "total_games": 100000,
-  "player_a_wins": 49866,
-  "player_b_wins": 50134,
-  "last_run_utc": "2026-10-04T00:06:19.730090+00:00",
-  "player_a_win_rate": 49.866,
-  "player_b_win_rate": 50.134
+  "runs": 2,
+  "total_games": 200000,
+  "player_a_wins": 99730,
+  "player_b_wins": 100270,
+  "last_run_utc": "2026-10-04T00:09:57.356131+00:00",
+  "player_a_win_rate": 49.864999999999995,
+  "player_b_win_rate": 50.135
 }
