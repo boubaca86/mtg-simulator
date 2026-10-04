@@ -31,7 +31,7 @@ The Stage 3 workflow successfully built patched Forge and completed all four ben
 
 This sample is intentionally too small for a strength claim; its purpose was to prove the search mode works in cloud simulations.
 
-## Stage 4 — information boundary — IMPLEMENTED, VALIDATION PENDING
+## Stage 4 — information boundary — PASSED
 
 Forge full simulation copies the real `Game`, including hidden zones. Even though its board evaluator uses opponent hand count rather than opponent hand identities, search should not inherit the actual unknown hand or actual future library order.
 
@@ -51,27 +51,35 @@ For each search copy it:
 - resamples the unknown hand and future library order
 - uses a local deterministic RNG seed built only from public/count state, so it does not consume the real game's RNG stream
 
-The workflow `Forge Expert AI Stage 4 — Information Boundary` compares two full-simulation arms:
+The Stage 4 workflow completed both validation arms with no crashes or timeouts:
 
-1. raw Forge full simulation
-2. full simulation with information-set determinization
+- raw full simulation: S.T 7–3
+- information-set full simulation: S.T 7–3
 
-This is a major anti-cheating step, but it is still a **single determinization** per search state, not full information-set search.
+The 10-game arms are only an engineering validation; they are not a strength or balance claim.
 
-## Stage 5 — multi-sample information-set search
+## Stage 5 — multi-sample information-set search — IMPLEMENTED / VALIDATION RUNNING
 
-The next search upgrade is to evaluate each candidate action across multiple plausible hidden worlds rather than one sampled world.
+`patch_forge_infoset_ensemble.py` upgrades the root decision from one hidden-world determinization to an ensemble of plausible hidden worlds.
 
-For each decision:
+For each root decision it:
 
-1. generate legal actions through Forge
-2. generate multiple opponent hand/library determinizations consistent with known information
-3. simulate every candidate action across the same determinization set
-4. model opponent responses in each world
-5. aggregate expected value and downside risk
-6. choose the action with the highest estimated match win probability
+1. generates legal candidate spells/abilities through Forge
+2. generates multiple opponent hand/library determinizations consistent with known information
+3. evaluates each root candidate in every sampled world
+4. allows Forge Full Simulation to model responses/lookahead inside each sampled world
+5. averages candidate values across the sampled worlds
+6. selects the action with the best mean value
+7. retains only the chosen root action, then re-searches at the next real priority window instead of following a multi-step plan tailored to one sampled hidden world
 
-This should move toward information-set MCTS or a related imperfect-information search method rather than ordinary perfect-information search.
+Stage 5 also keeps a sampled world internally consistent during recursive lookahead instead of re-determinizing at each recursive node.
+
+The initial workflow compares one-sample and three-sample search in both mixed-strength directions:
+
+- full-search S.T vs default Benchmark
+- default S.T vs full-search Benchmark
+
+This is **root-sampled information-set search**, not yet full IS-MCTS.
 
 ## Stage 6 — expert value model
 
@@ -114,4 +122,4 @@ Do not call the system expert-human until it passes external validation:
 
 ## Balance-testing rule
 
-Until Stage 8 is reached, card-balance reports must name the AI used. Forge Default, Forge Full Simulation, and information-set Full Simulation are separate measurements and should not be treated as equivalent to expert-human balance results.
+Until Stage 8 is reached, card-balance reports must name the AI used. Forge Default, Forge Full Simulation, single-determinization information-set search, and multi-sample information-set search are separate measurements and should not be treated as equivalent to expert-human balance results.
