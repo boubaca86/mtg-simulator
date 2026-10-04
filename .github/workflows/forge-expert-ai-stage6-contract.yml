@@ -1,0 +1,25 @@
+name: Forge Expert AI Stage 6 — Action Consistency Contract
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "stage6_action_consistency_model.py"
+      - "test_stage6_action_consistency.py"
+      - ".github/workflows/forge-expert-ai-stage6-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  action-consistency-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Run adversarial information-set regression contract
+        run: python -m unittest -v test_stage6_action_consistency.py
