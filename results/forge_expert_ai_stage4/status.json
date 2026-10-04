@@ -1,0 +1,32 @@
+{
+  "experiment": "forge_information_set_stage4",
+  "forge_tag": "forge-2.0.15",
+  "games_requested_per_arm": 10,
+  "seed": 20261004,
+  "arms": {
+    "full_raw": {
+      "games_completed": 10,
+      "st_wins": 7,
+      "benchmark_wins": 3,
+      "draws": 0,
+      "timeouts": 0,
+      "information_set_determinization": false,
+      "st_win_rate": 0.7
+    },
+    "full_infoset": {
+      "games_completed": 10,
+      "st_wins": 7,
+      "benchmark_wins": 3,
+      "draws": 0,
+      "timeouts": 0,
+      "information_set_determinization": true,
+      "st_win_rate": 0.7
+    }
+  },
+  "notes": [
+    "Both players use Forge USE_FULL_SIMULATION.",
+    "full_raw searches the copied game with Forge's ordinary hidden state.",
+    "full_infoset resamples unknown opponent hand/library cards before search and preserves cards visible to the acting player.",
+    "This is one deterministic information-set sample per search state; multi-sample aggregation is Stage 5."
+  ]
+}
