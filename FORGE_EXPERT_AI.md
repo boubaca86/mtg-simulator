@@ -39,19 +39,21 @@ Therefore the Stage 5 win-rate numbers are quarantined from expert-strength clai
 
 See `STAGE6_INFORMATION_SET_AUDIT.md` for the action-consistency requirement.
 
-## Stage 6 — complete-action information-set search — CURRENT PRIORITY
+## Stage 6 — complete-action information-set search — LIVE REGRESSION GATE PASSED
 
-Before adding a learned value model, search must be information-set correct at the complete-action level.
+Complete root-action identity now covers the spell/ability plus selected modes, announced X, targets, and relevant choices. The live Forge audit observes those identities independently in every hidden-world sample and fails CI if the exercised worlds select different complete actions.
 
-A candidate root action must include the spell/ability plus all decisions that must be fixed using current legal information: selected modes, announced X, public targets, and relevant public sacrifice/discard/other choices. The **same complete action** must then be evaluated in every hidden-world determinization. Per-world re-optimization of those decisions is forbidden.
+The strengthened reproducible corpus completed 20/20 games, audited 825 complete root candidates across three hidden-world samples each, and observed 0 strategy-fusion divergences. The match result was 16–4 for Full information-set S.T against the Default benchmark.
 
-Validation requires an adversarial fixture where different hidden worlds would tempt the perfect-information simulator toward different public targets. The information-set AI must select one target by aggregate value and use that same target in every sample.
+This is a meaningful engineering gate, **not a universal proof** that no Magic position can expose another information-set bug. Stage 6 therefore remains permanently enabled as a regression gate during later expert-AI work. The earlier Stage 5 strength numbers remain historical engineering measurements rather than expert-strength evidence.
 
-Only after this passes should we train or integrate an expert value model; otherwise self-play risks learning labels contaminated by hidden-world strategy fusion.
+## Stage 7 — expert value model — CURRENT PRIORITY
 
-## Stage 7 — expert value model
+Stage 7A begins with the data contract and leakage tests, not with a neural network. See `STAGE7_EXPERT_VALUE_MODEL.md`.
 
-Replace hand-written board scores with a learned evaluator estimating match win probability from legal-information state. Training records should include state features, legal actions, chosen action, eventual result, matchup/archetype, play/draw, and mulligan decisions. Training data must come from information-set-clean search.
+Training records must contain only information legally available to the acting player plus complete legal actions and outcome/search labels. Real unknown opponent hand identities and future library identities/order are forbidden model inputs. Determinized worlds may contribute only aggregated values; sampled hidden identities must not escape into features.
+
+After deterministic extraction and leakage tests pass, Stage 7B may train a simple transparent baseline evaluator estimating game/match win probability. Learned-vs-baseline evaluation must use held-out seeds/positions and preserve the Stage 6 complete-action gate.
 
 ## Stage 8 — specialist decision modules
 
