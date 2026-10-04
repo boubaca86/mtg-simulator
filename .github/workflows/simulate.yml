@@ -1,5 +1,4 @@
 name: MTG Cloud Simulator
-name: MTG Cloud Simulator
 
 on:
   workflow_dispatch:
