@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Stage 7B transparent value-model baseline.
 
-Consumes Stage 7 legal-information JSONL only.  No Forge/card rules are changed.
-Rows are split by run_seed before fitting to prevent same-game leakage.
+Consumes Stage 7 legal-information JSONL only. No Forge/card rules are changed.
+Rows are split by run_seed before fitting to prevent same-run leakage.
 """
 from __future__ import annotations
 import argparse, json, math, random
@@ -66,15 +66,18 @@ def logloss(w,xs,ys):
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('jsonl'); ap.add_argument('--holdout',type=float,default=.25); ap.add_argument('--seed',type=int,default=7)
     a=ap.parse_args(); rows=load(a.jsonl)
-    # Stage 7B needs outcome labels. Refuse to manufacture labels from Forge search scores.
     label='game_result'
     if any(label not in r for r in rows):
         raise SystemExit('Stage 7B BLOCKED: dataset lacks game_result labels; capture eventual Forge game outcomes before training.')
+    for r in rows:
+        y=float(r[label])
+        if not 0.0 <= y <= 1.0:
+            raise SystemExit(f'Stage 7B BLOCKED: invalid game_result {y}; expected 0 loss, 0.5 draw, or 1 win.')
     seeds=sorted({str(r['run_seed']) for r in rows}); random.Random(a.seed).shuffle(seeds)
     n=max(1,int(round(len(seeds)*a.holdout))) if len(seeds)>1 else 0
     held=set(seeds[:n]); train=[r for r in rows if str(r['run_seed']) not in held]; test=[r for r in rows if str(r['run_seed']) in held]
     if not train or not test: raise SystemExit('Stage 7B BLOCKED: need at least two independent run_seed groups for leakage-safe holdout.')
-    y=lambda r: 1.0 if float(r[label])>0 else 0.0
+    y=lambda r: float(r[label])
     tx=[features(r) for r in train]; ty=[y(r) for r in train]; vx=[features(r) for r in test]; vy=[y(r) for r in test]
     w=fit(tx,ty)
     names=['bias','acting_life','opponent_life','own_hand_count','opponent_unknown_hand_count','own_library_count','opponent_library_count','battlefield_public_count','graveyard_public_count','exile_public_count','stack_public_count','turn']
