@@ -28,14 +28,17 @@ def patch(path: Path) -> None:
 """,
         """        aiPlayer = copier.find(origAiPlayer);
 
-        // Expert-AI information boundary: do not let search evaluate the opponent's
-        // actual hidden hand or actual future library order.  The copied game is
-        // determinized from information available to the acting player.  Known /
+        // Expert-AI information boundary. When enabled with
+        // -Dforge.expert.infoset=true, search never evaluates the opponent's
+        // actual hidden hand or actual future library order. The copied game is
+        // determinized from information available to the acting player. Known /
         // revealed hidden cards are kept in their known zones; unknown cards are
         // resampled between the opponent's hand and library while preserving zone
-        // counts.  A local RNG derived only from public/count information is used so
+        // counts. A local RNG derived only from public/count information is used so
         // search does not consume the real game's RNG stream.
-        determinizeOpponentHiddenInformation();
+        if (Boolean.getBoolean("forge.expert.infoset")) {
+            determinizeOpponentHiddenInformation();
+        }
 
         eval = new GameStateEvaluator();
 """,
