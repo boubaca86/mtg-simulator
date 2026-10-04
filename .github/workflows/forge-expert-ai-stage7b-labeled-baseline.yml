@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       games_per_seed:
-        description: "Games per independent seed group"
+        description: "Games per independent seed group and matchup orientation"
         required: true
         default: "2"
   push:
@@ -51,22 +51,33 @@ jobs:
           FORGE_JAR="$(find forge-gui-desktop/target -type f -name '*-jar-with-dependencies.jar' -print -quit)"
           echo "FORGE_JAR=$(realpath "$FORGE_JAR")" >> "$GITHUB_ENV"
           echo "FORGE_HOME=$(realpath forge-gui)" >> "$GITHUB_ENV"
-      - name: Capture independent labeled seed groups
+      - name: Capture independent outcome-diverse seed groups
         shell: bash
         run: |
           set -euo pipefail
           : > stage7b-labeled.jsonl
           for SEED in 20261004 20261005 20261006 20261007; do
-            cd "$FORGE_HOME"
-            java -Xmx6g -Dforge.expert.infoset=true -Dforge.expert.infoset.samples=3 \
-              -Dforge.expert.stage7.dataset=true -Dforge.expert.stage7.matchup=st-vs-benchmark-red \
-              -jar "$FORGE_JAR" sim -D "$HOME/.forge/decks/constructed" \
-              -d "ST Forge Full.dck" "Benchmark Red Forge.dck" -x full default \
-              -n "${{ inputs.games_per_seed || '2' }}" -s "$SEED" -q -c 180 \
-              > "$GITHUB_WORKSPACE/stage7b-${SEED}.log" 2>&1
-            cd "$GITHUB_WORKSPACE"
-            python3 stage7_label_outcomes.py "stage7b-${SEED}.log" "stage7b-${SEED}.jsonl"
-            cat "stage7b-${SEED}.jsonl" >> stage7b-labeled.jsonl
+            for ORIENTATION in st-first red-first; do
+              if [ "$ORIENTATION" = "st-first" ]; then
+                DECK_A="ST Forge Full.dck"
+                DECK_B="Benchmark Red Forge.dck"
+                MATCHUP="st-vs-benchmark-red"
+              else
+                DECK_A="Benchmark Red Forge.dck"
+                DECK_B="ST Forge Full.dck"
+                MATCHUP="benchmark-red-vs-st"
+              fi
+              cd "$FORGE_HOME"
+              java -Xmx6g -Dforge.expert.infoset=true -Dforge.expert.infoset.samples=3 \
+                -Dforge.expert.stage7.dataset=true -Dforge.expert.stage7.matchup="$MATCHUP" \
+                -jar "$FORGE_JAR" sim -D "$HOME/.forge/decks/constructed" \
+                -d "$DECK_A" "$DECK_B" -x full default \
+                -n "${{ inputs.games_per_seed || '2' }}" -s "$SEED" -q -c 180 \
+                > "$GITHUB_WORKSPACE/stage7b-${ORIENTATION}-${SEED}.log" 2>&1
+              cd "$GITHUB_WORKSPACE"
+              python3 stage7_label_outcomes.py "stage7b-${ORIENTATION}-${SEED}.log" "stage7b-${ORIENTATION}-${SEED}.jsonl"
+              cat "stage7b-${ORIENTATION}-${SEED}.jsonl" >> stage7b-labeled.jsonl
+            done
           done
       - name: Verify legal labels and complete-game isolation
         run: |
@@ -82,7 +93,7 @@ jobs:
           assert all(r.get('game_result') in (0.0,0.5,1.0) for r in rows)
           assert all(r.get('game_group') for r in rows)
           games={r['game_group'] for r in rows}
-          assert len(games) >= 4, f'need multiple complete games, got {games}'
+          assert len(games) >= 8, f'need multiple complete games, got {games}'
           # Every row in one game must carry one terminal result per acting player.
           for g in games:
               by_actor={}
@@ -90,7 +101,12 @@ jobs:
                   if r['game_group']==g:
                       by_actor.setdefault(r['acting_player'],set()).add(r['game_result'])
               assert all(len(v)==1 for v in by_actor.values()), (g,by_actor)
-          print(f'Validated {len(rows)} labeled legal decisions across {len(games)} complete Forge games.')
+          # A one-class corpus makes log-loss meaningless: a constant predictor can look perfect.
+          outcomes={r['game_result'] for r in rows}
+          assert 0.0 in outcomes and 1.0 in outcomes, f'need both wins and losses before training, got outcomes={sorted(outcomes)}'
+          matchups={r.get('matchup_id') for r in rows}
+          assert {'st-vs-benchmark-red','benchmark-red-vs-st'} <= matchups, f'missing matchup orientation: {matchups}'
+          print(f'Validated {len(rows)} labeled legal decisions across {len(games)} complete Forge games with outcomes {sorted(outcomes)}.')
           PY
           python3 stage7_value_baseline.py stage7b-labeled.jsonl | tee stage7b-model.json
       - uses: actions/upload-artifact@v6
