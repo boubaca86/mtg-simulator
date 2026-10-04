@@ -1,0 +1,2135 @@
+Error handling registered!
+02:02:55 [INFO ] GuiBase: ##########################################
+02:02:55 [INFO ] GuiBase: APP: Forge v.2.0.15-SNAPSHOT-09.28
+02:02:55 [INFO ] GuiBase: Java: 21.0.12.1 (Eclipse Adoptium)
+02:02:55 [INFO ] GuiBase: OS: Linux 6.17.0-1022-azure amd64
+02:02:55 [INFO ] GuiBase: RAM: 2048 MB max, 4 CPUs
+02:02:55 [INFO ] GuiBase: ##########################################
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 34010 archived files in 0 ms (25 parts) using thread pool
+Read cards: 14 files in 0 ms (1 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 854 files in 0 ms (8 parts) using thread pool
+Simulation mode
+Ai(1)-ST Balance Drop Pod Blank vs Ai(2)-Benchmark Red Forge - 200 games of Constructed seed 20261004
+Goblin Piker Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 02s
+Game Outcome: Turn 11
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 1 Ai(2)-Benchmark Red Forge: 0 
+
+Game Result: Game 1 ended in 2863 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 1 Ai(2)-Benchmark Red Forge: 1 
+
+Game Result: Game 2 ended in 650 ms. Ai(2)-Benchmark Red Forge has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 2 Ai(2)-Benchmark Red Forge: 1 
+
+Game Result: Game 3 ended in 1222 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 6
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 2 Ai(2)-Benchmark Red Forge: 2 
+
+Game Result: Game 4 ended in 627 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 3 Ai(2)-Benchmark Red Forge: 2 
+
+Game Result: Game 5 ended in 706 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Raging Goblin Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 4 Ai(2)-Benchmark Red Forge: 2 
+
+Game Result: Game 6 ended in 923 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 4 Ai(2)-Benchmark Red Forge: 3 
+
+Game Result: Game 7 ended in 640 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 5 Ai(2)-Benchmark Red Forge: 3 
+
+Game Result: Game 8 ended in 1032 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 5 Ai(2)-Benchmark Red Forge: 4 
+
+Game Result: Game 9 ended in 914 ms. Ai(2)-Benchmark Red Forge has won!
+
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 5 Ai(2)-Benchmark Red Forge: 5 
+
+Game Result: Game 10 ended in 590 ms. Ai(2)-Benchmark Red Forge has won!
+
+Lightning Elemental Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 6
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 5 Ai(2)-Benchmark Red Forge: 6 
+
+Game Result: Game 11 ended in 416 ms. Ai(2)-Benchmark Red Forge has won!
+
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 6 Ai(2)-Benchmark Red Forge: 6 
+
+Game Result: Game 12 ended in 559 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 7 Ai(2)-Benchmark Red Forge: 6 
+
+Game Result: Game 13 ended in 600 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 8 Ai(2)-Benchmark Red Forge: 6 
+
+Game Result: Game 14 ended in 638 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 11
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 9 Ai(2)-Benchmark Red Forge: 6 
+
+Game Result: Game 15 ended in 888 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Elemental Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 11
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 10 Ai(2)-Benchmark Red Forge: 6 
+
+Game Result: Game 16 ended in 771 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 11 Ai(2)-Benchmark Red Forge: 6 
+
+Game Result: Game 17 ended in 666 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 12
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 12 Ai(2)-Benchmark Red Forge: 6 
+
+Game Result: Game 18 ended in 990 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 12 Ai(2)-Benchmark Red Forge: 7 
+
+Game Result: Game 19 ended in 568 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 11
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 13 Ai(2)-Benchmark Red Forge: 7 
+
+Game Result: Game 20 ended in 957 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 13 Ai(2)-Benchmark Red Forge: 8 
+
+Game Result: Game 21 ended in 673 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 13 Ai(2)-Benchmark Red Forge: 9 
+
+Game Result: Game 22 ended in 452 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 14 Ai(2)-Benchmark Red Forge: 9 
+
+Game Result: Game 23 ended in 615 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 15 Ai(2)-Benchmark Red Forge: 9 
+
+Game Result: Game 24 ended in 642 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 6
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 15 Ai(2)-Benchmark Red Forge: 10 
+
+Game Result: Game 25 ended in 538 ms. Ai(2)-Benchmark Red Forge has won!
+
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 15 Ai(2)-Benchmark Red Forge: 11 
+
+Game Result: Game 26 ended in 523 ms. Ai(2)-Benchmark Red Forge has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 16 Ai(2)-Benchmark Red Forge: 11 
+
+Game Result: Game 27 ended in 727 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 17 Ai(2)-Benchmark Red Forge: 11 
+
+Game Result: Game 28 ended in 599 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Shock Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 17 Ai(2)-Benchmark Red Forge: 12 
+
+Game Result: Game 29 ended in 505 ms. Ai(2)-Benchmark Red Forge has won!
+
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 18 Ai(2)-Benchmark Red Forge: 12 
+
+Game Result: Game 30 ended in 823 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 19 Ai(2)-Benchmark Red Forge: 12 
+
+Game Result: Game 31 ended in 768 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 20 Ai(2)-Benchmark Red Forge: 12 
+
+Game Result: Game 32 ended in 607 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 12
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 21 Ai(2)-Benchmark Red Forge: 12 
+
+Game Result: Game 33 ended in 990 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 21 Ai(2)-Benchmark Red Forge: 13 
+
+Game Result: Game 34 ended in 410 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Piker Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 21 Ai(2)-Benchmark Red Forge: 14 
+
+Game Result: Game 35 ended in 859 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 22 Ai(2)-Benchmark Red Forge: 14 
+
+Game Result: Game 36 ended in 495 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 23 Ai(2)-Benchmark Red Forge: 14 
+
+Game Result: Game 37 ended in 476 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 23 Ai(2)-Benchmark Red Forge: 15 
+
+Game Result: Game 38 ended in 558 ms. Ai(2)-Benchmark Red Forge has won!
+
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 12
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 24 Ai(2)-Benchmark Red Forge: 15 
+
+Game Result: Game 39 ended in 957 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Lightning Elemental Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 25 Ai(2)-Benchmark Red Forge: 15 
+
+Game Result: Game 40 ended in 675 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 26 Ai(2)-Benchmark Red Forge: 15 
+
+Game Result: Game 41 ended in 406 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 27 Ai(2)-Benchmark Red Forge: 15 
+
+Game Result: Game 42 ended in 904 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 27 Ai(2)-Benchmark Red Forge: 16 
+
+Game Result: Game 43 ended in 411 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 28 Ai(2)-Benchmark Red Forge: 16 
+
+Game Result: Game 44 ended in 467 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 29 Ai(2)-Benchmark Red Forge: 16 
+
+Game Result: Game 45 ended in 505 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 30 Ai(2)-Benchmark Red Forge: 16 
+
+Game Result: Game 46 ended in 622 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 31 Ai(2)-Benchmark Red Forge: 16 
+
+Game Result: Game 47 ended in 629 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 6
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 31 Ai(2)-Benchmark Red Forge: 17 
+
+Game Result: Game 48 ended in 459 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 32 Ai(2)-Benchmark Red Forge: 17 
+
+Game Result: Game 49 ended in 694 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 6
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 32 Ai(2)-Benchmark Red Forge: 18 
+
+Game Result: Game 50 ended in 399 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Elemental Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 6
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 32 Ai(2)-Benchmark Red Forge: 19 
+
+Game Result: Game 51 ended in 407 ms. Ai(2)-Benchmark Red Forge has won!
+
+Raging Goblin Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 33 Ai(2)-Benchmark Red Forge: 19 
+
+Game Result: Game 52 ended in 565 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 6
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 33 Ai(2)-Benchmark Red Forge: 20 
+
+Game Result: Game 53 ended in 485 ms. Ai(2)-Benchmark Red Forge has won!
+
+Goblin Piker Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 11
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 34 Ai(2)-Benchmark Red Forge: 20 
+
+Game Result: Game 54 ended in 766 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 35 Ai(2)-Benchmark Red Forge: 20 
+
+Game Result: Game 55 ended in 534 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 36 Ai(2)-Benchmark Red Forge: 20 
+
+Game Result: Game 56 ended in 526 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Lightning Elemental Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 37 Ai(2)-Benchmark Red Forge: 20 
+
+Game Result: Game 57 ended in 597 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 6
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 37 Ai(2)-Benchmark Red Forge: 21 
+
+Game Result: Game 58 ended in 412 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 38 Ai(2)-Benchmark Red Forge: 21 
+
+Game Result: Game 59 ended in 445 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 6
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 38 Ai(2)-Benchmark Red Forge: 22 
+
+Game Result: Game 60 ended in 366 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Piker Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 39 Ai(2)-Benchmark Red Forge: 22 
+
+Game Result: Game 61 ended in 780 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Shock Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 39 Ai(2)-Benchmark Red Forge: 23 
+
+Game Result: Game 62 ended in 461 ms. Ai(2)-Benchmark Red Forge has won!
+
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 11
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 40 Ai(2)-Benchmark Red Forge: 23 
+
+Game Result: Game 63 ended in 665 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 41 Ai(2)-Benchmark Red Forge: 23 
+
+Game Result: Game 64 ended in 563 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Lightning Elemental Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 6
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 41 Ai(2)-Benchmark Red Forge: 24 
+
+Game Result: Game 65 ended in 332 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Shock Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 41 Ai(2)-Benchmark Red Forge: 25 
+
+Game Result: Game 66 ended in 649 ms. Ai(2)-Benchmark Red Forge has won!
+
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 41 Ai(2)-Benchmark Red Forge: 26 
+
+Game Result: Game 67 ended in 496 ms. Ai(2)-Benchmark Red Forge has won!
+
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 41 Ai(2)-Benchmark Red Forge: 27 
+
+Game Result: Game 68 ended in 517 ms. Ai(2)-Benchmark Red Forge has won!
+
+Game Outcome: Match Duration 0m : 01s
+Game Outcome: Turn 15
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 42 Ai(2)-Benchmark Red Forge: 27 
+
+Game Result: Game 69 ended in 1295 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Elemental Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 43 Ai(2)-Benchmark Red Forge: 27 
+
+Game Result: Game 70 ended in 452 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 12
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 44 Ai(2)-Benchmark Red Forge: 27 
+
+Game Result: Game 71 ended in 980 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 44 Ai(2)-Benchmark Red Forge: 28 
+
+Game Result: Game 72 ended in 628 ms. Ai(2)-Benchmark Red Forge has won!
+
+Shock Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 44 Ai(2)-Benchmark Red Forge: 29 
+
+Game Result: Game 73 ended in 578 ms. Ai(2)-Benchmark Red Forge has won!
+
+Raging Goblin Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Elemental Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Raging Goblin Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 45 Ai(2)-Benchmark Red Forge: 29 
+
+Game Result: Game 74 ended in 601 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Goblin Piker Did not have activator set in SpellAbilityRestriction.canPlay()
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 45 Ai(2)-Benchmark Red Forge: 30 
+
+Game Result: Game 75 ended in 416 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 45 Ai(2)-Benchmark Red Forge: 31 
+
+Game Result: Game 76 ended in 736 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 46 Ai(2)-Benchmark Red Forge: 31 
+
+Game Result: Game 77 ended in 483 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 46 Ai(2)-Benchmark Red Forge: 32 
+
+Game Result: Game 78 ended in 439 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 47 Ai(2)-Benchmark Red Forge: 32 
+
+Game Result: Game 79 ended in 522 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 12
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 47 Ai(2)-Benchmark Red Forge: 33 
+
+Game Result: Game 80 ended in 914 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 48 Ai(2)-Benchmark Red Forge: 33 
+
+Game Result: Game 81 ended in 489 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 11
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 49 Ai(2)-Benchmark Red Forge: 33 
+
+Game Result: Game 82 ended in 869 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 50 Ai(2)-Benchmark Red Forge: 33 
+
+Game Result: Game 83 ended in 631 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Lightning Elemental Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 51 Ai(2)-Benchmark Red Forge: 33 
+
+Game Result: Game 84 ended in 546 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 51 Ai(2)-Benchmark Red Forge: 34 
+
+Game Result: Game 85 ended in 451 ms. Ai(2)-Benchmark Red Forge has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 52 Ai(2)-Benchmark Red Forge: 34 
+
+Game Result: Game 86 ended in 490 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 53 Ai(2)-Benchmark Red Forge: 34 
+
+Game Result: Game 87 ended in 629 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Shock Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 6
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 53 Ai(2)-Benchmark Red Forge: 35 
+
+Game Result: Game 88 ended in 367 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Shock Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 53 Ai(2)-Benchmark Red Forge: 36 
+
+Game Result: Game 89 ended in 408 ms. Ai(2)-Benchmark Red Forge has won!
+
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 53 Ai(2)-Benchmark Red Forge: 37 
+
+Game Result: Game 90 ended in 633 ms. Ai(2)-Benchmark Red Forge has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 54 Ai(2)-Benchmark Red Forge: 37 
+
+Game Result: Game 91 ended in 575 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 55 Ai(2)-Benchmark Red Forge: 37 
+
+Game Result: Game 92 ended in 522 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 56 Ai(2)-Benchmark Red Forge: 37 
+
+Game Result: Game 93 ended in 504 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 57 Ai(2)-Benchmark Red Forge: 37 
+
+Game Result: Game 94 ended in 607 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 57 Ai(2)-Benchmark Red Forge: 38 
+
+Game Result: Game 95 ended in 572 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Shock Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 58 Ai(2)-Benchmark Red Forge: 38 
+
+Game Result: Game 96 ended in 548 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 59 Ai(2)-Benchmark Red Forge: 38 
+
+Game Result: Game 97 ended in 741 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 60 Ai(2)-Benchmark Red Forge: 38 
+
+Game Result: Game 98 ended in 658 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 61 Ai(2)-Benchmark Red Forge: 38 
+
+Game Result: Game 99 ended in 529 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 62 Ai(2)-Benchmark Red Forge: 38 
+
+Game Result: Game 100 ended in 515 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 63 Ai(2)-Benchmark Red Forge: 38 
+
+Game Result: Game 101 ended in 517 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Shock Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 63 Ai(2)-Benchmark Red Forge: 39 
+
+Game Result: Game 102 ended in 441 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Shock Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 6
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 63 Ai(2)-Benchmark Red Forge: 40 
+
+Game Result: Game 103 ended in 592 ms. Ai(2)-Benchmark Red Forge has won!
+
+Goblin Piker Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Elemental Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 6
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 64 Ai(2)-Benchmark Red Forge: 40 
+
+Game Result: Game 104 ended in 344 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Piker Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Piker Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Piker Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 6
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 64 Ai(2)-Benchmark Red Forge: 41 
+
+Game Result: Game 105 ended in 315 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 65 Ai(2)-Benchmark Red Forge: 41 
+
+Game Result: Game 106 ended in 648 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 6
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 65 Ai(2)-Benchmark Red Forge: 42 
+
+Game Result: Game 107 ended in 459 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Raging Goblin Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 66 Ai(2)-Benchmark Red Forge: 42 
+
+Game Result: Game 108 ended in 701 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 66 Ai(2)-Benchmark Red Forge: 43 
+
+Game Result: Game 109 ended in 472 ms. Ai(2)-Benchmark Red Forge has won!
+
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 11
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 67 Ai(2)-Benchmark Red Forge: 43 
+
+Game Result: Game 110 ended in 556 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 68 Ai(2)-Benchmark Red Forge: 43 
+
+Game Result: Game 111 ended in 552 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 11
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 68 Ai(2)-Benchmark Red Forge: 44 
+
+Game Result: Game 112 ended in 876 ms. Ai(2)-Benchmark Red Forge has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 6
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 68 Ai(2)-Benchmark Red Forge: 45 
+
+Game Result: Game 113 ended in 410 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 69 Ai(2)-Benchmark Red Forge: 45 
+
+Game Result: Game 114 ended in 663 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 70 Ai(2)-Benchmark Red Forge: 45 
+
+Game Result: Game 115 ended in 684 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 6
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 70 Ai(2)-Benchmark Red Forge: 46 
+
+Game Result: Game 116 ended in 363 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 71 Ai(2)-Benchmark Red Forge: 46 
+
+Game Result: Game 117 ended in 485 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 71 Ai(2)-Benchmark Red Forge: 47 
+
+Game Result: Game 118 ended in 648 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Elemental Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 72 Ai(2)-Benchmark Red Forge: 47 
+
+Game Result: Game 119 ended in 433 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 6
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 73 Ai(2)-Benchmark Red Forge: 47 
+
+Game Result: Game 120 ended in 392 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 73 Ai(2)-Benchmark Red Forge: 48 
+
+Game Result: Game 121 ended in 474 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 11
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 74 Ai(2)-Benchmark Red Forge: 48 
+
+Game Result: Game 122 ended in 784 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Piker Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 75 Ai(2)-Benchmark Red Forge: 48 
+
+Game Result: Game 123 ended in 550 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 11
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 76 Ai(2)-Benchmark Red Forge: 48 
+
+Game Result: Game 124 ended in 1025 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 77 Ai(2)-Benchmark Red Forge: 48 
+
+Game Result: Game 125 ended in 420 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 77 Ai(2)-Benchmark Red Forge: 49 
+
+Game Result: Game 126 ended in 397 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 78 Ai(2)-Benchmark Red Forge: 49 
+
+Game Result: Game 127 ended in 566 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Shock Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 78 Ai(2)-Benchmark Red Forge: 50 
+
+Game Result: Game 128 ended in 576 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 79 Ai(2)-Benchmark Red Forge: 50 
+
+Game Result: Game 129 ended in 492 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 80 Ai(2)-Benchmark Red Forge: 50 
+
+Game Result: Game 130 ended in 792 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 81 Ai(2)-Benchmark Red Forge: 50 
+
+Game Result: Game 131 ended in 918 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 81 Ai(2)-Benchmark Red Forge: 51 
+
+Game Result: Game 132 ended in 886 ms. Ai(2)-Benchmark Red Forge has won!
+
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 01s
+Game Outcome: Turn 16
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 82 Ai(2)-Benchmark Red Forge: 51 
+
+Game Result: Game 133 ended in 1641 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 83 Ai(2)-Benchmark Red Forge: 51 
+
+Game Result: Game 134 ended in 627 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 84 Ai(2)-Benchmark Red Forge: 51 
+
+Game Result: Game 135 ended in 512 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 85 Ai(2)-Benchmark Red Forge: 51 
+
+Game Result: Game 136 ended in 451 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 86 Ai(2)-Benchmark Red Forge: 51 
+
+Game Result: Game 137 ended in 615 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Shock Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 87 Ai(2)-Benchmark Red Forge: 51 
+
+Game Result: Game 138 ended in 541 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 11
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 88 Ai(2)-Benchmark Red Forge: 51 
+
+Game Result: Game 139 ended in 810 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 88 Ai(2)-Benchmark Red Forge: 52 
+
+Game Result: Game 140 ended in 499 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Raging Goblin Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 89 Ai(2)-Benchmark Red Forge: 52 
+
+Game Result: Game 141 ended in 646 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Shock Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Elemental Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 11
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 89 Ai(2)-Benchmark Red Forge: 53 
+
+Game Result: Game 142 ended in 645 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 6
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 89 Ai(2)-Benchmark Red Forge: 54 
+
+Game Result: Game 143 ended in 388 ms. Ai(2)-Benchmark Red Forge has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 90 Ai(2)-Benchmark Red Forge: 54 
+
+Game Result: Game 144 ended in 523 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 6
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 90 Ai(2)-Benchmark Red Forge: 55 
+
+Game Result: Game 145 ended in 453 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 90 Ai(2)-Benchmark Red Forge: 56 
+
+Game Result: Game 146 ended in 495 ms. Ai(2)-Benchmark Red Forge has won!
+
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 91 Ai(2)-Benchmark Red Forge: 56 
+
+Game Result: Game 147 ended in 708 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 13
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 92 Ai(2)-Benchmark Red Forge: 56 
+
+Game Result: Game 148 ended in 1087 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 6
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 92 Ai(2)-Benchmark Red Forge: 57 
+
+Game Result: Game 149 ended in 372 ms. Ai(2)-Benchmark Red Forge has won!
+
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 93 Ai(2)-Benchmark Red Forge: 57 
+
+Game Result: Game 150 ended in 506 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 5
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 93 Ai(2)-Benchmark Red Forge: 58 
+
+Game Result: Game 151 ended in 423 ms. Ai(2)-Benchmark Red Forge has won!
+
+Shock Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 94 Ai(2)-Benchmark Red Forge: 58 
+
+Game Result: Game 152 ended in 434 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 95 Ai(2)-Benchmark Red Forge: 58 
+
+Game Result: Game 153 ended in 425 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 95 Ai(2)-Benchmark Red Forge: 59 
+
+Game Result: Game 154 ended in 518 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 95 Ai(2)-Benchmark Red Forge: 60 
+
+Game Result: Game 155 ended in 582 ms. Ai(2)-Benchmark Red Forge has won!
+
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 95 Ai(2)-Benchmark Red Forge: 61 
+
+Game Result: Game 156 ended in 365 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Raging Goblin Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 01s
+Game Outcome: Turn 14
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 96 Ai(2)-Benchmark Red Forge: 61 
+
+Game Result: Game 157 ended in 1590 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 97 Ai(2)-Benchmark Red Forge: 61 
+
+Game Result: Game 158 ended in 479 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 98 Ai(2)-Benchmark Red Forge: 61 
+
+Game Result: Game 159 ended in 549 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 99 Ai(2)-Benchmark Red Forge: 61 
+
+Game Result: Game 160 ended in 543 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 100 Ai(2)-Benchmark Red Forge: 61 
+
+Game Result: Game 161 ended in 383 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Shock Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 101 Ai(2)-Benchmark Red Forge: 61 
+
+Game Result: Game 162 ended in 505 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 102 Ai(2)-Benchmark Red Forge: 61 
+
+Game Result: Game 163 ended in 463 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Piker Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 103 Ai(2)-Benchmark Red Forge: 61 
+
+Game Result: Game 164 ended in 666 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 11
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 104 Ai(2)-Benchmark Red Forge: 61 
+
+Game Result: Game 165 ended in 1110 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 105 Ai(2)-Benchmark Red Forge: 61 
+
+Game Result: Game 166 ended in 808 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 106 Ai(2)-Benchmark Red Forge: 61 
+
+Game Result: Game 167 ended in 597 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 107 Ai(2)-Benchmark Red Forge: 61 
+
+Game Result: Game 168 ended in 559 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 107 Ai(2)-Benchmark Red Forge: 62 
+
+Game Result: Game 169 ended in 694 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 108 Ai(2)-Benchmark Red Forge: 62 
+
+Game Result: Game 170 ended in 561 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Goblin Piker Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 109 Ai(2)-Benchmark Red Forge: 62 
+
+Game Result: Game 171 ended in 570 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 6
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 109 Ai(2)-Benchmark Red Forge: 63 
+
+Game Result: Game 172 ended in 298 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 109 Ai(2)-Benchmark Red Forge: 64 
+
+Game Result: Game 173 ended in 753 ms. Ai(2)-Benchmark Red Forge has won!
+
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 109 Ai(2)-Benchmark Red Forge: 65 
+
+Game Result: Game 174 ended in 684 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 11
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 110 Ai(2)-Benchmark Red Forge: 65 
+
+Game Result: Game 175 ended in 960 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 111 Ai(2)-Benchmark Red Forge: 65 
+
+Game Result: Game 176 ended in 764 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 112 Ai(2)-Benchmark Red Forge: 65 
+
+Game Result: Game 177 ended in 646 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 112 Ai(2)-Benchmark Red Forge: 66 
+
+Game Result: Game 178 ended in 762 ms. Ai(2)-Benchmark Red Forge has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 113 Ai(2)-Benchmark Red Forge: 66 
+
+Game Result: Game 179 ended in 374 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 114 Ai(2)-Benchmark Red Forge: 66 
+
+Game Result: Game 180 ended in 527 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 115 Ai(2)-Benchmark Red Forge: 66 
+
+Game Result: Game 181 ended in 782 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Shock Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 116 Ai(2)-Benchmark Red Forge: 66 
+
+Game Result: Game 182 ended in 628 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 117 Ai(2)-Benchmark Red Forge: 66 
+
+Game Result: Game 183 ended in 684 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 118 Ai(2)-Benchmark Red Forge: 66 
+
+Game Result: Game 184 ended in 453 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 119 Ai(2)-Benchmark Red Forge: 66 
+
+Game Result: Game 185 ended in 843 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 120 Ai(2)-Benchmark Red Forge: 66 
+
+Game Result: Game 186 ended in 577 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 121 Ai(2)-Benchmark Red Forge: 66 
+
+Game Result: Game 187 ended in 845 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 122 Ai(2)-Benchmark Red Forge: 66 
+
+Game Result: Game 188 ended in 664 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 122 Ai(2)-Benchmark Red Forge: 67 
+
+Game Result: Game 189 ended in 718 ms. Ai(2)-Benchmark Red Forge has won!
+
+Raging Goblin Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Chariot Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Piker Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 123 Ai(2)-Benchmark Red Forge: 67 
+
+Game Result: Game 190 ended in 838 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 11
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 124 Ai(2)-Benchmark Red Forge: 67 
+
+Game Result: Game 191 ended in 809 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Hill Giant Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 8
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 125 Ai(2)-Benchmark Red Forge: 67 
+
+Game Result: Game 192 ended in 480 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Goblin Piker Did not have activator set in SpellAbilityRestriction.canPlay()
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 126 Ai(2)-Benchmark Red Forge: 67 
+
+Game Result: Game 193 ended in 838 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 127 Ai(2)-Benchmark Red Forge: 67 
+
+Game Result: Game 194 ended in 548 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Lightning Strike Did not have activator set in SpellAbilityRestriction.canPlay()
+Goblin Piker Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 128 Ai(2)-Benchmark Red Forge: 67 
+
+Game Result: Game 195 ended in 739 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 10
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 129 Ai(2)-Benchmark Red Forge: 67 
+
+Game Result: Game 196 ended in 845 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Volcanic Hammer Did not have activator set in SpellAbilityRestriction.canPlay()
+Lava Axe Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 11
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 130 Ai(2)-Benchmark Red Forge: 67 
+
+Game Result: Game 197 ended in 970 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 9
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 130 Ai(2)-Benchmark Red Forge: 68 
+
+Game Result: Game 198 ended in 505 ms. Ai(2)-Benchmark Red Forge has won!
+
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has won because all opponents have lost
+Game Outcome: Ai(2)-Benchmark Red Forge has lost because life total reached 0
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 131 Ai(2)-Benchmark Red Forge: 68 
+
+Game Result: Game 199 ended in 542 ms. Ai(1)-ST Balance Drop Pod Blank has won!
+
+Goblin Piker Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+Game Outcome: Match Duration 0m : 00s
+Game Outcome: Turn 7
+Game Outcome: Ai(1)-ST Balance Drop Pod Blank has lost because life total reached 0
+Game Outcome: Ai(2)-Benchmark Red Forge has won because all opponents have lost
+Match Result: Ai(1)-ST Balance Drop Pod Blank: 131 Ai(2)-Benchmark Red Forge: 69 
+
+Game Result: Game 200 ended in 474 ms. Ai(2)-Benchmark Red Forge has won!
+

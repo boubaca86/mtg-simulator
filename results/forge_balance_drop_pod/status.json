@@ -1,0 +1,66 @@
+{
+  "experiment": "drop_pod_ablation_v1",
+  "forge_version": "2.0.15",
+  "games_requested_per_arm": 200,
+  "seed": 20261004,
+  "arms": {
+    "baseline": {
+      "games_completed": 200,
+      "st_wins": 133,
+      "benchmark_wins": 67,
+      "draws": 0,
+      "deck_name": "ST Balance Baseline",
+      "win_rate": 0.665,
+      "wilson_95_low": 0.5970206277343806,
+      "wilson_95_high": 0.7267601903125736
+    },
+    "no_discount": {
+      "games_completed": 200,
+      "st_wins": 144,
+      "benchmark_wins": 56,
+      "draws": 0,
+      "deck_name": "ST Balance Drop Pod No Discount",
+      "win_rate": 0.72,
+      "wilson_95_low": 0.6540756858222899,
+      "wilson_95_high": 0.7776320715736488
+    },
+    "no_ping": {
+      "games_completed": 200,
+      "st_wins": 133,
+      "benchmark_wins": 67,
+      "draws": 0,
+      "deck_name": "ST Balance Drop Pod No Ping",
+      "win_rate": 0.665,
+      "wilson_95_low": 0.5970206277343806,
+      "wilson_95_high": 0.7267601903125736
+    },
+    "blank": {
+      "games_completed": 200,
+      "st_wins": 131,
+      "benchmark_wins": 69,
+      "draws": 0,
+      "deck_name": "ST Balance Drop Pod Blank",
+      "win_rate": 0.655,
+      "wilson_95_low": 0.5867546071792236,
+      "wilson_95_high": 0.7174031309860971
+    }
+  },
+  "comparisons": {
+    "no_discount": {
+      "baseline_minus_variant": -0.05499999999999994,
+      "approx_95_low": -0.1452850762861725,
+      "approx_95_high": 0.035285076286172626
+    },
+    "no_ping": {
+      "baseline_minus_variant": 0.0,
+      "approx_95_low": -0.09251013133705951,
+      "approx_95_high": 0.09251013133705951
+    },
+    "blank": {
+      "baseline_minus_variant": 0.010000000000000009,
+      "approx_95_low": -0.08284174707533243,
+      "approx_95_high": 0.10284174707533245
+    }
+  },
+  "method_note": "All arms use the same Forge RNG seed for reproducibility, but this is not a strict per-game paired experiment because divergent decisions can consume RNG differently."
+}
