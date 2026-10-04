@@ -1,10 +1,18 @@
 name: MTG Cloud Simulator
+name: MTG Cloud Simulator
 
 on:
   workflow_dispatch:
 
   schedule:
-    - cron: "0 * * * *"
+    - cron: "17 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mtg-simulator
+  cancel-in-progress: false
 
 jobs:
   simulate:
@@ -21,3 +29,16 @@ jobs:
 
       - name: Run MTG simulations
         run: python simulator.py
+
+      - name: Save simulation memory
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results/
+
+          if git diff --cached --quiet; then
+            echo "No new results."
+          else
+            git commit -m "Update MTG simulation results"
+            git push
+          fi
