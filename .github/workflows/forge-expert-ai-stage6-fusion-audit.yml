@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       games:
-        description: "Smoke games"
+        description: "Audit games"
         required: true
-        default: "2"
+        default: "20"
       seed:
         description: "Forge RNG seed"
         required: true
@@ -44,6 +44,7 @@ jobs:
           python3 patch_forge_strategy_fusion_audit.py --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
           grep -n "getBestRootActionIdentity" forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java
           grep -n "EXPERT_INFOSET_STRATEGY_FUSION" forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          grep -n "EXPERT_INFOSET_AUDITED_CANDIDATE" forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
       - name: Build patched Forge
         working-directory: forge-src
         run: |
@@ -58,10 +59,16 @@ jobs:
           cd "$FORGE_HOME"
           java -Xmx6g -Dforge.expert.infoset=true -Dforge.expert.infoset.samples=3 -jar "$FORGE_JAR" sim \
             -D "$HOME/.forge/decks/constructed" -d "ST Forge Full.dck" "Benchmark Red Forge.dck" \
-            -x full default -n "${{ inputs.games || '2' }}" -s "${{ inputs.seed || '20261004' }}" -q -c 180 \
+            -x full default -n "${{ inputs.games || '20' }}" -s "${{ inputs.seed || '20261004' }}" -q -c 180 \
             2>&1 | tee "$GITHUB_WORKSPACE/stage6-fusion-audit.log"
-      - name: Summarize audit
+      - name: Verify and summarize audit
         run: |
-          COUNT=$(grep -c "EXPERT_INFOSET_STRATEGY_FUSION" stage6-fusion-audit.log || true)
-          echo "Observed $COUNT root-candidate strategy-fusion divergences across hidden worlds."
-          echo "This gate is diagnostic: any positive count confirms Stage 5 strength remains quarantined until complete-action aggregation replaces per-world optimization."
+          AUDITED=$(grep -c "EXPERT_INFOSET_AUDITED_CANDIDATE" stage6-fusion-audit.log || true)
+          FUSIONS=$(grep -c "EXPERT_INFOSET_STRATEGY_FUSION" stage6-fusion-audit.log || true)
+          GAMES=$(grep -c '^Game Result: Game ' stage6-fusion-audit.log || true)
+          echo "Completed $GAMES games; audited $AUDITED root candidates; observed $FUSIONS strategy-fusion divergences."
+          if [ "$AUDITED" -eq 0 ]; then
+            echo "Audit invalid: no complete-action identities were observed."
+            exit 1
+          fi
+          echo "A positive fusion count proves per-world optimization is unsafe. Zero is evidence only for the exercised positions, not proof of general action consistency."
