@@ -17,6 +17,11 @@ on:
 permissions:
   contents: read
 
+# Keep this expensive Forge build single-flight on main.
+concurrency:
+  group: forge-expert-ai-stage7b-live
+  cancel-in-progress: false
+
 jobs:
   live-labeled-baseline:
     runs-on: ubuntu-24.04
