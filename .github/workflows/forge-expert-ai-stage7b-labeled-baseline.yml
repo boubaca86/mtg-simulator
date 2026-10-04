@@ -1,0 +1,90 @@
+name: Forge Expert AI Stage 7B — Live Labeled Baseline
+
+on:
+  workflow_dispatch:
+    inputs:
+      games_per_seed:
+        description: "Games per independent seed group"
+        required: true
+        default: "2"
+  push:
+    branches: [main]
+    paths:
+      - "stage7_label_outcomes.py"
+      - "stage7_value_baseline.py"
+      - ".github/workflows/forge-expert-ai-stage7b-labeled-baseline.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  live-labeled-baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Export decks
+        run: python3 forge_export.py --user-dir "$HOME/.forge"
+      - name: Clone pinned Forge
+        run: git clone --depth 1 --branch forge-2.0.15 https://github.com/Card-Forge/forge.git forge-src
+      - name: Apply expert AI and legal dataset patches
+        run: |
+          python3 patch_forge_expert_cli.py forge-src/forge-gui-desktop/src/main/java/forge/view/SimulateMatch.java
+          python3 patch_forge_information_set.py forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java
+          python3 patch_forge_infoset_ensemble.py --game-simulator forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python3 patch_forge_complete_action_identity.py forge-src/forge-ai/src/main/java/forge/ai/simulation/Plan.java
+          python3 patch_forge_strategy_fusion_audit.py --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python3 patch_forge_stage7_legal_extractor.py forge-src/forge-ai/src/main/java
+          python3 patch_forge_stage7_dataset_capture.py forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+      - name: Build patched Forge
+        working-directory: forge-src
+        run: |
+          mvn -B -pl forge-gui-desktop -am -DskipTests -Dcheckstyle.skip=true package
+          FORGE_JAR="$(find forge-gui-desktop/target -type f -name '*-jar-with-dependencies.jar' -print -quit)"
+          echo "FORGE_JAR=$(realpath "$FORGE_JAR")" >> "$GITHUB_ENV"
+          echo "FORGE_HOME=$(realpath forge-gui)" >> "$GITHUB_ENV"
+      - name: Capture independent labeled seed groups
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > stage7b-labeled.jsonl
+          for SEED in 20261004 20261005 20261006 20261007; do
+            cd "$FORGE_HOME"
+            java -Xmx6g -Dforge.expert.infoset=true -Dforge.expert.infoset.samples=3 \
+              -Dforge.expert.stage7.dataset=true -Dforge.expert.stage7.matchup=st-vs-benchmark-red \
+              -jar "$FORGE_JAR" sim -D "$HOME/.forge/decks/constructed" \
+              -d "ST Forge Full.dck" "Benchmark Red Forge.dck" -x full default \
+              -n "${{ inputs.games_per_seed || '2' }}" -s "$SEED" -q -c 180 \
+              > "$GITHUB_WORKSPACE/stage7b-${SEED}.log" 2>&1
+            cd "$GITHUB_WORKSPACE"
+            python3 stage7_label_outcomes.py "stage7b-${SEED}.log" "stage7b-${SEED}.jsonl"
+            cat "stage7b-${SEED}.jsonl" >> stage7b-labeled.jsonl
+          done
+      - name: Verify legal labels and train transparent baseline
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rows=[json.loads(x) for x in Path('stage7b-labeled.jsonl').read_text().splitlines() if x.strip()]
+          assert rows, 'no labeled rows'
+          forbidden={'opponent_hand','opponent_hand_cards','own_library','opponent_library','library_order','future_draws'}
+          assert all(not (forbidden & r.keys()) for r in rows)
+          assert all(r.get('complete_action_identity') for r in rows)
+          assert all(r.get('infoset_sample_count') == 3 for r in rows)
+          assert all(r.get('game_result') in (0.0,0.5,1.0) for r in rows)
+          seeds={r['run_seed'] for r in rows}
+          assert len(seeds) >= 2, f'need independent seed groups, got {seeds}'
+          print(f'Validated {len(rows)} labeled legal decisions across {len(seeds)} run-seed groups.')
+          PY
+          python3 stage7_value_baseline.py stage7b-labeled.jsonl | tee stage7b-model.json
+      - uses: actions/upload-artifact@v6
+        with:
+          name: stage7b-live-labeled-baseline
+          path: |
+            stage7b-labeled.jsonl
+            stage7b-model.json
+            stage7b-*.log
