@@ -22,4 +22,4 @@ jobs:
         with:
           python-version: "3.12"
       - name: Run adversarial information-set regression contract
-        run: python -m unittest -v test_stage6_action_consistency.py
+        run: python -m pytest -q test_stage6_action_consistency.py
