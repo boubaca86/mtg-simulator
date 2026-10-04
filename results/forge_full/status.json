@@ -1,0 +1,10 @@
+{
+  "forge_version": "2.0.15",
+  "exit_code": 0,
+  "custom_cards": 11,
+  "games_requested": 20,
+  "games_completed": 20,
+  "st_wins": 26,
+  "benchmark_wins": 14,
+  "draws": 0
+}
