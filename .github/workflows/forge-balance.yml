@@ -1,0 +1,127 @@
+name: Forge S.T Balance Lab — Drop Pod
+
+on:
+  workflow_dispatch:
+    inputs:
+      games_per_arm:
+        description: "Games for each of the 4 Drop Pod test arms"
+        required: true
+        default: "200"
+      seed:
+        description: "Forge RNG seed used for every arm"
+        required: true
+        default: "20261004"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: forge-st-balance-drop-pod
+  cancel-in-progress: false
+
+env:
+  FORGE_VERSION: "2.0.15"
+  FORGE_URL: "https://github.com/Card-Forge/forge/releases/download/forge-2.0.15/forge-installer-2.0.15.tar.bz2"
+  GAMES_PER_ARM: "${{ inputs.games_per_arm }}"
+  FORGE_SEED: "${{ inputs.seed }}"
+
+jobs:
+  balance-lab:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout simulator repository
+        uses: actions/checkout@v7
+
+      - name: Install Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Export S.T balance-lab cards and decks
+        run: python3 forge_balance_export.py --user-dir "$HOME/.forge"
+
+      - name: Download Forge ${{ env.FORGE_VERSION }}
+        run: |
+          set -euo pipefail
+          mkdir -p forge-dist
+          curl --fail --location --retry 3 --output forge.tar.bz2 "$FORGE_URL"
+          tar -xjf forge.tar.bz2 -C forge-dist
+
+          FORGE_JAR="$(find forge-dist -type f -name 'forge-gui-desktop-*-jar-with-dependencies.jar' -print -quit)"
+          LANG_FILE="$(find forge-dist -type f -path '*/res/languages/en-US.properties' -print -quit)"
+
+          if [ -z "$FORGE_JAR" ] || [ -z "$LANG_FILE" ]; then
+            echo "Forge jar or language resources were not found."
+            exit 1
+          fi
+
+          FORGE_JAR="$(realpath "$FORGE_JAR")"
+          FORGE_HOME="$(dirname "$(dirname "$(dirname "$LANG_FILE")")")"
+          FORGE_HOME="$(realpath "$FORGE_HOME")"
+
+          test -f "$FORGE_HOME/res/languages/en-US.properties"
+          echo "FORGE_JAR=$FORGE_JAR" >> "$GITHUB_ENV"
+          echo "FORGE_HOME=$FORGE_HOME" >> "$GITHUB_ENV"
+
+      - name: Run four Drop Pod A/B ablation arms
+        shell: bash
+        run: |
+          set -euo pipefail
+          RESULTS="$GITHUB_WORKSPACE/results/forge_balance_drop_pod"
+          mkdir -p "$RESULTS"
+
+          run_arm() {
+            local key="$1"
+            local deck="$2"
+            echo "============================================================"
+            echo "ARM: $key"
+            echo "DECK: $deck"
+            echo "GAMES: $GAMES_PER_ARM"
+            echo "SEED: $FORGE_SEED"
+            echo "============================================================"
+
+            set +e
+            (
+              cd "$FORGE_HOME"
+              java -Xmx2g -jar "$FORGE_JAR" sim \
+                -D "$HOME/.forge/decks/constructed" \
+                -d "$deck.dck" "Benchmark Red Forge.dck" \
+                -n "$GAMES_PER_ARM" -s "$FORGE_SEED" -q -c 60
+            ) 2>&1 | tee "$RESULTS/$key.log"
+            local forge_exit=${PIPESTATUS[0]}
+            set -e
+
+            echo "$forge_exit" > "$RESULTS/$key.exit_code.txt"
+            if [ "$forge_exit" -ne 0 ]; then
+              echo "Forge failed in arm $key with exit code $forge_exit"
+              exit "$forge_exit"
+            fi
+          }
+
+          run_arm baseline "ST Balance Baseline"
+          run_arm no_discount "ST Balance Drop Pod No Discount"
+          run_arm no_ping "ST Balance Drop Pod No Ping"
+          run_arm blank "ST Balance Drop Pod Blank"
+
+      - name: Build statistical balance report
+        run: |
+          python3 forge_balance_report.py \
+            --results "$GITHUB_WORKSPACE/results/forge_balance_drop_pod" \
+            --games "$GAMES_PER_ARM" \
+            --seed "$FORGE_SEED"
+
+      - name: Save Forge balance-lab result
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results/forge_balance_drop_pod/
+          if git diff --cached --quiet; then
+            echo "No Forge balance-lab changes to save."
+          else
+            git commit -m "Update Forge Drop Pod balance-lab result"
+            git push
+          fi
