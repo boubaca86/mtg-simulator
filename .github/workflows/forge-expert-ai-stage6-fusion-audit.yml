@@ -61,14 +61,23 @@ jobs:
             -D "$HOME/.forge/decks/constructed" -d "ST Forge Full.dck" "Benchmark Red Forge.dck" \
             -x full default -n "${{ inputs.games || '20' }}" -s "${{ inputs.seed || '20261004' }}" -q -c 180 \
             2>&1 | tee "$GITHUB_WORKSPACE/stage6-fusion-audit.log"
-      - name: Verify and summarize audit
+      - name: Verify Stage 6 regression gate
         run: |
           AUDITED=$(grep -c "EXPERT_INFOSET_AUDITED_CANDIDATE" stage6-fusion-audit.log || true)
           FUSIONS=$(grep -c "EXPERT_INFOSET_STRATEGY_FUSION" stage6-fusion-audit.log || true)
           GAMES=$(grep -c '^Game Result: Game ' stage6-fusion-audit.log || true)
           echo "Completed $GAMES games; audited $AUDITED root candidates; observed $FUSIONS strategy-fusion divergences."
+          if [ "$GAMES" -lt "${{ inputs.games || '20' }}" ]; then
+            echo "Audit invalid: expected ${{ inputs.games || '20' }} completed games, observed $GAMES."
+            exit 1
+          fi
           if [ "$AUDITED" -eq 0 ]; then
             echo "Audit invalid: no complete-action identities were observed."
             exit 1
           fi
-          echo "A positive fusion count proves per-world optimization is unsafe. Zero is evidence only for the exercised positions, not proof of general action consistency."
+          if [ "$FUSIONS" -ne 0 ]; then
+            echo "Stage 6 regression: hidden worlds selected different complete root actions."
+            exit 1
+          fi
+          echo "Stage 6 live gate passed for the exercised positions: complete-action identities were observed and no strategy-fusion divergence occurred."
+          echo "This is a regression guarantee for this reproducible corpus, not a proof over every possible Magic position."
