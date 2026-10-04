@@ -1,0 +1,56 @@
+{
+  "experiment": "forge_stage5_validation",
+  "seed": 20261005,
+  "games_per_arm": 20,
+  "arms": {
+    "single_full_default": {
+      "games": 20,
+      "st_wins": 12,
+      "benchmark_wins": 8,
+      "draws": 0,
+      "timeouts": 0,
+      "win_rate": 0.6,
+      "wilson95": [
+        0.38658150076225317,
+        0.7811934676271829
+      ]
+    },
+    "ensemble_full_default": {
+      "games": 20,
+      "st_wins": 16,
+      "benchmark_wins": 4,
+      "draws": 0,
+      "timeouts": 0,
+      "win_rate": 0.8,
+      "wilson95": [
+        0.5839825677481064,
+        0.919342337420202
+      ]
+    },
+    "single_default_full": {
+      "games": 20,
+      "st_wins": 12,
+      "benchmark_wins": 8,
+      "draws": 0,
+      "timeouts": 0,
+      "win_rate": 0.6,
+      "wilson95": [
+        0.38658150076225317,
+        0.7811934676271829
+      ]
+    },
+    "ensemble_default_full": {
+      "games": 20,
+      "st_wins": 17,
+      "benchmark_wins": 3,
+      "draws": 0,
+      "timeouts": 0,
+      "win_rate": 0.85,
+      "wilson95": [
+        0.6395811352592431,
+        0.9476312541037835
+      ]
+    }
+  },
+  "interpretation": "Validation run only. Do not claim ensemble superiority unless the larger sample supports it."
+}
