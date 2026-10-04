@@ -17,7 +17,6 @@ on:
 permissions:
   contents: read
 
-# Keep this expensive Forge build single-flight on main.
 concurrency:
   group: forge-expert-ai-stage7b-live
   cancel-in-progress: false
@@ -69,7 +68,7 @@ jobs:
             python3 stage7_label_outcomes.py "stage7b-${SEED}.log" "stage7b-${SEED}.jsonl"
             cat "stage7b-${SEED}.jsonl" >> stage7b-labeled.jsonl
           done
-      - name: Verify legal labels and train transparent baseline
+      - name: Verify legal labels and complete-game isolation
         run: |
           python3 - <<'PY'
           import json
@@ -81,9 +80,17 @@ jobs:
           assert all(r.get('complete_action_identity') for r in rows)
           assert all(r.get('infoset_sample_count') == 3 for r in rows)
           assert all(r.get('game_result') in (0.0,0.5,1.0) for r in rows)
-          seeds={r['run_seed'] for r in rows}
-          assert len(seeds) >= 2, f'need independent seed groups, got {seeds}'
-          print(f'Validated {len(rows)} labeled legal decisions across {len(seeds)} run-seed groups.')
+          assert all(r.get('game_group') for r in rows)
+          games={r['game_group'] for r in rows}
+          assert len(games) >= 4, f'need multiple complete games, got {games}'
+          # Every row in one game must carry one terminal result per acting player.
+          for g in games:
+              by_actor={}
+              for r in rows:
+                  if r['game_group']==g:
+                      by_actor.setdefault(r['acting_player'],set()).add(r['game_result'])
+              assert all(len(v)==1 for v in by_actor.values()), (g,by_actor)
+          print(f'Validated {len(rows)} labeled legal decisions across {len(games)} complete Forge games.')
           PY
           python3 stage7_value_baseline.py stage7b-labeled.jsonl | tee stage7b-model.json
       - uses: actions/upload-artifact@v6
