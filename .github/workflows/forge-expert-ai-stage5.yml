@@ -124,7 +124,10 @@ jobs:
             set +e
             (
               cd "$FORGE_HOME"
-              java -Xmx3g \
+              # Three information-set worlds substantially increase the live copied-game graph.
+              # Keep this below the hosted runner's physical RAM while avoiding the 3 GiB OOM seen
+              # in the first Stage 5 ensemble smoke test.
+              java -Xmx6g \
                 -Dforge.expert.infoset=true \
                 -Dforge.expert.infoset.samples="$samples" \
                 -jar "$FORGE_JAR" sim \
