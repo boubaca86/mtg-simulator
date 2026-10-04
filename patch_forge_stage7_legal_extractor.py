@@ -17,23 +17,21 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Stage 7A legal-information boundary for future value-model datasets.
+ * Stage 7 legal-information boundary for value-model datasets.
  *
- * This class intentionally receives the real Forge Player/Game and exports only
- * information legally available to the acting player.  In particular it never
- * enumerates an opponent hand or either library.  Hidden zones contribute counts
- * only.  Forge remains the rules referee; this is observation-only instrumentation.
+ * Exports only information legally available to the acting player. Hidden zones
+ * are never enumerated: opponent hand and both libraries contribute counts only.
+ * Public zones are controller/owner separated so a learner can distinguish board
+ * advantage without receiving secret identities. Forge remains the rules referee.
  */
 public final class LegalDecisionFeatures {
-    public static final String SCHEMA_VERSION = "stage7a-v1";
+    public static final String SCHEMA_VERSION = "stage7c-v2";
 
     private LegalDecisionFeatures() {}
 
     private static List<String> sortedNames(CardCollectionView cards) {
         List<String> names = new ArrayList<>();
-        for (Card card : cards) {
-            names.add(card.getName());
-        }
+        for (Card card : cards) names.add(card.getName());
         Collections.sort(names);
         return names;
     }
@@ -55,19 +53,14 @@ public final class LegalDecisionFeatures {
     /** Deterministic JSON: stable field order and sorted unordered card-name lists. */
     public static String export(Player actor, String completeActionIdentity, int infosetSampleCount,
             long runSeed, long decisionIndex, String matchupId) {
-        if (actor == null || completeActionIdentity == null || completeActionIdentity.isEmpty()) {
+        if (actor == null || completeActionIdentity == null || completeActionIdentity.isEmpty())
             throw new IllegalArgumentException("actor and complete action identity are required");
-        }
-        if (infosetSampleCount < 1) {
-            throw new IllegalArgumentException("infoset sample count must be positive");
-        }
-        if (actor.getOpponents().isEmpty()) {
-            throw new IllegalArgumentException("Stage 7A extractor requires an opponent");
-        }
+        if (infosetSampleCount < 1) throw new IllegalArgumentException("infoset sample count must be positive");
+        if (actor.getOpponents().isEmpty()) throw new IllegalArgumentException("Stage 7 extractor requires an opponent");
 
         Player opponent = actor.getOpponents().get(0);
         Game game = actor.getGame();
-        StringBuilder out = new StringBuilder(768);
+        StringBuilder out = new StringBuilder(1024);
         out.append('{');
         field(out, "schema_version", SCHEMA_VERSION).append(',');
         number(out, "run_seed", runSeed).append(',');
@@ -84,8 +77,12 @@ public final class LegalDecisionFeatures {
         number(out, "own_library_count", actor.getCardsIn(ZoneType.Library).size()).append(',');
         number(out, "opponent_library_count", opponent.getCardsIn(ZoneType.Library).size()).append(',');
 
-        raw(out, "battlefield_public", jsonStrings(sortedNames(game.getCardsIn(ZoneType.Battlefield)))).append(',');
-        raw(out, "graveyard_public", jsonStrings(sortedNames(game.getCardsIn(ZoneType.Graveyard)))).append(',');
+        // Public information, separated by perspective. This fixes the v1 ambiguity
+        // where a learner could see names but not which side controlled/owned them.
+        raw(out, "own_battlefield", jsonStrings(sortedNames(actor.getCardsIn(ZoneType.Battlefield)))).append(',');
+        raw(out, "opponent_battlefield", jsonStrings(sortedNames(opponent.getCardsIn(ZoneType.Battlefield)))).append(',');
+        raw(out, "own_graveyard", jsonStrings(sortedNames(actor.getCardsIn(ZoneType.Graveyard)))).append(',');
+        raw(out, "opponent_graveyard", jsonStrings(sortedNames(opponent.getCardsIn(ZoneType.Graveyard)))).append(',');
         raw(out, "exile_public", jsonStrings(sortedNames(game.getCardsIn(ZoneType.Exile)))).append(',');
         field(out, "stack_public", game.getStack().toString()).append(',');
         field(out, "matchup_id", matchupId == null ? "" : matchupId).append(',');
@@ -97,11 +94,9 @@ public final class LegalDecisionFeatures {
     private static StringBuilder field(StringBuilder out, String key, String value) {
         return out.append('\"').append(key).append("\":\"").append(jsonEscape(value)).append('\"');
     }
-
     private static StringBuilder number(StringBuilder out, String key, long value) {
         return out.append('\"').append(key).append("\":").append(value);
     }
-
     private static StringBuilder raw(StringBuilder out, String key, String value) {
         return out.append('\"').append(key).append("\":").append(value);
     }
@@ -118,7 +113,7 @@ def main() -> None:
     if target.exists():
         raise RuntimeError(f"Refusing to overwrite existing Forge source: {target}")
     target.write_text(JAVA, encoding="utf-8")
-    print(f"Added Stage 7A legal-information extractor: {target}")
+    print(f"Added Stage 7 legal-information extractor: {target}")
 
 
 if __name__ == "__main__":
