@@ -1,0 +1,44 @@
+name: Forge Expert AI Stage 7A — Java Legal Extractor
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "patch_forge_stage7_legal_extractor.py"
+      - ".github/workflows/forge-expert-ai-stage7a-java-extractor.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  legal-forge-extractor:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Clone pinned Forge source
+        run: git clone --depth 1 --branch forge-2.0.15 https://github.com/Card-Forge/forge.git forge-src
+      - name: Add Stage 7A legal-information extractor
+        run: python3 patch_forge_stage7_legal_extractor.py forge-src/forge-ai/src/main/java
+      - name: Enforce hidden-information boundary statically
+        run: |
+          F=forge-src/forge-ai/src/main/java/forge/ai/simulation/LegalDecisionFeatures.java
+          grep -q 'opponent_unknown_hand_count' "$F"
+          grep -q 'opponent_library_count' "$F"
+          grep -q 'complete_action_identity' "$F"
+          grep -q 'SECURITY BOUNDARY' "$F"
+          # Exactly one opponent-hand access is permitted, and it must be size() only.
+          test "$(grep -c 'opponent.getCardsIn(ZoneType.Hand)' "$F")" -eq 1
+          grep -q 'opponent.getCardsIn(ZoneType.Hand).size()' "$F"
+          # Exactly one access to each library, also size() only.
+          test "$(grep -c 'getCardsIn(ZoneType.Library)' "$F")" -eq 2
+          grep -q 'actor.getCardsIn(ZoneType.Library).size()' "$F"
+          grep -q 'opponent.getCardsIn(ZoneType.Library).size()' "$F"
+      - name: Compile patched Forge AI module
+        working-directory: forge-src
+        run: mvn -B -pl forge-ai -am -DskipTests -Dcheckstyle.skip=true package
