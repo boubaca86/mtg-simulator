@@ -52,6 +52,9 @@ Name=S.T Forge Prototype
 Date=2026-10-04
 Type=Custom
 
+[CreatureTypes]
+Astartes:Astartes
+
 [cards]
 1 U Drop Pod S.T
 2 C Servitor
@@ -100,7 +103,15 @@ def deck_text(name: str, cards: dict[str, int]) -> str:
     total = sum(cards.values())
     if total != 60:
         raise ValueError(f"{name} must contain exactly 60 cards; found {total}")
-    lines = [f"Name={name}", "Deck Type=constructed", "[main]"]
+    # Forge 2.0.15 DeckSerializer requires a [metadata] (or legacy [general])
+    # section. Header lines placed before any section are not treated as deck
+    # metadata and cause DeckSerializer.fromFile() to return null.
+    lines = [
+        "[metadata]",
+        f"Name={name}",
+        "Deck Type=Constructed",
+        "[main]",
+    ]
     lines.extend(f"{count} {card}" for card, count in cards.items())
     return "\n".join(lines) + "\n"
 
