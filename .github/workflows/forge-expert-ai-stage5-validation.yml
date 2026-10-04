@@ -1,0 +1,89 @@
+name: Forge Expert AI Stage 5 — Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      games_per_arm:
+        description: "Games per Stage 5 validation arm"
+        required: true
+        default: "20"
+      seed:
+        description: "Forge RNG seed"
+        required: true
+        default: "20261005"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/forge-expert-ai-stage5-validation.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: forge-expert-ai-stage5-validation
+  cancel-in-progress: false
+
+env:
+  FORGE_TAG: "forge-2.0.15"
+  GAMES_PER_ARM: ${{ inputs.games_per_arm || '20' }}
+  FORGE_SEED: ${{ inputs.seed || '20261005' }}
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Export cards and decks
+        run: python3 forge_export.py --user-dir "$HOME/.forge"
+      - name: Clone and patch Forge
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch "$FORGE_TAG" https://github.com/Card-Forge/forge.git forge-src
+          python3 patch_forge_expert_cli.py forge-src/forge-gui-desktop/src/main/java/forge/view/SimulateMatch.java
+          python3 patch_forge_information_set.py forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java
+          python3 patch_forge_infoset_ensemble.py \
+            --game-simulator forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java \
+            --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java \
+            --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+      - name: Build Forge
+        working-directory: forge-src
+        run: |
+          set -euo pipefail
+          mvn -B -pl forge-gui-desktop -am -DskipTests -Dcheckstyle.skip=true package
+          JAR="$(find forge-gui-desktop/target -type f -name '*-jar-with-dependencies.jar' -print -quit)"
+          echo "FORGE_JAR=$(realpath "$JAR")" >> "$GITHUB_ENV"
+          echo "FORGE_HOME=$(realpath forge-gui)" >> "$GITHUB_ENV"
+      - name: Run validation matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          R="$GITHUB_WORKSPACE/results/forge_expert_ai_stage5_validation"
+          rm -rf "$R"; mkdir -p "$R"
+          run_arm() {
+            key="$1"; samples="$2"; a="$3"; b="$4"
+            (cd "$FORGE_HOME" && java -Xmx6g -Dforge.expert.infoset=true -Dforge.expert.infoset.samples="$samples" -jar "$FORGE_JAR" sim \
+              -D "$HOME/.forge/decks/constructed" -d "ST Forge Full.dck" "Benchmark Red Forge.dck" -x "$a" "$b" \
+              -n "$GAMES_PER_ARM" -s "$FORGE_SEED" -q -c 180) 2>&1 | tee "$R/$key.log"
+          }
+          run_arm single_full_default 1 full default
+          run_arm ensemble_full_default 3 full default
+          run_arm single_default_full 1 default full
+          run_arm ensemble_default_full 3 default full
+      - name: Report
+        run: python3 forge_stage5_validation_report.py --results results/forge_expert_ai_stage5_validation --games "$GAMES_PER_ARM" --seed "$FORGE_SEED"
+      - name: Save results
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results/forge_expert_ai_stage5_validation/ || true
+          if ! git diff --cached --quiet; then
+            git pull --rebase
+            git commit -m "Update Stage 5 validation results"
+            git push
+          fi
