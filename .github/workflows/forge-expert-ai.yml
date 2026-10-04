@@ -1,0 +1,158 @@
+name: Forge Expert AI Stage 3 — Full Simulation
+
+on:
+  workflow_dispatch:
+    inputs:
+      games_per_arm:
+        description: "Games for each of the 4 AI-mode arms"
+        required: true
+        default: "10"
+      seed:
+        description: "Forge RNG seed used for every arm"
+        required: true
+        default: "20261004"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: forge-expert-ai-stage3
+  cancel-in-progress: false
+
+env:
+  FORGE_TAG: "forge-2.0.15"
+  GAMES_PER_ARM: "${{ inputs.games_per_arm }}"
+  FORGE_SEED: "${{ inputs.seed }}"
+
+jobs:
+  expert-ai:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout simulator repository
+        uses: actions/checkout@v7
+
+      - name: Install Java 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Export full S.T custom set and decks
+        run: python3 forge_export.py --user-dir "$HOME/.forge"
+
+      - name: Clone Forge source
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch "$FORGE_TAG" https://github.com/Card-Forge/forge.git forge-src
+
+      - name: Expose Forge full-simulation AI to CLI
+        run: |
+          python3 patch_forge_expert_cli.py \
+            forge-src/forge-gui-desktop/src/main/java/forge/view/SimulateMatch.java
+          grep -n "AI search mode per player" \
+            forge-src/forge-gui-desktop/src/main/java/forge/view/SimulateMatch.java
+
+      - name: Build patched Forge
+        working-directory: forge-src
+        run: |
+          set -euo pipefail
+          mvn -B -pl forge-gui-desktop -am \
+            -DskipTests \
+            -Dcheckstyle.skip=true \
+            package
+
+          FORGE_JAR="$(find forge-gui-desktop/target -type f -name '*-jar-with-dependencies.jar' -print -quit)"
+          if [ -z "$FORGE_JAR" ]; then
+            echo "Patched Forge desktop jar was not found."
+            find forge-gui-desktop/target -maxdepth 2 -type f -print
+            exit 1
+          fi
+
+          FORGE_JAR="$(realpath "$FORGE_JAR")"
+          FORGE_HOME="$(realpath forge-gui)"
+          test -f "$FORGE_HOME/res/languages/en-US.properties"
+
+          echo "FORGE_JAR=$FORGE_JAR" >> "$GITHUB_ENV"
+          echo "FORGE_HOME=$FORGE_HOME" >> "$GITHUB_ENV"
+          echo "Patched Forge jar: $FORGE_JAR"
+          echo "Forge home: $FORGE_HOME"
+
+      - name: Verify expert CLI option
+        run: |
+          set +e
+          (
+            cd "$FORGE_HOME"
+            java -Xmx3g -jar "$FORGE_JAR" sim 2>&1
+          ) | tee /tmp/forge-help.log
+          set -e
+          grep -q "AI search mode per player" /tmp/forge-help.log
+
+      - name: Run AI-strength benchmark matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          RESULTS="$GITHUB_WORKSPACE/results/forge_expert_ai"
+          rm -rf "$RESULTS"
+          mkdir -p "$RESULTS"
+
+          run_arm() {
+            local key="$1"
+            local st_mode="$2"
+            local benchmark_mode="$3"
+
+            echo "============================================================"
+            echo "ARM: $key"
+            echo "S.T AI: $st_mode"
+            echo "Benchmark AI: $benchmark_mode"
+            echo "GAMES: $GAMES_PER_ARM"
+            echo "SEED: $FORGE_SEED"
+            echo "============================================================"
+
+            set +e
+            (
+              cd "$FORGE_HOME"
+              java -Xmx3g -jar "$FORGE_JAR" sim \
+                -D "$HOME/.forge/decks/constructed" \
+                -d "ST Forge Full.dck" "Benchmark Red Forge.dck" \
+                -x "$st_mode" "$benchmark_mode" \
+                -n "$GAMES_PER_ARM" \
+                -s "$FORGE_SEED" \
+                -q -c 120
+            ) 2>&1 | tee "$RESULTS/$key.log"
+            local forge_exit=${PIPESTATUS[0]}
+            set -e
+
+            echo "$forge_exit" > "$RESULTS/$key.exit_code.txt"
+            if [ "$forge_exit" -ne 0 ]; then
+              echo "Forge failed in arm $key with exit code $forge_exit"
+              exit "$forge_exit"
+            fi
+          }
+
+          run_arm default_default default default
+          run_arm full_full full full
+          run_arm full_default full default
+          run_arm default_full default full
+
+      - name: Build expert-AI benchmark report
+        run: |
+          python3 forge_expert_report.py \
+            --results "$GITHUB_WORKSPACE/results/forge_expert_ai" \
+            --games "$GAMES_PER_ARM" \
+            --seed "$FORGE_SEED"
+
+      - name: Save expert-AI benchmark result
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results/forge_expert_ai/
+          if git diff --cached --quiet; then
+            echo "No expert-AI result changes to save."
+          else
+            git commit -m "Update Forge expert-AI Stage 3 result"
+            git push
+          fi
