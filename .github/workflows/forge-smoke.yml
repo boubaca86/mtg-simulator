@@ -1,4 +1,4 @@
-name: Forge Rules Engine Smoke Test
+name: Forge Full S.T Rules Test
 
 on:
   workflow_dispatch:
@@ -7,15 +7,16 @@ permissions:
   contents: write
 
 concurrency:
-  group: forge-rules-smoke
+  group: forge-rules-full-st
   cancel-in-progress: false
 
 env:
   FORGE_VERSION: "2.0.15"
   FORGE_URL: "https://github.com/Card-Forge/forge/releases/download/forge-2.0.15/forge-installer-2.0.15.tar.bz2"
+  FORGE_GAMES: "20"
 
 jobs:
-  forge-smoke:
+  forge-full:
     runs-on: ubuntu-24.04
 
     steps:
@@ -28,7 +29,7 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Export S.T custom cards and decks
+      - name: Export full S.T custom set and decks
         run: python3 forge_export.py --user-dir "$HOME/.forge"
 
       - name: Download Forge ${{ env.FORGE_VERSION }}
@@ -45,9 +46,6 @@ jobs:
             exit 1
           fi
 
-          # Forge's desktop release resolves res/ from the process working directory.
-          # Locate the shipped English language bundle and run Forge from the directory
-          # that contains res/ instead of from the GitHub repository root.
           LANG_FILE="$(find forge-dist -type f -path '*/res/languages/en-US.properties' -print -quit)"
           if [ -z "$LANG_FILE" ]; then
             echo "Forge language resources were not found after extraction."
@@ -65,32 +63,47 @@ jobs:
           echo "Forge jar: $FORGE_JAR"
           echo "Forge assets directory: $FORGE_HOME"
 
-      - name: Run Forge S.T rules smoke test
+      - name: Run full S.T deck in Forge
         run: |
-          mkdir -p "$GITHUB_WORKSPACE/results/forge_smoke"
+          RESULTS="$GITHUB_WORKSPACE/results/forge_full"
+          mkdir -p "$RESULTS"
           set +e
           (
             cd "$FORGE_HOME"
             java -Xmx2g -jar "$FORGE_JAR" sim \
               -D "$HOME/.forge/decks/constructed" \
-              -d "ST Forge Smoke.dck" "Benchmark Red Forge.dck" \
-              -n 20 -q -c 60
-          ) 2>&1 | tee "$GITHUB_WORKSPACE/results/forge_smoke/latest.log"
+              -d "ST Forge Full.dck" "Benchmark Red Forge.dck" \
+              -n "$FORGE_GAMES" -q -c 60
+          ) 2>&1 | tee "$RESULTS/latest.log"
           FORGE_EXIT=${PIPESTATUS[0]}
-          echo "$FORGE_EXIT" > "$GITHUB_WORKSPACE/results/forge_smoke/exit_code.txt"
-          printf '{\n  "forge_version": "%s",\n  "exit_code": %s,\n  "custom_cards": 4,\n  "games_requested": 20\n}\n' \
-            "$FORGE_VERSION" "$FORGE_EXIT" > "$GITHUB_WORKSPACE/results/forge_smoke/status.json"
-          exit "$FORGE_EXIT"
+          set -e
 
-      - name: Save Forge smoke-test log
+          GAMES_COMPLETED=$(grep -c "Game Result: Game" "$RESULTS/latest.log" || true)
+          ST_WINS=$(grep -c "Ai(1)-ST Forge Full has won" "$RESULTS/latest.log" || true)
+          BENCHMARK_WINS=$(grep -c "Ai(2)-Benchmark Red Forge has won" "$RESULTS/latest.log" || true)
+          DRAWS=$(grep -c "ended in a Draw" "$RESULTS/latest.log" || true)
+
+          echo "$FORGE_EXIT" > "$RESULTS/exit_code.txt"
+          printf '{\n  "forge_version": "%s",\n  "exit_code": %s,\n  "custom_cards": 11,\n  "games_requested": %s,\n  "games_completed": %s,\n  "st_wins": %s,\n  "benchmark_wins": %s,\n  "draws": %s\n}\n' \
+            "$FORGE_VERSION" "$FORGE_EXIT" "$FORGE_GAMES" "$GAMES_COMPLETED" "$ST_WINS" "$BENCHMARK_WINS" "$DRAWS" > "$RESULTS/status.json"
+
+          if [ "$FORGE_EXIT" -ne 0 ]; then
+            exit "$FORGE_EXIT"
+          fi
+          if [ "$GAMES_COMPLETED" -ne "$FORGE_GAMES" ]; then
+            echo "Forge exited normally but completed only $GAMES_COMPLETED/$FORGE_GAMES games."
+            exit 2
+          fi
+
+      - name: Save Forge full-deck result
         if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add results/forge_smoke/
+          git add results/forge_full/
           if git diff --cached --quiet; then
-            echo "No Forge smoke-test changes to save."
+            echo "No Forge full-deck changes to save."
           else
-            git commit -m "Update Forge rules-engine smoke result"
+            git commit -m "Update Forge full S.T rules result"
             git push
           fi
