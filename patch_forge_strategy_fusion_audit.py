@@ -109,12 +109,17 @@ def patch_picker(path: Path) -> None:
                     + " identifiedWorlds=" + identifiedWorlds + " samples=" + samples);
         }
         if (strategyFusionObserved) {
-            System.out.println("EXPERT_INFOSET_STRATEGY_FUSION: candidate=" + saIndex
+            // A complete root action includes targets, modes, X and choices. If those
+            // differ between determinizations, selecting one representative world's
+            // action would let hidden information influence the real move. Reject the
+            // candidate fail-closed until action-level aggregation is implemented.
+            System.out.println("EXPERT_INFOSET_STRATEGY_FUSION_REJECTED: candidate=" + saIndex
                     + " samples=" + samples);
+            return new EnsembleResult(new Score(Integer.MIN_VALUE), 0);
         }
         return new EnsembleResult(new Score(avgValue, avgAvailable), representativeSample);
 """
-    text = replace_once(text, old, new, "fusion diagnostic")
+    text = replace_once(text, old, new, "fusion rejection")
     path.write_text(text, encoding="utf-8")
 
 
@@ -125,7 +130,7 @@ def main() -> None:
     args = parser.parse_args()
     patch_controller(args.simulation_controller)
     patch_picker(args.spell_picker)
-    print("Patched live strategy-fusion audit into Forge")
+    print("Patched fail-closed strategy-fusion rejection into Forge")
 
 
 if __name__ == "__main__":
