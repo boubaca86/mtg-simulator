@@ -1,0 +1,86 @@
+name: Forge Expert AI Stage 8 — Fresh Seed Replication
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'stage8_fresh_seed_evaluator.py'
+      - '.github/workflows/forge-expert-ai-stage8-fresh-seeds.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  fresh-seed-replication:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Retrieve frozen development corpus
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 37357436865 -n stage7b-live-labeled-baseline -D frozen-development
+          test "$(sha256sum frozen-development/stage8a-counterfactual.jsonl | cut -d' ' -f1)" = "106912cfd8800cad8abe65231abeca03578c4185205a2e11b19e87000cc8ee7e"
+      - name: Export unchanged decks
+        run: python3 forge_export.py --user-dir "$HOME/.forge"
+      - name: Record deck hashes
+        run: sha256sum "$HOME/.forge/decks/constructed/ST Forge Full.dck" "$HOME/.forge/decks/constructed/Benchmark Red Forge.dck" | tee stage8-fresh-deck-sha256.txt
+      - name: Clone pinned Forge 2.0.15
+        run: git clone --depth 1 --branch forge-2.0.15 https://github.com/Card-Forge/forge.git forge-src
+      - name: Apply frozen expert-AI capture patches
+        run: |
+          python3 patch_forge_expert_cli.py forge-src/forge-gui-desktop/src/main/java/forge/view/SimulateMatch.java
+          python3 patch_forge_information_set.py forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java
+          python3 patch_forge_infoset_ensemble.py --game-simulator forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python3 patch_forge_complete_action_identity.py forge-src/forge-ai/src/main/java/forge/ai/simulation/Plan.java
+          python3 patch_forge_strategy_fusion_audit.py --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python3 patch_forge_stage7_legal_extractor.py forge-src/forge-ai/src/main/java
+          python3 patch_forge_stage7_dataset_capture.py forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python3 patch_forge_stage8_counterfactual_capture.py forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+      - name: Build patched Forge
+        working-directory: forge-src
+        run: |
+          mvn -B -pl forge-gui-desktop -am -DskipTests -Dcheckstyle.skip=true package
+          FORGE_JAR="$(find forge-gui-desktop/target -type f -name '*-jar-with-dependencies.jar' -print -quit)"
+          echo "FORGE_JAR=$(realpath "$FORGE_JAR")" >> "$GITHUB_ENV"
+          echo "FORGE_HOME=$(realpath forge-gui)" >> "$GITHUB_ENV"
+      - name: Re-run fixed-root safety regression
+        run: |
+          javac -cp "$FORGE_JAR" -d stage6-regression validation/Stage6RootIdentityRegression.java
+          java -cp "stage6-regression:$FORGE_JAR" forge.ai.simulation.Stage6RootIdentityRegression
+      - name: Capture untouched predeclared seed families
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > stage8-fresh-counterfactual.jsonl
+          for SEED in 20261008 20261009 20261010 20261011; do
+            for ORIENTATION in st-first red-first; do
+              if [ "$ORIENTATION" = st-first ]; then DECK_A="ST Forge Full.dck"; DECK_B="Benchmark Red Forge.dck"; MATCHUP="st-vs-benchmark-red"; else DECK_A="Benchmark Red Forge.dck"; DECK_B="ST Forge Full.dck"; MATCHUP="benchmark-red-vs-st"; fi
+              cd "$FORGE_HOME"
+              java -Xmx6g -Dforge.expert.infoset=true -Dforge.expert.infoset.samples=3 -Dforge.expert.stage7.dataset=true -Dforge.expert.stage8.capture=true -Dforge.expert.stage7.matchup="$MATCHUP" -jar "$FORGE_JAR" sim -D "$HOME/.forge/decks/constructed" -d "$DECK_A" "$DECK_B" -x full default -n 4 -s "$SEED" -q -c 180 > "$GITHUB_WORKSPACE/stage8-fresh-${ORIENTATION}-${SEED}.log" 2>&1
+              cd "$GITHUB_WORKSPACE"
+              python3 stage8_label_counterfactual.py "stage8-fresh-${ORIENTATION}-${SEED}.log" "stage8-fresh-raw-${ORIENTATION}-${SEED}.jsonl" --expected-games 4 --corpus-seed "$SEED"
+              python3 stage8_serialize_counterfactual.py "stage8-fresh-raw-${ORIENTATION}-${SEED}.jsonl" "stage8-fresh-${ORIENTATION}-${SEED}.jsonl"
+              python3 stage8_validate_counterfactual.py "stage8-fresh-${ORIENTATION}-${SEED}.jsonl"
+              cat "stage8-fresh-${ORIENTATION}-${SEED}.jsonl" >> stage8-fresh-counterfactual.jsonl
+            done
+          done
+          python3 stage8_validate_counterfactual.py stage8-fresh-counterfactual.jsonl
+      - name: Evaluate frozen models on fresh families
+        run: python3 stage8_fresh_seed_evaluator.py frozen-development/stage8a-counterfactual.jsonl stage8-fresh-counterfactual.jsonl --output stage8-fresh-seed-report.json
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: stage8-fresh-seed-replication
+          path: |
+            stage8-fresh-seed-report.json
+            stage8-fresh-counterfactual.jsonl
+            stage8-fresh-deck-sha256.txt
+            stage8-fresh-*.log
