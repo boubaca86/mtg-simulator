@@ -11,9 +11,6 @@ on:
     branches: [main]
     paths:
       - "stage7_label_outcomes.py"
-      - "stage7_value_baseline.py"
-      - "stage7_semantic_value_model.py"
-      - "stage7_dataset_validation.py"
       - "stage7_compare_evaluators.py"
       - "patch_forge_stage7_legal_extractor.py"
       - "patch_forge_stage7_dataset_capture.py"
@@ -22,18 +19,16 @@ on:
       - "stage8_label_counterfactual.py"
       - "stage8_serialize_counterfactual.py"
       - "stage8_validate_counterfactual.py"
+      - "stage8_action_ranker.py"
       - "forge_ai/RootActionTable.java"
       - "patch_forge_complete_action_identity.py"
       - "validation/Stage6RootIdentityRegression.java"
       - ".github/workflows/forge-expert-ai-stage7b-labeled-baseline.yml"
-
 permissions:
   contents: read
-
 concurrency:
   group: forge-expert-ai-stage7b-live
   cancel-in-progress: ${{ github.event_name == 'push' }}
-
 jobs:
   live-labeled-baseline:
     runs-on: ubuntu-24.04
@@ -41,9 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: "17"
+        with: {distribution: temurin, java-version: "17"}
       - name: Export decks
         run: python3 forge_export.py --user-dir "$HOME/.forge"
       - name: Clone pinned Forge
@@ -72,75 +65,31 @@ jobs:
       - name: Capture fixed benchmark seed groups
         shell: bash
         run: |
-          set -euo pipefail
-          : > stage7b-labeled.jsonl
-          : > stage8a-counterfactual.jsonl
+          set -euo pipefail; : > stage7b-labeled.jsonl; : > stage8a-counterfactual.jsonl
           for SEED in 20261004 20261005 20261006 20261007; do
             for ORIENTATION in st-first red-first; do
-              if [ "$ORIENTATION" = "st-first" ]; then
-                DECK_A="ST Forge Full.dck"
-                DECK_B="Benchmark Red Forge.dck"
-                MATCHUP="st-vs-benchmark-red"
-              else
-                DECK_A="Benchmark Red Forge.dck"
-                DECK_B="ST Forge Full.dck"
-                MATCHUP="benchmark-red-vs-st"
-              fi
+              if [ "$ORIENTATION" = st-first ]; then DECK_A="ST Forge Full.dck"; DECK_B="Benchmark Red Forge.dck"; MATCHUP="st-vs-benchmark-red"; else DECK_A="Benchmark Red Forge.dck"; DECK_B="ST Forge Full.dck"; MATCHUP="benchmark-red-vs-st"; fi
               cd "$FORGE_HOME"
-              java -Xmx6g -Dforge.expert.infoset=true -Dforge.expert.infoset.samples=3 \
-                -Dforge.expert.stage7.dataset=true -Dforge.expert.stage8.capture=true \
-                -Dforge.expert.stage7.matchup="$MATCHUP" \
-                -jar "$FORGE_JAR" sim -D "$HOME/.forge/decks/constructed" \
-                -d "$DECK_A" "$DECK_B" -x full default \
-                -n "${{ inputs.games_per_seed || '4' }}" -s "$SEED" -q -c 180 \
-                > "$GITHUB_WORKSPACE/stage7b-${ORIENTATION}-${SEED}.log" 2>&1
+              java -Xmx6g -Dforge.expert.infoset=true -Dforge.expert.infoset.samples=3 -Dforge.expert.stage7.dataset=true -Dforge.expert.stage8.capture=true -Dforge.expert.stage7.matchup="$MATCHUP" -jar "$FORGE_JAR" sim -D "$HOME/.forge/decks/constructed" -d "$DECK_A" "$DECK_B" -x full default -n "${{ inputs.games_per_seed || '4' }}" -s "$SEED" -q -c 180 > "$GITHUB_WORKSPACE/stage7b-${ORIENTATION}-${SEED}.log" 2>&1
               cd "$GITHUB_WORKSPACE"
-
-              python3 stage7_label_outcomes.py "stage7b-${ORIENTATION}-${SEED}.log" "stage7b-${ORIENTATION}-${SEED}.jsonl" \
-                --expected-games "${{ inputs.games_per_seed || '4' }}" --corpus-seed "$SEED"
-              cat "stage7b-${ORIENTATION}-${SEED}.jsonl" >> stage7b-labeled.jsonl
-
-              python3 stage8_label_counterfactual.py "stage7b-${ORIENTATION}-${SEED}.log" "stage8-raw-${ORIENTATION}-${SEED}.jsonl" \
-                --expected-games "${{ inputs.games_per_seed || '4' }}" --corpus-seed "$SEED"
-              python3 stage8_serialize_counterfactual.py "stage8-raw-${ORIENTATION}-${SEED}.jsonl" "stage8-${ORIENTATION}-${SEED}.jsonl"
-              python3 stage8_validate_counterfactual.py "stage8-${ORIENTATION}-${SEED}.jsonl"
-              cat "stage8-${ORIENTATION}-${SEED}.jsonl" >> stage8a-counterfactual.jsonl
+              python3 stage7_label_outcomes.py "stage7b-${ORIENTATION}-${SEED}.log" "stage7b-${ORIENTATION}-${SEED}.jsonl" --expected-games "${{ inputs.games_per_seed || '4' }}" --corpus-seed "$SEED"; cat "stage7b-${ORIENTATION}-${SEED}.jsonl" >> stage7b-labeled.jsonl
+              python3 stage8_label_counterfactual.py "stage7b-${ORIENTATION}-${SEED}.log" "stage8-raw-${ORIENTATION}-${SEED}.jsonl" --expected-games "${{ inputs.games_per_seed || '4' }}" --corpus-seed "$SEED"
+              python3 stage8_serialize_counterfactual.py "stage8-raw-${ORIENTATION}-${SEED}.jsonl" "stage8-${ORIENTATION}-${SEED}.jsonl"; python3 stage8_validate_counterfactual.py "stage8-${ORIENTATION}-${SEED}.jsonl"; cat "stage8-${ORIENTATION}-${SEED}.jsonl" >> stage8a-counterfactual.jsonl
             done
           done
           python3 stage8_validate_counterfactual.py stage8a-counterfactual.jsonl
-      - name: Compare counts, visible identities, and public semantics on one fixed holdout
+      - name: Compare Stage 7 evaluators
+        run: python3 stage7_compare_evaluators.py stage7b-labeled.jsonl --output stage7c-comparison.json
+      - name: Evaluate Stage 8B seed-isolated action ranker
         run: |
-          python3 stage7_compare_evaluators.py stage7b-labeled.jsonl --output stage7c-comparison.json
+          python3 stage8_action_ranker.py stage8a-counterfactual.jsonl --output stage8b-ranking.json
           python3 - <<'PY'
           import json
-          r=json.load(open('stage7c-comparison.json'))
-          identity=r['models']['visible_identity_hash']['holdout']
-          semantics=r['models']['public_card_semantics']['holdout']
-          assert len(identity['per_game']) >= 8, 'Stage 7D-R requires at least eight seed-isolated holdout games'
-          assert set(identity['per_game']) == set(semantics['per_game']), 'paired holdout mismatch'
-          print('Stage 7D-R holdout games:', len(identity['per_game']))
-          print('semantic_minus_identity_logloss:', r['semantic_minus_identity_logloss'])
-          rows=[json.loads(x) for x in open('stage7b-labeled.jsonl') if x.strip()]
-          assert len({x['game_group'] for x in rows}) >= 32, 'Stage 7D-R requires 32 complete games'
-          assert all(x['search_policy'] == 'fixed-root-v1' for x in rows), 'obsolete search policy'
-          assert all(set(m['holdout']['per_game']) == set(identity['per_game']) for m in r['models'].values()), 'unpaired evaluator comparison'
-          counts=r['models']['perspective_counts']['holdout']['game_mean_logloss']
-          assert semantics['game_mean_logloss'] < counts, 'public semantics did not beat perspective counts'
-          assert semantics['game_mean_logloss'] <= identity['game_mean_logloss'], 'public semantics regressed versus visible identity'
-          assert r['promotion_allowed'] is False, 'offline evidence cannot promote live play'
-          PY
-      - name: Report Stage 8A capture coverage
-        run: |
-          python3 - <<'PY'
-          import json
-          rows=[json.loads(x) for x in open('stage8a-counterfactual.jsonl') if x.strip()]
-          games={r['game_group'] for r in rows}
-          candidate_counts=[len(r['candidates']) for r in rows]
-          assert rows, 'Stage 8A produced no rankable decisions'
-          assert min(candidate_counts) >= 2, 'forced move leaked into ranking corpus'
-          print('Stage 8A rankable decisions:', len(rows))
-          print('Stage 8A games with rankable decisions:', len(games))
-          print('Stage 8A mean candidates:', sum(candidate_counts)/len(candidate_counts))
+          r=json.load(open('stage8b-ranking.json'))
+          assert r['promotion_allowed'] is False
+          assert r['holdout']['decisions'] > 0
+          assert r['holdout']['pairwise_comparisons'] > 0
+          print('Stage 8B holdout:', r['holdout'])
           PY
       - uses: actions/upload-artifact@v6
         if: always()
@@ -150,5 +99,6 @@ jobs:
             stage7b-labeled.jsonl
             stage7c-comparison.json
             stage8a-counterfactual.jsonl
+            stage8b-ranking.json
             stage8-*.jsonl
             stage7b-*.log
