@@ -8,6 +8,11 @@ FORBIDDEN = {'opponent_hand', 'opponent_hand_cards', 'own_library',
 CARD_ZONES = ('own_hand', 'own_battlefield', 'opponent_battlefield',
               'own_graveyard', 'opponent_graveyard', 'battlefield_public',
               'graveyard_public', 'exile_public')
+SEMANTIC_ZONES = ('own_hand_semantics', 'own_battlefield_semantics',
+                  'opponent_battlefield_semantics', 'own_graveyard_semantics',
+                  'opponent_graveyard_semantics', 'exile_public_semantics',
+                  'stack_public_semantics')
+CURRENT_SCHEMAS = {'stage7c-v3', 'stage7d-v1'}
 
 
 def reject_hidden(value):
@@ -41,8 +46,12 @@ def validate_observation(row):
         if zone in row and (not isinstance(row[zone], list) or
                             not all(isinstance(x, str) for x in row[zone])):
             raise ValueError(f'{zone} must be a list of visible card names')
+    for zone in SEMANTIC_ZONES:
+        if zone in row and (not isinstance(row[zone], list) or
+                            not all(isinstance(x, str) for x in row[zone])):
+            raise ValueError(f'{zone} must be a list of public card descriptors')
     stack_items(row)
-    # Current Java capture deliberately does not export known opponent-hand
+    # The current Java capture deliberately does not export known opponent-hand
     # identities. Do not accept an unverified list from an external producer.
     if row.get('opponent_known_cards'):
         raise ValueError('opponent_known_cards lacks verified public-knowledge provenance')
@@ -88,8 +97,12 @@ def validate_labeled_rows(rows, current_schema=False):
                         'opponent_unknown_hand_count', 'own_library_count', 'opponent_library_count',
                         'own_battlefield', 'opponent_battlefield', 'own_graveyard',
                         'opponent_graveyard', 'exile_public', 'stack_public', 'matchup_id'}
-            if required - row.keys() or row.get('schema_version') != 'stage7c-v3':
-                raise ValueError('paired comparison requires freshly captured stage7c-v3 observations')
+            if required - row.keys() or row.get('schema_version') not in CURRENT_SCHEMAS:
+                raise ValueError('paired comparison requires a freshly captured current Stage 7 observation')
+            if row.get('schema_version') == 'stage7d-v1':
+                missing_semantics = set(SEMANTIC_ZONES) - row.keys()
+                if missing_semantics:
+                    raise ValueError(f'stage7d-v1 missing public semantic zones: {sorted(missing_semantics)}')
             if not isinstance(row['stack_public'], list):
                 raise ValueError('current stack_public must be a structured list')
             if row.get('infoset_sample_count') != 3 or not row['complete_action_identity'].startswith('recipe=v2|'):
