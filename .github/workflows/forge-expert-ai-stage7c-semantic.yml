@@ -1,0 +1,28 @@
+name: Forge Expert AI Stage 7C — Semantic Evaluator
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'stage7_semantic_value_model.py'
+      - 'test_stage7_semantic_value_model.py'
+      - '.github/workflows/forge-expert-ai-stage7c-semantic.yml'
+
+jobs:
+  semantic-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run Stage 7C anti-leakage and determinism tests
+        run: python -m unittest -v test_stage7_semantic_value_model.py
+      - name: Reject forbidden hidden-zone consumers statically
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('stage7_semantic_value_model.py').read_text()
+          # These names may occur only in the explicit rejection set, never as r.get consumers.
+          forbidden=['opponent_hand_cards','opponent_hand','own_library','opponent_library','library_order','future_draws']
+          for name in forbidden:
+              assert f"r.get('{name}'" not in p and f'r.get("{name}"' not in p, name
+          print('Stage 7C static hidden-information boundary: PASS')
+          PY
