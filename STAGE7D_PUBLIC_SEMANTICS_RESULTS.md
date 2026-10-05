@@ -1,6 +1,12 @@
 # Stage 7D — Public Card Semantics
 
-Status: **first paired research gate passed; live promotion remains disabled**.
+Status: **historical small-corpus research result; fixed-root recapture required**.
+
+The 32-game replication run `37286004175` failed its repaired action audit on
+seed `20261005` (Whirlwind targets diverged across worlds). The search now aggregates
+matching root recipes instead of world optima; see `STAGE6_FIXED_ROOT_AGGREGATION.md`.
+The numbers below describe the earlier policy and are not a replication result.
+Live promotion remains disabled.
 
 ## Result
 

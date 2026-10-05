@@ -16,7 +16,9 @@ on:
       - "stage7_dataset_validation.py"
       - "stage7_compare_evaluators.py"
       - "patch_forge_stage7_legal_extractor.py"
+      - "patch_forge_stage7_dataset_capture.py"
       - "patch_forge_strategy_fusion_audit.py"
+      - "forge_ai/RootActionTable.java"
       - "patch_forge_complete_action_identity.py"
       - "validation/Stage6RootIdentityRegression.java"
       - ".github/workflows/forge-expert-ai-stage7b-labeled-baseline.yml"
@@ -110,6 +112,14 @@ jobs:
           assert set(identity['per_game']) == set(semantics['per_game']), 'paired holdout mismatch'
           print('Stage 7D-R holdout games:', len(identity['per_game']))
           print('semantic_minus_identity_logloss:', r['semantic_minus_identity_logloss'])
+          rows=[json.loads(x) for x in open('stage7b-labeled.jsonl') if x.strip()]
+          assert len({x['game_group'] for x in rows}) >= 32, 'Stage 7D-R requires 32 complete games'
+          assert all(x['search_policy'] == 'fixed-root-v1' for x in rows), 'obsolete search policy'
+          assert all(set(m['holdout']['per_game']) == set(identity['per_game']) for m in r['models'].values()), 'unpaired evaluator comparison'
+          counts=r['models']['perspective_counts']['holdout']['game_mean_logloss']
+          assert semantics['game_mean_logloss'] < counts, 'public semantics did not beat perspective counts'
+          assert semantics['game_mean_logloss'] <= identity['game_mean_logloss'], 'public semantics regressed versus visible identity'
+          assert r['promotion_allowed'] is False, 'offline evidence cannot promote live play'
           PY
       - uses: actions/upload-artifact@v6
         if: always()

@@ -19,6 +19,7 @@ def fixture():
                              'game_group': f'seed-{seed}:game-{game}', 'game_result': float(actor == game),
                              'terminal_winner_player': game, 'label_version': LABEL_VERSION,
                              'complete_action_identity': 'recipe=v2|ability=test', 'infoset_sample_count': 3,
+                             'search_policy': 'fixed-root-v1',
                              'acting_life': 10, 'opponent_life': 10, 'turn': 4, 'phase': 'MAIN1',
                              'own_hand': ['Bolt'], 'opponent_unknown_hand_count': 1,
                              'own_library_count': 30, 'opponent_library_count': 30,
@@ -56,6 +57,10 @@ class ComparisonTest(unittest.TestCase):
                 validate_labeled_rows(rows)
 
     def test_old_schema_and_false_single_class_benchmarks_fail(self):
+        rows = fixture()
+        del rows[0]['search_policy']
+        with self.assertRaisesRegex(ValueError, 'fixed-root'):
+            compare.compare(rows, epochs=1)
         rows = fixture()
         rows[0]['schema_version'] = 'stage7a-v1'
         with self.assertRaises(ValueError):

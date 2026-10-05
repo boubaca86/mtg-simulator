@@ -6,6 +6,7 @@ on:
     paths:
       - "patch_forge_complete_action_identity.py"
       - "patch_forge_strategy_fusion_audit.py"
+      - "forge_ai/RootActionTable.java"
       - "validation/Stage6RootIdentityRegression.java"
       - ".github/workflows/forge-expert-ai-stage6-java.yml"
   workflow_dispatch:

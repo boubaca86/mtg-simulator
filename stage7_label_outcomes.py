@@ -32,6 +32,8 @@ def label_log(path: Path, expected_games: int | None = None, samples: int = 3) -
             raise ValueError("timeout: the entire source log is quarantined, even if a later line reports a winner")
         if raw.startswith("EXPERT_INFOSET_STRATEGY_FUSION:"):
             raise ValueError("strategy-fusion divergence: source log is quarantined")
+        if raw.startswith("EXPERT_INFOSET_ACTION_REPLAY_MISMATCH:"):
+            raise ValueError("action replay mismatch: source log is quarantined")
         if re.search(r"(?:Exception in thread|java\.[\w.]+(?:Exception|Error)|OutOfMemoryError|StackOverflowError)", raw):
             raise ValueError("Forge exception: source log is quarantined")
         audit = AUDIT.fullmatch(raw)

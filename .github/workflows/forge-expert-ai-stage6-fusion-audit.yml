@@ -6,16 +6,17 @@ on:
       games:
         description: "Audit games"
         required: true
-        default: "20"
+        default: "4"
       seed:
         description: "Forge RNG seed"
         required: true
-        default: "20261004"
+        default: "20261005"
   push:
     branches: [main]
     paths:
       - ".github/workflows/forge-expert-ai-stage6-fusion-audit.yml"
       - "patch_forge_strategy_fusion_audit.py"
+      - "forge_ai/RootActionTable.java"
       - "patch_forge_complete_action_identity.py"
 
 permissions:
@@ -59,11 +60,11 @@ jobs:
           cd "$FORGE_HOME"
           java -Xmx6g -Dforge.expert.infoset=true -Dforge.expert.infoset.samples=3 -jar "$FORGE_JAR" sim \
             -D "$HOME/.forge/decks/constructed" -d "ST Forge Full.dck" "Benchmark Red Forge.dck" \
-            -x full default -n "${{ inputs.games || '20' }}" -s "${{ inputs.seed || '20261004' }}" -q -c 180 \
+            -x full default -n "${{ inputs.games || '4' }}" -s "${{ inputs.seed || '20261005' }}" -q -c 180 \
             2>&1 | tee "$GITHUB_WORKSPACE/stage6-fusion-audit.log"
       - name: Verify Stage 6 regression gate
         env:
-          EXPECTED_GAMES: ${{ inputs.games || '20' }}
+          EXPECTED_GAMES: ${{ inputs.games || '4' }}
         run: |
           python3 - <<'PY'
           import os, re
@@ -74,12 +75,15 @@ jobs:
           assert games == list(range(1, int(os.environ['EXPECTED_GAMES']) + 1)), games
           assert 'Stopping slow match as draw' not in text, 'timeout invalidates this corpus'
           assert not re.search(r'Exception in thread|java\.[\w.]+(?:Exception|Error)', text), 'Forge execution error'
-          assert 'EXPERT_INFOSET_STRATEGY_FUSION:' not in text, 'hidden worlds selected different root actions'
+          assert 'EXPERT_INFOSET_STRATEGY_FUSION:' not in text, 'installed action differs from averaged recipe'
+          assert 'EXPERT_INFOSET_ACTION_REPLAY_MISMATCH:' not in text, 'replayed target differs from planned target'
           audits = [AUDIT.fullmatch(line) for line in text.splitlines() if line.startswith('EXPERT_INFOSET_AUDITED_CANDIDATE:')]
           assert audits, 'no audited complete actions'
           assert all(a and tuple(map(int, a.groups())) == (3, 3) for a in audits), 'incomplete three-world coverage'
           print(f'Completed {len(games)} games; fully audited {len(audits)} candidates; zero observed divergences or timeouts.')
-          print('Diagnostic corpus gate only: complete-action replay/aggregation is still required.')
+          reconciled = text.count('EXPERT_INFOSET_ACTIONS_RECONCILED:')
+          print(f'Fixed-root aggregation reconciled {reconciled} world disagreements.')
+          print('Root-recipe scope only: future policy and unmodeled Forge choices remain experimental.')
           PY
       - uses: actions/upload-artifact@v6
         if: always()

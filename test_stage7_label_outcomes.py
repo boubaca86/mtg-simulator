@@ -47,10 +47,15 @@ class OutcomeLabelsTest(unittest.TestCase):
 
     def test_fusion_and_incomplete_audit_fail(self):
         for text in ("EXPERT_INFOSET_STRATEGY_FUSION: candidate=0 samples=3\n" + self.game(),
+                     "EXPERT_INFOSET_ACTION_REPLAY_MISMATCH: target changed\n" + self.game(),
                      self.game().replace("identifiedWorlds=3", "identifiedWorlds=1"),
                      "\n".join(self.game().splitlines()[1:])):
             with self.assertRaises(ValueError):
                 self.read(text)
+
+    def test_disagreement_reconciled_before_selection_is_allowed(self):
+        rows = self.read("EXPERT_INFOSET_ACTIONS_RECONCILED: candidate=0 samples=3 selected=recipe:v2\n" + self.game())
+        self.assertEqual(len(rows), 2)
 
     def test_missing_terminal_or_wrong_count_fail(self):
         for text, count in ((self.game().split("Game Result:")[0], 1), (self.game(), 2), (self.game(number=2), 1)):

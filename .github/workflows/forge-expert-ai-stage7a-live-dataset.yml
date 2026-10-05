@@ -10,13 +10,14 @@ on:
       seed:
         description: "Forge RNG seed"
         required: true
-        default: "20261004"
+        default: "20261005"
   push:
     branches: [main]
     paths:
       - "patch_forge_stage7_dataset_capture.py"
       - "patch_forge_stage7_legal_extractor.py"
       - "patch_forge_strategy_fusion_audit.py"
+      - "forge_ai/RootActionTable.java"
       - "stage7_dataset_validation.py"
       - "stage7_label_outcomes.py"
       - ".github/workflows/forge-expert-ai-stage7a-live-dataset.yml"
@@ -64,7 +65,7 @@ jobs:
               -Dforge.expert.stage7.dataset=true -Dforge.expert.stage7.matchup=st-vs-benchmark-red \
               -jar "$FORGE_JAR" sim -D "$HOME/.forge/decks/constructed" \
               -d "ST Forge Full.dck" "Benchmark Red Forge.dck" -x full default \
-              -n "${{ inputs.games || '4' }}" -s "${{ inputs.seed || '20261004' }}" -q -c 180 \
+              -n "${{ inputs.games || '4' }}" -s "${{ inputs.seed || '20261005' }}" -q -c 180 \
               > "$GITHUB_WORKSPACE/stage7-pass${PASS}.log" 2>&1
             cd "$GITHUB_WORKSPACE"
             grep '^EXPERT_STAGE7_DATA: ' "stage7-pass${PASS}.log" | sed 's/^EXPERT_STAGE7_DATA: //' > "stage7-pass${PASS}.jsonl"
@@ -93,6 +94,7 @@ jobs:
                   assert semantic_zones <= row.keys(), semantic_zones - row.keys()
               assert isinstance(row['stack_public'], list)
               assert row['complete_action_identity'].startswith('recipe=v2|')
+              assert row['search_policy'] == 'fixed-root-v1'
               assert required <= row.keys(), required - row.keys()
               assert not (forbidden & row.keys()), forbidden & row.keys()
               assert row['infoset_sample_count'] == 3

@@ -22,21 +22,16 @@ def main() -> None:
     replacement = marker + "\n    private static long stage7DecisionIndex = 0L;"
     text = replace_once(text, marker, replacement, "SpellAbilityPicker class declaration")
 
-    old = """                if (executableScore.value != Integer.MIN_VALUE) {
-                    bestSa = candidateSAs.get(bestIndex);
-                }
+    old = """                bestSa = candidateSAs.get(bestIndex);
 """
-    new = """                if (executableScore.value != Integer.MIN_VALUE) {
-                    bestSa = candidateSAs.get(bestIndex);
-                    String actionIdentity = controller.getBestRootActionIdentity();
-                    if (Boolean.getBoolean("forge.expert.stage7.dataset") && actionIdentity != null) {
-                        long decisionIndex = stage7DecisionIndex++;
-                        String matchupId = System.getProperty("forge.expert.stage7.matchup", "unspecified");
-                        String legalJson = LegalDecisionFeatures.export(
-                                player, actionIdentity, samples, deterministicSimulationSeed(),
-                                decisionIndex, matchupId);
-                        System.out.println("EXPERT_STAGE7_DATA: " + legalJson);
-                    }
+    new = old + """                String actionIdentity = controller.getBestRootActionIdentity();
+                if (Boolean.getBoolean("forge.expert.stage7.dataset") && actionIdentity != null) {
+                    long decisionIndex = stage7DecisionIndex++;
+                    String matchupId = System.getProperty("forge.expert.stage7.matchup", "unspecified");
+                    String legalJson = LegalDecisionFeatures.export(
+                            player, actionIdentity, samples, deterministicSimulationSeed(),
+                            decisionIndex, matchupId);
+                    System.out.println("EXPERT_STAGE7_DATA: " + legalJson);
                 }
 """
     text = replace_once(text, old, new, "root executable action capture")

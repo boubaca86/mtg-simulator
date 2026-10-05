@@ -90,7 +90,7 @@ public final class LegalDecisionFeatures {
         raw(out,"opponent_graveyard",jsonStrings(sortedNames(opponent.getCardsIn(ZoneType.Graveyard)))).append(','); raw(out,"opponent_graveyard_semantics",jsonStrings(sortedDescriptors(opponent.getCardsIn(ZoneType.Graveyard)))).append(',');
         raw(out,"exile_public",jsonStrings(sortedNames(game.getCardsIn(ZoneType.Exile)))).append(','); raw(out,"exile_public_semantics",jsonStrings(sortedDescriptors(game.getCardsIn(ZoneType.Exile)))).append(',');
         raw(out,"stack_public",jsonStrings(stackNames(game))).append(','); raw(out,"stack_public_semantics",jsonStrings(stackDescriptors(game))).append(',');
-        field(out,"matchup_id",matchupId==null?"":matchupId).append(','); field(out,"complete_action_identity",completeActionIdentity).append(','); number(out,"infoset_sample_count",infosetSampleCount); return out.append('}').toString();
+        field(out,"matchup_id",matchupId==null?"":matchupId).append(','); field(out,"complete_action_identity",completeActionIdentity).append(','); number(out,"infoset_sample_count",infosetSampleCount).append(','); field(out,"search_policy","fixed-root-v1"); return out.append('}').toString();
     }
     private static StringBuilder field(StringBuilder out,String key,String value){return out.append('\"').append(key).append("\":\"").append(jsonEscape(value)).append('\"');}
     private static StringBuilder number(StringBuilder out,String key,long value){return out.append('\"').append(key).append("\":").append(value);}

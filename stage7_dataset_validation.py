@@ -107,4 +107,6 @@ def validate_labeled_rows(rows, current_schema=False):
                 raise ValueError('current stack_public must be a structured list')
             if row.get('infoset_sample_count') != 3 or not row['complete_action_identity'].startswith('recipe=v2|'):
                 raise ValueError('paired comparison requires the corrected three-world action audit')
+            if row.get('search_policy') != 'fixed-root-v1':
+                raise ValueError('paired comparison requires fixed-root action aggregation; recapture the corpus')
     return rows
