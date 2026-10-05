@@ -6,7 +6,7 @@ on:
       games_per_seed:
         description: "Games per independent seed group and matchup orientation"
         required: true
-        default: "2"
+        default: "4"
   push:
     branches: [main]
     paths:
@@ -68,6 +68,8 @@ jobs:
           set -euo pipefail
           : > stage7b-labeled.jsonl
           for SEED in 20261004 20261005 20261006 20261007; do
+            # Stage 7D-R replication gate: four games per orientation gives 32 complete
+            # games total and eight games in the seed-isolated 25% holdout.
             # Keep the asymmetric benchmark corpus: it measures the current expert search
             # against Forge Default in both deck orientations. These rows may legitimately
             # be one-sided and must not be manufactured into wins.
@@ -86,20 +88,29 @@ jobs:
                 -Dforge.expert.stage7.dataset=true -Dforge.expert.stage7.matchup="$MATCHUP" \
                 -jar "$FORGE_JAR" sim -D "$HOME/.forge/decks/constructed" \
                 -d "$DECK_A" "$DECK_B" -x full default \
-                -n "${{ inputs.games_per_seed || '2' }}" -s "$SEED" -q -c 180 \
+                -n "${{ inputs.games_per_seed || '4' }}" -s "$SEED" -q -c 180 \
                 > "$GITHUB_WORKSPACE/stage7b-${ORIENTATION}-${SEED}.log" 2>&1
               cd "$GITHUB_WORKSPACE"
-              python3 stage7_label_outcomes.py "stage7b-${ORIENTATION}-${SEED}.log" "stage7b-${ORIENTATION}-${SEED}.jsonl" --expected-games "${{ inputs.games_per_seed || '2' }}" --corpus-seed "$SEED"
+              python3 stage7_label_outcomes.py "stage7b-${ORIENTATION}-${SEED}.log" "stage7b-${ORIENTATION}-${SEED}.jsonl" --expected-games "${{ inputs.games_per_seed || '4' }}" --corpus-seed "$SEED"
               cat "stage7b-${ORIENTATION}-${SEED}.jsonl" >> stage7b-labeled.jsonl
             done
 
             # Mirror calibration is deferred: its original logs contain timeouts.
-            # The corrected winner mapping already gives both classes in the fixed
-            # benchmark. Never change seeds to force the validation gate to pass.
+            # Never change seeds to force the validation gate to pass.
           done
-      - name: Compare counts and visible identities on one fixed holdout
+      - name: Compare counts, visible identities, and public semantics on one fixed holdout
         run: |
           python3 stage7_compare_evaluators.py stage7b-labeled.jsonl --output stage7c-comparison.json
+          python3 - <<'PY'
+          import json
+          r=json.load(open('stage7c-comparison.json'))
+          identity=r['models']['visible_identity_hash']['holdout']
+          semantics=r['models']['public_card_semantics']['holdout']
+          assert len(identity['per_game']) >= 8, 'Stage 7D-R requires at least eight seed-isolated holdout games'
+          assert set(identity['per_game']) == set(semantics['per_game']), 'paired holdout mismatch'
+          print('Stage 7D-R holdout games:', len(identity['per_game']))
+          print('semantic_minus_identity_logloss:', r['semantic_minus_identity_logloss'])
+          PY
       - uses: actions/upload-artifact@v6
         if: always()
         with:
