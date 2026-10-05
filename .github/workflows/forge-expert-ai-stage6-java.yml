@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - "patch_forge_complete_action_identity.py"
+      - "patch_forge_strategy_fusion_audit.py"
+      - "validation/Stage6RootIdentityRegression.java"
       - ".github/workflows/forge-expert-ai-stage6-java.yml"
   workflow_dispatch:
 
@@ -25,12 +27,21 @@ jobs:
         run: git clone --depth 1 --branch forge-2.0.15 https://github.com/Card-Forge/forge.git forge-src
       - name: Patch complete-action identity into Forge Plan
         run: |
+          python3 patch_forge_information_set.py forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java
+          python3 patch_forge_infoset_ensemble.py --game-simulator forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python3 patch_forge_strategy_fusion_audit.py --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
           python3 patch_forge_complete_action_identity.py forge-src/forge-ai/src/main/java/forge/ai/simulation/Plan.java
           grep -n "completeActionIdentity" forge-src/forge-ai/src/main/java/forge/ai/simulation/Plan.java
           grep -n 'append("|x=")' forge-src/forge-ai/src/main/java/forge/ai/simulation/Plan.java
           grep -n 'append("|modes=")' forge-src/forge-ai/src/main/java/forge/ai/simulation/Plan.java
           grep -n 'append("|targets=")' forge-src/forge-ai/src/main/java/forge/ai/simulation/Plan.java
           grep -n 'append("|choices=")' forge-src/forge-ai/src/main/java/forge/ai/simulation/Plan.java
-      - name: Compile patched Forge AI module
-        working-directory: forge-src
-        run: mvn -B -pl forge-ai -am -DskipTests -Dcheckstyle.skip=true package
+      - name: Build Forge and execute action-identity regression
+        run: |
+          cd forge-src
+          mvn -B -pl forge-gui-desktop -am -DskipTests -Dcheckstyle.skip=true package
+          FORGE_JAR="$(find forge-gui-desktop/target -type f -name '*-jar-with-dependencies.jar' -print -quit)"
+          FORGE_JAR="$(realpath "$FORGE_JAR")"
+          cd ..
+          javac -cp "$FORGE_JAR" -d stage6-regression validation/Stage6RootIdentityRegression.java
+          java -cp "stage6-regression:$FORGE_JAR" forge.ai.simulation.Stage6RootIdentityRegression

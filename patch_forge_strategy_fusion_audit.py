@@ -18,16 +18,40 @@ def patch_controller(path: Path) -> None:
     }
 """
     replacement = marker + """
-    /** Stage 6 audit hook: identity of the best executable root action found in this world. */
+    /** Read-only snapshot of the first executable action, including its child choices.
+     * Forge stores targets/modes/choices as separate linked Decision nodes until
+     * getBestPlan() merges them. Reading just the oldest node drops those choices.
+     * Do not call getBestPlan() here: it mutates nodes and can duplicate choices.
+     */
     public String getBestRootActionIdentity() {
         if (bestSequence == null) {
             return null;
         }
-        Plan.Decision root = bestSequence;
-        while (root.prevDecision != null) {
-            root = root.prevDecision;
+        List<Plan.Decision> sequence = new ArrayList<>();
+        for (Plan.Decision d = bestSequence; d != null; d = d.prevDecision) {
+            sequence.add(d);
         }
-        return root.completeActionIdentity();
+        Collections.reverse(sequence);
+        Plan.Decision root = null;
+        for (Plan.Decision d : sequence) {
+            if (d.saRef != null) {
+                if (root != null) break; // exclude future spells in the rollout
+                root = new Plan.Decision(d.initialScore, null, d.saRef);
+                root.xMana = d.xMana;
+                root.targets = d.targets;
+                root.modes = d.modes == null ? null : d.modes.clone();
+                root.choices = d.choices == null ? null : new ArrayList<>(d.choices);
+            } else {
+                if (root == null) throw new IllegalStateException("choice precedes root spell");
+                if (d.targets != null) root.targets = d.targets;
+                if (d.modes != null) root.modes = d.modes.clone();
+                if (d.choices != null) {
+                    if (root.choices == null) root.choices = new ArrayList<>();
+                    root.choices.addAll(d.choices);
+                }
+            }
+        }
+        return root == null ? null : root.completeActionIdentity();
     }
 """
     text = replace_once(text, marker, replacement, "controller audit accessor")

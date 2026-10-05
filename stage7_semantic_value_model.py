@@ -8,6 +8,7 @@ are never consumed. Splits are by complete Forge game_group.
 from __future__ import annotations
 import argparse, hashlib, json, math, random
 from pathlib import Path
+from stage7_dataset_validation import stack_items, validate_labeled_rows
 
 FORBIDDEN={'opponent_hand','opponent_hand_cards','own_library','opponent_library','library_order','future_draws'}
 ZONES=('own_hand','opponent_known_cards','own_battlefield','opponent_battlefield','own_graveyard','opponent_graveyard','exile_public','stack_public')
@@ -17,13 +18,7 @@ LEGACY=('battlefield_public','graveyard_public')
 def load(path):
     rows=[json.loads(x) for x in Path(path).read_text().splitlines() if x.strip()]
     if not rows: raise ValueError('empty dataset')
-    for r in rows:
-        bad=FORBIDDEN & r.keys()
-        if bad: raise ValueError(f'hidden-information leakage: {sorted(bad)}')
-        if not r.get('complete_action_identity'): raise ValueError('missing complete action identity')
-        if 'game_result' not in r: raise ValueError('missing game_result')
-        if not r.get('game_group'): raise ValueError('missing game_group')
-    return rows
+    return validate_labeled_rows(rows)
 
 
 def _bucket(zone,name,dim):
@@ -32,6 +27,7 @@ def _bucket(zone,name,dim):
 
 
 def features(r,dim):
+    if dim < 0: raise ValueError('hash dimension must be nonnegative')
     # Transparent scalar core retained for direct comparison with Stage 7B.
     x=[1.0,float(r.get('acting_life',0)),float(r.get('opponent_life',0)),
        float(len(r.get('own_hand',[]))),float(r.get('opponent_unknown_hand_count',0)),
@@ -40,10 +36,12 @@ def features(r,dim):
        float(len(r.get('opponent_battlefield',[]))),
        float(len(r.get('own_graveyard',r.get('graveyard_public',[])))),
        float(len(r.get('opponent_graveyard',[]))),float(len(r.get('exile_public',[]))),
-       float(len(r.get('stack_public',[]))),float(r.get('turn',0))]
+       float(len(stack_items(r))),float(r.get('turn',0))]
+    if dim == 0: return x  # controller-aware count ablation
     h=[0.0]*dim
     for zone in ZONES:
-        for name in r.get(zone,[]): h[_bucket(zone,name,dim)]+=1.0
+        items = stack_items(r) if zone == 'stack_public' else r.get(zone,[])
+        for name in items: h[_bucket(zone,name,dim)]+=1.0
     # Old datasets may only have combined public zones; preserve them without
     # pretending controller identity is known.
     for zone in LEGACY:

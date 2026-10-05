@@ -1,0 +1,222 @@
+{
+  "benchmark_game_outcomes_for_full_actor_0": {
+    "0.0": 11,
+    "1.0": 5
+  },
+  "changed_row_labels": 111,
+  "original_dataset_sha256": "a475d523adc511047c156c701f66decab9755d6cf7b21af1ef7710ee0409c681",
+  "original_games": 24,
+  "original_row_outcomes": {
+    "0.0": 758,
+    "1.0": 38
+  },
+  "original_rows": 796,
+  "quarantined_source_logs": 4,
+  "reason": "All original observations predate the corrected root-choice audit; terminal-label repair alone cannot make them information-set clean.",
+  "reconstructed_terminal_rows": 338,
+  "source_artifact": 11318401398,
+  "source_run": 37241369454,
+  "sources": [
+    {
+      "label_repair_status": "quarantined",
+      "name": "stage7b-mirror-20261004.log",
+      "reason": "timeout: the entire source log is quarantined, even if a later line reports a winner",
+      "sha256": "43386040b677f1778734df82d7c5f31ff56da4a91efb2c78d98e2eec445180f3",
+      "terminal_lines": [
+        "Game Result: Game 1 ended in 180084 ms. Ai(2)-ST Forge Full has won!",
+        "Game Result: Game 2 ended in 179056 ms. Ai(2)-ST Forge Full has won!"
+      ],
+      "timeout_count": 1
+    },
+    {
+      "label_repair_status": "quarantined",
+      "name": "stage7b-mirror-20261005.log",
+      "reason": "timeout: the entire source log is quarantined, even if a later line reports a winner",
+      "sha256": "ff6923f9bc0409d20b435718769d13358c71a426b6f9a9e45db33ee492bb5586",
+      "terminal_lines": [
+        "Game Result: Game 1 ended in 180084 ms. Ai(2)-ST Forge Full has won!",
+        "Game Result: Game 2 ended in 180446 ms. Ai(2)-ST Forge Full has won!"
+      ],
+      "timeout_count": 2
+    },
+    {
+      "label_repair_status": "quarantined",
+      "name": "stage7b-mirror-20261006.log",
+      "reason": "timeout: the entire source log is quarantined, even if a later line reports a winner",
+      "sha256": "a37165e9630493a9829101bbc6541a4224d194a0291a7d433e62a7a559fe4a7e",
+      "terminal_lines": [
+        "Game Result: Game 1 ended in 180089 ms. Ai(2)-ST Forge Full has won!",
+        "Game Result: Game 2 ended in 160976 ms. Ai(2)-ST Forge Full has won!"
+      ],
+      "timeout_count": 1
+    },
+    {
+      "label_repair_status": "quarantined",
+      "name": "stage7b-mirror-20261007.log",
+      "reason": "timeout: the entire source log is quarantined, even if a later line reports a winner",
+      "sha256": "ab2b32130d1898c00582322d7981512600f9422ef13489ac1dfbb2c9daf933e3",
+      "terminal_lines": [
+        "Game Result: Game 1 ended in 180087 ms. Ai(1)-ST Forge Full has won!",
+        "Game Result: Game 2 ended in 25278 ms. Ai(1)-ST Forge Full has won!"
+      ],
+      "timeout_count": 1
+    },
+    {
+      "acting_player_0_game_outcomes": {
+        "0.0": 1,
+        "1.0": 1
+      },
+      "changed_row_labels": 28,
+      "corrected_row_outcomes": {
+        "0.0": 22,
+        "1.0": 28
+      },
+      "label_repair_status": "terminal_labels_reconstructed_only",
+      "name": "stage7b-red-first-20261004.log",
+      "rows": 50,
+      "sha256": "52708088c72b91a0d4930fe1e591eb0d3b6928b28acab19ea1ba1d6760d0d4b4",
+      "terminal_lines": [
+        "Game Result: Game 1 ended in 54657 ms. Ai(2)-ST Forge Full has won!",
+        "Game Result: Game 2 ended in 12893 ms. Ai(1)-Benchmark Red Forge has won!"
+      ],
+      "timeout_count": 0
+    },
+    {
+      "acting_player_0_game_outcomes": {
+        "0.0": 2
+      },
+      "changed_row_labels": 0,
+      "corrected_row_outcomes": {
+        "0.0": 44
+      },
+      "label_repair_status": "terminal_labels_reconstructed_only",
+      "name": "stage7b-red-first-20261005.log",
+      "rows": 44,
+      "sha256": "f7596ad7092dec7fbd6b6633d0c1d499eeb5b1f13ffdf07f766c14ba9e8ffb8a",
+      "terminal_lines": [
+        "Game Result: Game 1 ended in 87326 ms. Ai(2)-ST Forge Full has won!",
+        "Game Result: Game 2 ended in 15169 ms. Ai(2)-ST Forge Full has won!"
+      ],
+      "timeout_count": 0
+    },
+    {
+      "acting_player_0_game_outcomes": {
+        "0.0": 2
+      },
+      "changed_row_labels": 0,
+      "corrected_row_outcomes": {
+        "0.0": 49
+      },
+      "label_repair_status": "terminal_labels_reconstructed_only",
+      "name": "stage7b-red-first-20261006.log",
+      "rows": 49,
+      "sha256": "5ec4a922fbdcb074f0d20ddf9f80b5fd47c1065fff7aafca081629567088a622",
+      "terminal_lines": [
+        "Game Result: Game 1 ended in 124479 ms. Ai(2)-ST Forge Full has won!",
+        "Game Result: Game 2 ended in 23328 ms. Ai(2)-ST Forge Full has won!"
+      ],
+      "timeout_count": 0
+    },
+    {
+      "acting_player_0_game_outcomes": {
+        "0.0": 2
+      },
+      "changed_row_labels": 0,
+      "corrected_row_outcomes": {
+        "0.0": 52
+      },
+      "label_repair_status": "terminal_labels_reconstructed_only",
+      "name": "stage7b-red-first-20261007.log",
+      "rows": 52,
+      "sha256": "481c8ceaba58d8aa9c382be579a8a95e6764ca01ec3ea7f7b625f23fff29b01d",
+      "terminal_lines": [
+        "Game Result: Game 1 ended in 20594 ms. Ai(2)-ST Forge Full has won!",
+        "Game Result: Game 2 ended in 69136 ms. Ai(2)-ST Forge Full has won!"
+      ],
+      "timeout_count": 0
+    },
+    {
+      "acting_player_0_game_outcomes": {
+        "0.0": 1,
+        "1.0": 1
+      },
+      "changed_row_labels": 12,
+      "corrected_row_outcomes": {
+        "0.0": 18,
+        "1.0": 12
+      },
+      "label_repair_status": "terminal_labels_reconstructed_only",
+      "name": "stage7b-st-first-20261004.log",
+      "rows": 30,
+      "sha256": "ea0cff0b8d5f469ec2a78da0ec7ece034c905927e11e4e87a3788620dc8f124c",
+      "terminal_lines": [
+        "Game Result: Game 1 ended in 15671 ms. Ai(1)-ST Forge Full has won!",
+        "Game Result: Game 2 ended in 46422 ms. Ai(2)-Benchmark Red Forge has won!"
+      ],
+      "timeout_count": 0
+    },
+    {
+      "acting_player_0_game_outcomes": {
+        "0.0": 1,
+        "1.0": 1
+      },
+      "changed_row_labels": 26,
+      "corrected_row_outcomes": {
+        "0.0": 2,
+        "1.0": 26
+      },
+      "label_repair_status": "terminal_labels_reconstructed_only",
+      "name": "stage7b-st-first-20261005.log",
+      "rows": 28,
+      "sha256": "bcbd9af17eebe19befadb386329c43c196ab71b301293f7faedbff3e19dba6fe",
+      "terminal_lines": [
+        "Game Result: Game 1 ended in 45919 ms. Ai(1)-ST Forge Full has won!",
+        "Game Result: Game 2 ended in 911 ms. Ai(2)-Benchmark Red Forge has won!"
+      ],
+      "timeout_count": 0
+    },
+    {
+      "acting_player_0_game_outcomes": {
+        "0.0": 1,
+        "1.0": 1
+      },
+      "changed_row_labels": 33,
+      "corrected_row_outcomes": {
+        "0.0": 14,
+        "1.0": 33
+      },
+      "label_repair_status": "terminal_labels_reconstructed_only",
+      "name": "stage7b-st-first-20261006.log",
+      "rows": 47,
+      "sha256": "6bbb8f233cf1786bfe959e7c7499758601499ff77487d0ab36ba282508cf9630",
+      "terminal_lines": [
+        "Game Result: Game 1 ended in 24018 ms. Ai(1)-ST Forge Full has won!",
+        "Game Result: Game 2 ended in 22340 ms. Ai(2)-Benchmark Red Forge has won!"
+      ],
+      "timeout_count": 0
+    },
+    {
+      "acting_player_0_game_outcomes": {
+        "0.0": 1,
+        "1.0": 1
+      },
+      "changed_row_labels": 12,
+      "corrected_row_outcomes": {
+        "0.0": 26,
+        "1.0": 12
+      },
+      "label_repair_status": "terminal_labels_reconstructed_only",
+      "name": "stage7b-st-first-20261007.log",
+      "rows": 38,
+      "sha256": "ebff9371b44e52c4c269eee179eb96fe93154b6ad4dac8f0a66b5d71742cee00",
+      "terminal_lines": [
+        "Game Result: Game 1 ended in 13375 ms. Ai(1)-ST Forge Full has won!",
+        "Game Result: Game 2 ended in 23287 ms. Ai(2)-Benchmark Red Forge has won!"
+      ],
+      "timeout_count": 0
+    }
+  ],
+  "target_word_actions_with_missing_target_identity": 288,
+  "timeout_events": 5,
+  "training_eligible": false
+}

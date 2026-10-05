@@ -8,6 +8,7 @@ never straddle training and validation. run_seed remains provenance, not a split
 from __future__ import annotations
 import argparse, json, math, random
 from pathlib import Path
+from stage7_dataset_validation import stack_items, validate_observation, validate_labeled_rows
 
 FORBIDDEN = {'opponent_hand','opponent_hand_cards','own_library','opponent_library','library_order','future_draws'}
 
@@ -16,19 +17,22 @@ def load(path):
     rows=[json.loads(x) for x in Path(path).read_text().splitlines() if x.strip()]
     if not rows: raise ValueError('empty dataset')
     for r in rows:
-        bad=FORBIDDEN & r.keys()
-        if bad: raise ValueError(f'hidden-information leakage: {sorted(bad)}')
-        if not r.get('complete_action_identity'): raise ValueError('missing complete action identity')
+        validate_observation(r)
     return rows
 
 
 def features(r):
+    # Stage 7C splits these zones by perspective. Preserve the original count-only
+    # baseline by summing them, rather than silently treating both zones as empty.
+    battlefield = r.get('battlefield_public', r.get('own_battlefield', []) + r.get('opponent_battlefield', []))
+    graveyard = r.get('graveyard_public', r.get('own_graveyard', []) + r.get('opponent_graveyard', []))
+    stack = stack_items(r)
     return [1.0,
             float(r.get('acting_life',0)), float(r.get('opponent_life',0)),
             float(len(r.get('own_hand',[]))), float(r.get('opponent_unknown_hand_count',0)),
             float(r.get('own_library_count',0)), float(r.get('opponent_library_count',0)),
-            float(len(r.get('battlefield_public',[]))), float(len(r.get('graveyard_public',[]))),
-            float(len(r.get('exile_public',[]))), float(len(r.get('stack_public',[]))), float(r.get('turn',0))]
+            float(len(battlefield)), float(len(graveyard)),
+            float(len(r.get('exile_public',[]))), float(len(stack)), float(r.get('turn',0))]
 
 
 def sigmoid(z):
@@ -70,6 +74,7 @@ def main():
             raise SystemExit(f'Stage 7B BLOCKED: invalid game_result {y}; expected 0 loss, 0.5 draw, or 1 win.')
     if any(not r.get('game_group') for r in rows):
         raise SystemExit('Stage 7B BLOCKED: dataset lacks game_group; train/holdout isolation must be by complete Forge game.')
+    validate_labeled_rows(rows)
     groups=sorted({str(r['game_group']) for r in rows}); random.Random(a.seed).shuffle(groups)
     n=max(1,int(round(len(groups)*a.holdout))) if len(groups)>1 else 0
     held=set(groups[:n]); train=[r for r in rows if str(r['game_group']) not in held]; test=[r for r in rows if str(r['game_group']) in held]

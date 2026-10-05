@@ -1,5 +1,10 @@
 # Stage 6 — Information-set action-consistency audit
 
+**2026-10-05: reopened.** The earlier Java audit serialized the root before merging
+its child target/mode/choice nodes. The repaired snapshot and real-Forge regression
+are described in `STAGE7_INTEGRITY_REPAIR.md`. Zero historical divergences do not
+close the complete-action replay/aggregation requirement below.
+
 ## Why this audit exists
 
 Stage 5 successfully resamples hidden opponent hand/library state and averages the score of each root spell/ability across three plausible worlds. The 80-game validation was stable and strongly directional.

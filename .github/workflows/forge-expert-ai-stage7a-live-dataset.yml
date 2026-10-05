@@ -16,6 +16,9 @@ on:
     paths:
       - "patch_forge_stage7_dataset_capture.py"
       - "patch_forge_stage7_legal_extractor.py"
+      - "patch_forge_strategy_fusion_audit.py"
+      - "stage7_dataset_validation.py"
+      - "stage7_label_outcomes.py"
       - ".github/workflows/forge-expert-ai-stage7a-live-dataset.yml"
 
 permissions:
@@ -74,11 +77,19 @@ jobs:
           python3 - <<'PY'
           import json
           from pathlib import Path
+          from stage7_dataset_validation import validate_observation
+          from stage7_label_outcomes import label_log
           rows = [json.loads(x) for x in Path('stage7-pass1.jsonl').read_text().splitlines() if x.strip()]
           assert rows, 'no decision rows captured'
-          required = {'schema_version','run_seed','decision_index','acting_player','turn','phase','acting_life','opponent_life','own_hand','opponent_unknown_hand_count','own_library_count','opponent_library_count','battlefield_public','graveyard_public','exile_public','stack_public','matchup_id','complete_action_identity','infoset_sample_count'}
+          required = {'schema_version','run_seed','decision_index','acting_player','turn','phase','acting_life','opponent_life','own_hand','opponent_unknown_hand_count','own_library_count','opponent_library_count','own_battlefield','opponent_battlefield','own_graveyard','opponent_graveyard','acting_player_name','exile_public','stack_public','matchup_id','complete_action_identity','infoset_sample_count'}
           forbidden = {'opponent_hand','opponent_hand_cards','own_library','opponent_library','library_order','future_draws'}
+          for name in ('stage7-pass1.log', 'stage7-pass2.log'):
+              label_log(Path(name), expected_games=int('${{ inputs.games || '4' }}'))
           for row in rows:
+              validate_observation(row)
+              assert row['schema_version'] == 'stage7c-v3'
+              assert isinstance(row['stack_public'], list)
+              assert row['complete_action_identity'].startswith('recipe=v2|')
               assert required <= row.keys(), required - row.keys()
               assert not (forbidden & row.keys()), forbidden & row.keys()
               assert row['infoset_sample_count'] == 3
@@ -86,6 +97,7 @@ jobs:
           print(f'Stage 7A live dataset gate passed: {len(rows)} legal decision rows, byte-identical across two seeded runs.')
           PY
       - uses: actions/upload-artifact@v6
+        if: always()
         with:
           name: stage7a-live-dataset
           path: |

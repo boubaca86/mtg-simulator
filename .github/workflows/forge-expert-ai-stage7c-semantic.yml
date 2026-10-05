@@ -6,6 +6,12 @@ on:
     paths:
       - 'stage7_semantic_value_model.py'
       - 'test_stage7_semantic_value_model.py'
+      - 'stage7_dataset_validation.py'
+      - 'stage7_label_outcomes.py'
+      - 'test_stage7_label_outcomes.py'
+      - 'stage7_compare_evaluators.py'
+      - 'test_stage7_compare_evaluators.py'
+      - 'stage7_value_baseline.py'
       - '.github/workflows/forge-expert-ai-stage7c-semantic.yml'
 
 jobs:
@@ -14,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Run Stage 7C anti-leakage and determinism tests
-        run: python -m unittest -v test_stage7_semantic_value_model.py
+        run: python -m unittest -v test_stage7_semantic_value_model.py test_stage7_label_outcomes.py test_stage7_compare_evaluators.py
       - name: Reject forbidden hidden-zone consumers statically
         run: |
           python - <<'PY'

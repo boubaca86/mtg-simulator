@@ -39,17 +39,27 @@ Therefore the Stage 5 win-rate numbers are quarantined from expert-strength clai
 
 See `STAGE6_INFORMATION_SET_AUDIT.md` for the action-consistency requirement.
 
-## Stage 6 — complete-action information-set search — LIVE REGRESSION GATE PASSED
+## Stage 6 — complete-action information-set search — REOPENED
 
-Complete root-action identity now covers the spell/ability plus selected modes, announced X, targets, and relevant choices. The live Forge audit observes those identities independently in every hidden-world sample and fails CI if the exercised worlds select different complete actions.
+The historical audit reported 825 candidates and zero divergences, but a source
+audit found that it serialized the root node before Forge merged child targets,
+modes and choices. That result does not establish complete-action consistency.
+The repaired read-only snapshot includes those child decisions and has a regression
+executable against real Forge classes. Live workflows reject any observed divergence.
 
-The strengthened reproducible corpus completed 20/20 games, audited 825 complete root candidates across three hidden-world samples each, and observed 0 strategy-fusion divergences. The match result was 16–4 for Full information-set S.T against the Default benchmark.
-
-This is a meaningful engineering gate, **not a universal proof** that no Magic position can expose another information-set bug. Stage 6 therefore remains permanently enabled as a regression gate during later expert-AI work. The earlier Stage 5 strength numbers remain historical engineering measurements rather than expert-strength evidence.
+Complete-action replay/aggregation is still unimplemented: a diagnostic gate does
+not force an identical action in all worlds. Stage 5 strength claims remain quarantined.
+See `STAGE7_INTEGRITY_REPAIR.md` for evidence and remaining limitations.
 
 ## Stage 7 — expert value model — CURRENT PRIORITY
 
 Stage 7A begins with the data contract and leakage tests, not with a neural network. See `STAGE7_EXPERT_VALUE_MODEL.md`.
+
+The prior Stage 7B model benchmark is invalid because the labeler confused Forge's
+zero-based player IDs with its one-based display names and accepted timeout logs.
+Current work repairs those boundaries and compares count-only, perspective-count
+and visible-identity models on one fixed game/seed-isolated offline holdout. A lower
+prediction loss cannot by itself authorize live learned move selection.
 
 Training records must contain only information legally available to the acting player plus complete legal actions and outcome/search labels. Real unknown opponent hand identities and future library identities/order are forbidden model inputs. Determinized worlds may contribute only aggregated values; sampled hidden identities must not escape into features.
 

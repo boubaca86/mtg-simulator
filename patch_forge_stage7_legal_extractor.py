@@ -10,6 +10,7 @@ import forge.game.Game;
 import forge.game.card.Card;
 import forge.game.card.CardCollectionView;
 import forge.game.player.Player;
+import forge.game.spellability.SpellAbilityStackInstance;
 import forge.game.zone.ZoneType;
 
 import java.util.ArrayList;
@@ -25,15 +26,29 @@ import java.util.List;
  * advantage without receiving secret identities. Forge remains the rules referee.
  */
 public final class LegalDecisionFeatures {
-    public static final String SCHEMA_VERSION = "stage7c-v2";
+    public static final String SCHEMA_VERSION = "stage7c-v3";
 
     private LegalDecisionFeatures() {}
 
     private static List<String> sortedNames(CardCollectionView cards) {
         List<String> names = new ArrayList<>();
-        for (Card card : cards) names.add(card.getName());
+        for (Card card : cards) names.add(visibleName(card));
         Collections.sort(names);
         return names;
+    }
+
+    // Conservatively redact all face-down objects, even if this actor may look.
+    // Public zone membership alone never makes a face-down identity public.
+    private static String visibleName(Card card) {
+        return card.isFaceDown() ? "<face-down>" : card.getName();
+    }
+
+    private static List<String> stackNames(Game game) {
+        List<String> names = new ArrayList<>();
+        for (SpellAbilityStackInstance entry : game.getStack()) {
+            names.add(visibleName(entry.getSpellAbility().getHostCard()));
+        }
+        return names; // preserve stack order; these are objects, not string characters
     }
 
     private static String jsonEscape(String value) {
@@ -66,6 +81,7 @@ public final class LegalDecisionFeatures {
         number(out, "run_seed", runSeed).append(',');
         number(out, "decision_index", decisionIndex).append(',');
         number(out, "acting_player", actor.getId()).append(',');
+        field(out, "acting_player_name", actor.getLobbyPlayer().getName()).append(',');
         number(out, "turn", game.getPhaseHandler().getTurn()).append(',');
         field(out, "phase", game.getPhaseHandler().getPhase().name()).append(',');
         number(out, "acting_life", actor.getLife()).append(',');
@@ -84,7 +100,7 @@ public final class LegalDecisionFeatures {
         raw(out, "own_graveyard", jsonStrings(sortedNames(actor.getCardsIn(ZoneType.Graveyard)))).append(',');
         raw(out, "opponent_graveyard", jsonStrings(sortedNames(opponent.getCardsIn(ZoneType.Graveyard)))).append(',');
         raw(out, "exile_public", jsonStrings(sortedNames(game.getCardsIn(ZoneType.Exile)))).append(',');
-        field(out, "stack_public", game.getStack().toString()).append(',');
+        raw(out, "stack_public", jsonStrings(stackNames(game))).append(',');
         field(out, "matchup_id", matchupId == null ? "" : matchupId).append(',');
         field(out, "complete_action_identity", completeActionIdentity).append(',');
         number(out, "infoset_sample_count", infosetSampleCount);

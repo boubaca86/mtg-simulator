@@ -29,7 +29,9 @@ def patch(path: Path) -> None:
          */
         public String completeActionIdentity() {
             StringBuilder sb = new StringBuilder();
-            sb.append("ability=").append(saRef == null ? "<none>" : saRef.toString(false));
+            sb.append("recipe=v2|ability=").append(saRef == null ? "<none>" : saRef.toString(false));
+            // The candidate index distinguishes two sources with identical rules text.
+            sb.append("|candidate=").append(saRef == null ? "<none>" : saRef.saIndex + "/" + saRef.saCount);
             sb.append("|x=").append(xMana == null ? "<none>" : xMana);
             sb.append("|modes=");
             if (modes == null) {

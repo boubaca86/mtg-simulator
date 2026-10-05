@@ -2,9 +2,13 @@
 
 ## Status
 
-STARTED after the Stage 6 live complete-action regression gate passed on the reproducible 20-game corpus (20/20 games completed, 825 complete root candidates audited, 0 observed strategy-fusion divergences).
+INTEGRITY REPAIR IN PROGRESS. The previous Stage 6 audit dropped child target/mode
+choices, and Stage 7B used a one-based/zero-based winner mismatch. The historical
+`0.400665` model result and zero-divergence action audit cannot support advancement.
+See `STAGE7_INTEGRITY_REPAIR.md` for reproduced evidence and the corrected gates.
 
-Stage 6 remains a permanent anti-cheating regression gate. Its pass is empirical for the exercised corpus, not a proof over every possible Magic position.
+Stage 7C's offline paired comparison is implemented but must pass on freshly
+captured, correctly labeled data. Learned move selection remains disabled.
 
 ## Objective
 
@@ -46,8 +50,10 @@ Required labels/metadata:
 2. No future library identity/order may appear in a feature row.
 3. Known/revealed cards may appear only when Forge marks them as information available to the acting player.
 4. Features derived from determinized hidden worlds must be aggregated before export; individual sampled hidden identities must never become model inputs.
-5. The complete root action is fixed across hidden-world evaluation according to the Stage 6 contract.
-6. Training and validation splits must be grouped by game/run seed so adjacent states from one game cannot leak across the split.
+5. Complete root-action consistency is a requirement. The current Java mechanism
+   diagnoses differences but does not yet enforce complete-action replay across worlds.
+6. Training and validation splits must preserve entire games and related corpus-seed
+   groups so adjacent states and paired seed families cannot straddle the split.
 7. Custom card scripts are immutable during model training experiments unless a separate explicit card-rules change is requested and documented.
 
 ## Reproducibility requirements
