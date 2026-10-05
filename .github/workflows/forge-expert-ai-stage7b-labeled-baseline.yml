@@ -18,6 +18,10 @@ on:
       - "patch_forge_stage7_legal_extractor.py"
       - "patch_forge_stage7_dataset_capture.py"
       - "patch_forge_strategy_fusion_audit.py"
+      - "patch_forge_stage8_counterfactual_capture.py"
+      - "stage8_label_counterfactual.py"
+      - "stage8_serialize_counterfactual.py"
+      - "stage8_validate_counterfactual.py"
       - "forge_ai/RootActionTable.java"
       - "patch_forge_complete_action_identity.py"
       - "validation/Stage6RootIdentityRegression.java"
@@ -28,7 +32,6 @@ permissions:
 
 concurrency:
   group: forge-expert-ai-stage7b-live
-  # A source change supersedes the prior policy's corpus; validate current code promptly.
   cancel-in-progress: ${{ github.event_name == 'push' }}
 
 jobs:
@@ -54,6 +57,7 @@ jobs:
           python3 patch_forge_strategy_fusion_audit.py --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
           python3 patch_forge_stage7_legal_extractor.py forge-src/forge-ai/src/main/java
           python3 patch_forge_stage7_dataset_capture.py forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python3 patch_forge_stage8_counterfactual_capture.py forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
       - name: Build patched Forge
         working-directory: forge-src
         run: |
@@ -70,12 +74,8 @@ jobs:
         run: |
           set -euo pipefail
           : > stage7b-labeled.jsonl
+          : > stage8a-counterfactual.jsonl
           for SEED in 20261004 20261005 20261006 20261007; do
-            # Stage 7D-R replication gate: four games per orientation gives 32 complete
-            # games total and eight games in the seed-isolated 25% holdout.
-            # Keep the asymmetric benchmark corpus: it measures the current expert search
-            # against Forge Default in both deck orientations. These rows may legitimately
-            # be one-sided and must not be manufactured into wins.
             for ORIENTATION in st-first red-first; do
               if [ "$ORIENTATION" = "st-first" ]; then
                 DECK_A="ST Forge Full.dck"
@@ -88,19 +88,26 @@ jobs:
               fi
               cd "$FORGE_HOME"
               java -Xmx6g -Dforge.expert.infoset=true -Dforge.expert.infoset.samples=3 \
-                -Dforge.expert.stage7.dataset=true -Dforge.expert.stage7.matchup="$MATCHUP" \
+                -Dforge.expert.stage7.dataset=true -Dforge.expert.stage8.capture=true \
+                -Dforge.expert.stage7.matchup="$MATCHUP" \
                 -jar "$FORGE_JAR" sim -D "$HOME/.forge/decks/constructed" \
                 -d "$DECK_A" "$DECK_B" -x full default \
                 -n "${{ inputs.games_per_seed || '4' }}" -s "$SEED" -q -c 180 \
                 > "$GITHUB_WORKSPACE/stage7b-${ORIENTATION}-${SEED}.log" 2>&1
               cd "$GITHUB_WORKSPACE"
-              python3 stage7_label_outcomes.py "stage7b-${ORIENTATION}-${SEED}.log" "stage7b-${ORIENTATION}-${SEED}.jsonl" --expected-games "${{ inputs.games_per_seed || '4' }}" --corpus-seed "$SEED"
-              cat "stage7b-${ORIENTATION}-${SEED}.jsonl" >> stage7b-labeled.jsonl
-            done
 
-            # Mirror calibration is deferred: its original logs contain timeouts.
-            # Never change seeds to force the validation gate to pass.
+              python3 stage7_label_outcomes.py "stage7b-${ORIENTATION}-${SEED}.log" "stage7b-${ORIENTATION}-${SEED}.jsonl" \
+                --expected-games "${{ inputs.games_per_seed || '4' }}" --corpus-seed "$SEED"
+              cat "stage7b-${ORIENTATION}-${SEED}.jsonl" >> stage7b-labeled.jsonl
+
+              python3 stage8_label_counterfactual.py "stage7b-${ORIENTATION}-${SEED}.log" "stage8-raw-${ORIENTATION}-${SEED}.jsonl" \
+                --expected-games "${{ inputs.games_per_seed || '4' }}" --corpus-seed "$SEED"
+              python3 stage8_serialize_counterfactual.py "stage8-raw-${ORIENTATION}-${SEED}.jsonl" "stage8-${ORIENTATION}-${SEED}.jsonl"
+              python3 stage8_validate_counterfactual.py "stage8-${ORIENTATION}-${SEED}.jsonl"
+              cat "stage8-${ORIENTATION}-${SEED}.jsonl" >> stage8a-counterfactual.jsonl
+            done
           done
+          python3 stage8_validate_counterfactual.py stage8a-counterfactual.jsonl
       - name: Compare counts, visible identities, and public semantics on one fixed holdout
         run: |
           python3 stage7_compare_evaluators.py stage7b-labeled.jsonl --output stage7c-comparison.json
@@ -122,6 +129,19 @@ jobs:
           assert semantics['game_mean_logloss'] <= identity['game_mean_logloss'], 'public semantics regressed versus visible identity'
           assert r['promotion_allowed'] is False, 'offline evidence cannot promote live play'
           PY
+      - name: Report Stage 8A capture coverage
+        run: |
+          python3 - <<'PY'
+          import json
+          rows=[json.loads(x) for x in open('stage8a-counterfactual.jsonl') if x.strip()]
+          games={r['game_group'] for r in rows}
+          candidate_counts=[len(r['candidates']) for r in rows]
+          assert rows, 'Stage 8A produced no rankable decisions'
+          assert min(candidate_counts) >= 2, 'forced move leaked into ranking corpus'
+          print('Stage 8A rankable decisions:', len(rows))
+          print('Stage 8A games with rankable decisions:', len(games))
+          print('Stage 8A mean candidates:', sum(candidate_counts)/len(candidate_counts))
+          PY
       - uses: actions/upload-artifact@v6
         if: always()
         with:
@@ -129,4 +149,6 @@ jobs:
           path: |
             stage7b-labeled.jsonl
             stage7c-comparison.json
+            stage8a-counterfactual.jsonl
+            stage8-*.jsonl
             stage7b-*.log
