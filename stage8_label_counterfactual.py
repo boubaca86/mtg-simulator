@@ -25,6 +25,7 @@ def parse_log(path: Path, expected_games: int | None = None, samples: int = 3,
     source_group = path.stem
     game_index = 0
     audits = 0
+    capture_events = 0
 
     for raw in path.read_text(encoding="utf-8", errors="replace").splitlines():
         if "Stopping slow match as draw" in raw:
@@ -44,6 +45,7 @@ def parse_log(path: Path, expected_games: int | None = None, samples: int = 3,
             continue
 
         if raw.startswith(CAPTURE):
+            capture_events += 1
             row = json.loads(raw[len(CAPTURE):])
             if row.get("schema_version") != "stage8-capture-v1":
                 raise ValueError("wrong live capture schema")
@@ -56,7 +58,11 @@ def parse_log(path: Path, expected_games: int | None = None, samples: int = 3,
             candidates = row.get("candidates")
             if not isinstance(candidates, list):
                 raise ValueError("capture candidates must be a list")
-            pending.append(row)
+            # A forced move is useful for gameplay auditing but carries no pairwise
+            # ranking information. Keep the event observable, but do not turn it
+            # into a learner row. We never manufacture a second candidate.
+            if len(candidates) >= 2:
+                pending.append(row)
             continue
 
         if not raw.startswith(RESULT):
@@ -66,8 +72,8 @@ def parse_log(path: Path, expected_games: int | None = None, samples: int = 3,
         number = GAME_NUMBER.match(raw)
         if not number or int(number.group(1)) != game_index:
             raise ValueError("missing, repeated or out-of-order terminal game number")
-        if not pending or not audits:
-            raise ValueError("each completed game needs Stage 8 rows and complete-world audit coverage")
+        if not audits:
+            raise ValueError("each completed game needs complete-world audit coverage")
 
         for row in pending:
             decision_index = row.pop("decision_index")
@@ -86,8 +92,10 @@ def parse_log(path: Path, expected_games: int | None = None, samples: int = 3,
 
     if pending:
         raise ValueError(f"{len(pending)} Stage 8 rows were not followed by a terminal game result")
+    if capture_events == 0:
+        raise ValueError("no live Stage 8 capture events found")
     if not out:
-        raise ValueError("no live Stage 8 captures found")
+        raise ValueError("live Stage 8 capture produced no decisions with at least two candidates")
     if expected_games is not None and game_index != expected_games:
         raise ValueError(f"expected {expected_games} completed games, found {game_index}")
     return out
@@ -103,7 +111,7 @@ def main() -> None:
     a = ap.parse_args()
     rows = parse_log(a.log, a.expected_games, a.samples, a.corpus_seed)
     a.output.write_text("".join(json.dumps(r, sort_keys=True, separators=(",", ":")) + "\n" for r in rows), encoding="utf-8")
-    print(f"Grouped {len(rows)} Stage 8 counterfactual decisions across {len({r['game_group'] for r in rows})} games.")
+    print(f"Grouped {len(rows)} rankable Stage 8 counterfactual decisions across {len({r['game_group'] for r in rows})} games.")
 
 
 if __name__ == "__main__":
