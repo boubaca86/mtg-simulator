@@ -2,11 +2,11 @@
 """Stage 8B: deterministic offline action-ranking baseline.
 
 Learns only from Stage 8A learner-facing rows. Forge remains the rules referee;
-this model never controls gameplay. Splits are by whole corpus seed so no game
-or decision from a held-out seed family can leak into training.
+this model never controls gameplay. Evaluation is leave-one-corpus-seed-out so
+every reported decision is scored by a model that never saw its seed family.
 """
 from __future__ import annotations
-import argparse, hashlib, json, math
+import argparse, hashlib, json
 from pathlib import Path
 
 
@@ -23,24 +23,16 @@ def features(row: dict, candidate: dict, n: int = 257) -> dict[int, float]:
         if isinstance(s.get(key),(int,float)): add(key,float(s[key])/20.0)
     for key in ('own_hand_semantics','own_battlefield_semantics','opponent_battlefield_semantics','own_graveyard_semantics','opponent_graveyard_semantics','exile_public_semantics','stack_public_semantics'):
         for x in s.get(key,[]): add(key+'='+str(x))
-    # Complete action identity is legal/public at the decision boundary. Hashing
-    # preserves exact targets/modes/X/choices without parsing card rules.
+    # Complete action identity is legal/public at the decision boundary. Keep the
+    # exact recipe as the baseline feature; later stages may add separately audited
+    # public action semantics, but must never weaken the exact replay identity.
     add('action='+candidate['action_identity'])
     return f
 
 
 def dot(w,f): return sum(w.get(i,0.0)*v for i,v in f.items())
-
-def split(rows):
-    seeds=sorted({r['corpus_seed'] for r in rows}, key=str)
-    hold={s for s in seeds if bucket(str(s),4)==0}
-    if not hold and seeds: hold={seeds[-1]}
-    train=[r for r in rows if r['corpus_seed'] not in hold]; test=[r for r in rows if r['corpus_seed'] in hold]
-    if not train or not test: raise ValueError('need nonempty seed-isolated train and holdout')
-    return train,test,hold
-
-
 def best(cands): return max(cands,key=lambda c:(c['aggregate_score'],c['action_identity']))
+
 
 def train(rows, epochs=20, lr=.05):
     w={}
@@ -65,11 +57,36 @@ def evaluate(rows,w):
     return {'decisions':len(rows),'top1_accuracy':correct/len(rows),'mean_regret':regret/len(rows),'pairwise_accuracy':pair_ok/pair_n if pair_n else None,'pairwise_comparisons':pair_n}
 
 
+def add_metrics(parts):
+    decisions=sum(x['decisions'] for x in parts); pairs=sum(x['pairwise_comparisons'] for x in parts)
+    if not decisions or not pairs: raise ValueError('cross-validation needs decisions and strict-score pairs in every aggregate')
+    return {
+        'decisions': decisions,
+        'top1_accuracy': sum(x['top1_accuracy']*x['decisions'] for x in parts)/decisions,
+        'mean_regret': sum(x['mean_regret']*x['decisions'] for x in parts)/decisions,
+        'pairwise_accuracy': sum(x['pairwise_accuracy']*x['pairwise_comparisons'] for x in parts)/pairs,
+        'pairwise_comparisons': pairs,
+    }
+
+
+def cross_validate(rows):
+    seeds=sorted({r['corpus_seed'] for r in rows},key=str)
+    if len(seeds)<3: raise ValueError('Stage 8B requires at least three independent corpus seeds')
+    folds=[]
+    for seed in seeds:
+        train_rows=[r for r in rows if r['corpus_seed'] != seed]
+        test_rows=[r for r in rows if r['corpus_seed'] == seed]
+        if not train_rows or not test_rows: raise ValueError('empty leave-one-seed-out fold')
+        w=train(train_rows)
+        folds.append({'holdout_seed':seed,'train':evaluate(train_rows,w),'holdout':evaluate(test_rows,w)})
+    return folds,add_metrics([f['holdout'] for f in folds])
+
+
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('jsonl',type=Path); ap.add_argument('--output',type=Path,default=Path('stage8b-ranking.json')); a=ap.parse_args()
     rows=[json.loads(x) for x in a.jsonl.read_text().splitlines() if x.strip()]
-    train_rows,test_rows,hold=split(rows); w=train(train_rows)
-    result={'schema_version':'stage8b-ranking-v1','method':'deterministic-pairwise-perceptron-public-state-plus-complete-action','promotion_allowed':False,'holdout_seeds':sorted(hold,key=str),'train':evaluate(train_rows,w),'holdout':evaluate(test_rows,w)}
+    folds,holdout=cross_validate(rows)
+    result={'schema_version':'stage8b-ranking-v2','method':'leave-one-seed-out-deterministic-pairwise-perceptron-public-state-plus-complete-action','promotion_allowed':False,'seed_count':len(folds),'folds':folds,'holdout':holdout}
     a.output.write_text(json.dumps(result,sort_keys=True,indent=2)+'\n')
     print(json.dumps(result,sort_keys=True))
 if __name__=='__main__': main()
