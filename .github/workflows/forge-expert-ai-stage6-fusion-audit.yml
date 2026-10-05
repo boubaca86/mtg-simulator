@@ -62,22 +62,27 @@ jobs:
             -x full default -n "${{ inputs.games || '20' }}" -s "${{ inputs.seed || '20261004' }}" -q -c 180 \
             2>&1 | tee "$GITHUB_WORKSPACE/stage6-fusion-audit.log"
       - name: Verify Stage 6 regression gate
+        env:
+          EXPECTED_GAMES: ${{ inputs.games || '20' }}
         run: |
-          AUDITED=$(grep -c "EXPERT_INFOSET_AUDITED_CANDIDATE" stage6-fusion-audit.log || true)
-          FUSIONS=$(grep -c "EXPERT_INFOSET_STRATEGY_FUSION" stage6-fusion-audit.log || true)
-          GAMES=$(grep -c '^Game Result: Game ' stage6-fusion-audit.log || true)
-          echo "Completed $GAMES games; audited $AUDITED root candidates; observed $FUSIONS strategy-fusion divergences."
-          if [ "$GAMES" -lt "${{ inputs.games || '20' }}" ]; then
-            echo "Audit invalid: expected ${{ inputs.games || '20' }} completed games, observed $GAMES."
-            exit 1
-          fi
-          if [ "$AUDITED" -eq 0 ]; then
-            echo "Audit invalid: no complete-action identities were observed."
-            exit 1
-          fi
-          if [ "$FUSIONS" -ne 0 ]; then
-            echo "Stage 6 regression: hidden worlds selected different complete root actions."
-            exit 1
-          fi
-          echo "Stage 6 live gate passed for the exercised positions: complete-action identities were observed and no strategy-fusion divergence occurred."
-          echo "This is a regression guarantee for this reproducible corpus, not a proof over every possible Magic position."
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          from stage7_label_outcomes import AUDIT
+          text = Path('stage6-fusion-audit.log').read_text()
+          games = [int(x) for x in re.findall(r'^Game Result: Game (\d+) ', text, re.M)]
+          assert games == list(range(1, int(os.environ['EXPECTED_GAMES']) + 1)), games
+          assert 'Stopping slow match as draw' not in text, 'timeout invalidates this corpus'
+          assert not re.search(r'Exception in thread|java\.[\w.]+(?:Exception|Error)', text), 'Forge execution error'
+          assert 'EXPERT_INFOSET_STRATEGY_FUSION:' not in text, 'hidden worlds selected different root actions'
+          audits = [AUDIT.fullmatch(line) for line in text.splitlines() if line.startswith('EXPERT_INFOSET_AUDITED_CANDIDATE:')]
+          assert audits, 'no audited complete actions'
+          assert all(a and tuple(map(int, a.groups())) == (3, 3) for a in audits), 'incomplete three-world coverage'
+          print(f'Completed {len(games)} games; fully audited {len(audits)} candidates; zero observed divergences or timeouts.')
+          print('Diagnostic corpus gate only: complete-action replay/aggregation is still required.')
+          PY
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: stage6-fusion-audit
+          path: stage6-fusion-audit.log

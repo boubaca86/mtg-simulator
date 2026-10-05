@@ -3,6 +3,7 @@ package forge.ai.simulation;
 import forge.ai.simulation.GameStateEvaluator.Score;
 import forge.game.card.Card;
 import forge.game.spellability.SpellAbility;
+import forge.util.Localizer;
 import java.lang.reflect.Field;
 import java.util.List;
 
@@ -40,6 +41,10 @@ public final class Stage6RootIdentityRegression {
     }
 
     public static void main(String[] args) throws Exception {
+        // PhaseType initializes localized labels when the first ability is made.
+        // The standalone regression does not boot FModel, so initialize this
+        // required Forge service explicitly before constructing fixture abilities.
+        Localizer.getInstance().initialize("en-US", "forge-src/forge-gui/res/languages");
         Plan.Decision root = new Plan.Decision(SCORE, null, ability(0));
         root.xMana = 4;
         Plan.Decision modes = new Plan.Decision(SCORE, root, new int[] {1, 2}, "fixture modes");
