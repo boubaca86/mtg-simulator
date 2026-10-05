@@ -814,6 +814,30 @@
     "artifact_zip_sha256": "76c3e2af160d3e244246e3717c876be0fec66ef66e41280186ee919d41c339e5",
     "full_report_sha256": "76c70d585f29c9b82da0e8d7ad85f53c17fd1864560fd3cc774b7f2113ec66b7",
     "note": "Compact checked-in report; per-game breakdowns are emitted in full by the ranker and retained in workflow artifacts.",
+    "replication": {
+      "artifact_id": 11365658640,
+      "artifact_zip_sha256": "e4f6845da82e763ad98ff0f7b1110783a44c31f6473774e914f5aa2a18da560e",
+      "commit": "71e6ab6b403cd889c60bb5743a31931e25366ff5",
+      "comparisons": {
+        "stage7b-labeled.jsonl": {
+          "bytes": 1739718,
+          "identical": true,
+          "sha256": "9630d9d0ba24e449a17e9760b051c8adfde285c23e272ad2090fd2ee67df60b6"
+        },
+        "stage8a-counterfactual.jsonl": {
+          "bytes": 1822837,
+          "identical": true,
+          "sha256": "106912cfd8800cad8abe65231abeca03578c4185205a2e11b19e87000cc8ee7e"
+        },
+        "stage8b-ranking.json": {
+          "bytes": 245294,
+          "identical": true,
+          "sha256": "76c70d585f29c9b82da0e8d7ad85f53c17fd1864560fd3cc774b7f2113ec66b7"
+        }
+      },
+      "report_differences": [],
+      "run": 37357436865
+    },
     "source_commit": "234c545758405de3863600df4ef391a8bd0d8ce3",
     "source_run": 37351285061
   },

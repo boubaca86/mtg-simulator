@@ -78,9 +78,26 @@ now exercise the revised ranker and report proposal coverage.
 The complete 518-decision report reproduced byte for byte in a second process
 with an explicitly different Python hash seed.
 
+CI evidence for implementation commit `71e6ab6b403cd889c60bb5743a31931e25366ff5`:
+
+| Check | Run | Result |
+| --- | --- | --- |
+| Stage 8 contract, serializer, parser and 17 ranker regressions | [37357437020](https://github.com/boubaca86/mtg-simulator/actions/runs/37357437020) | Pass |
+| Stage 7 legal-information contract | [37357437096](https://github.com/boubaca86/mtg-simulator/actions/runs/37357437096) | 5 adversarial/deterministic tests passed |
+| Full Forge build, real action-identity regression, capture and model comparison | [37357436865](https://github.com/boubaca86/mtg-simulator/actions/runs/37357436865) | Pass; 32 complete games, 750 proposals, 518 rankable decisions |
+
+The independent full rerun produced byte-identical observation JSONL,
+counterfactual candidate JSONL, and the complete v3 ranking report. Report SHA-256:
+`76c70d585f29c9b82da0e8d7ad85f53c17fd1864560fd3cc774b7f2113ec66b7`.
+Artifact `11365658640` has ZIP SHA-256
+`e4f6845da82e763ad98ff0f7b1110783a44c31f6473774e914f5aa2a18da560e`.
+This repeats the same development seed families; it is reproducibility evidence,
+not the fresh-seed test.
+
 This corpus has already informed feature design. No hyperparameter or feature
 sweep followed these results, and no learned model controls Forge gameplay.
-The next evidence gate is a predeclared fresh-seed comparison and stronger
-execution/target-state capture, followed by independent continuation or shadow
-evaluation. The current results measure imitation of Forge's fixed-root scores,
+The next fresh-seed comparison is specified in `STAGE8_FRESH_SEED_PROTOCOL.md`;
+it has not been run. Stronger execution/target-state capture and independent
+continuation or shadow evaluation remain later work. The current results measure
+imitation of Forge's fixed-root scores,
 not wins against an opponent or master-level play.
