@@ -6,6 +6,8 @@ on:
     paths:
       - 'stage8_validate_counterfactual.py'
       - 'test_stage8_validate_counterfactual.py'
+      - 'stage8_serialize_counterfactual.py'
+      - 'test_stage8_serialize_counterfactual.py'
       - '.github/workflows/forge-expert-ai-stage8a-contract.yml'
   workflow_dispatch:
 
@@ -23,5 +25,7 @@ jobs:
           python-version: '3.12'
       - name: Run Stage 8A fail-closed contract regression
         run: python test_stage8_validate_counterfactual.py
-      - name: Verify validator source compiles
-        run: python -m py_compile stage8_validate_counterfactual.py test_stage8_validate_counterfactual.py
+      - name: Run Stage 8A deterministic serializer regression
+        run: python test_stage8_serialize_counterfactual.py
+      - name: Verify Stage 8A sources compile
+        run: python -m py_compile stage8_validate_counterfactual.py test_stage8_validate_counterfactual.py stage8_serialize_counterfactual.py test_stage8_serialize_counterfactual.py
