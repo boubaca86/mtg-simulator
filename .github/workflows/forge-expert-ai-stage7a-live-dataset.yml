@@ -82,12 +82,15 @@ jobs:
           rows = [json.loads(x) for x in Path('stage7-pass1.jsonl').read_text().splitlines() if x.strip()]
           assert rows, 'no decision rows captured'
           required = {'schema_version','run_seed','decision_index','acting_player','turn','phase','acting_life','opponent_life','own_hand','opponent_unknown_hand_count','own_library_count','opponent_library_count','own_battlefield','opponent_battlefield','own_graveyard','opponent_graveyard','acting_player_name','exile_public','stack_public','matchup_id','complete_action_identity','infoset_sample_count'}
+          semantic_zones = {'own_hand_semantics','own_battlefield_semantics','opponent_battlefield_semantics','own_graveyard_semantics','opponent_graveyard_semantics','exile_public_semantics','stack_public_semantics'}
           forbidden = {'opponent_hand','opponent_hand_cards','own_library','opponent_library','library_order','future_draws'}
           for name in ('stage7-pass1.log', 'stage7-pass2.log'):
               label_log(Path(name), expected_games=int('${{ inputs.games || '4' }}'))
           for row in rows:
               validate_observation(row)
-              assert row['schema_version'] == 'stage7c-v3'
+              assert row['schema_version'] in {'stage7c-v3', 'stage7d-v1'}
+              if row['schema_version'] == 'stage7d-v1':
+                  assert semantic_zones <= row.keys(), semantic_zones - row.keys()
               assert isinstance(row['stack_public'], list)
               assert row['complete_action_identity'].startswith('recipe=v2|')
               assert required <= row.keys(), required - row.keys()
