@@ -1,6 +1,8 @@
 package forge.ai.simulation;
 
 import forge.ai.simulation.GameStateEvaluator.Score;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -26,12 +28,18 @@ public final class RootActionTable {
         public final int completeActions;
         public final int distinctActions;
         public final boolean differentWorldPreferences;
+        /** Every complete fixed-root recipe, in deterministic first-seen order.
+         * This is an offline observation surface for Stage 8; it does not alter selection.
+         */
+        public final List<ScoredAction> completeActionScores;
 
-        Result(ScoredAction best, int completeActions, int distinctActions, boolean differentWorldPreferences) {
+        Result(ScoredAction best, int completeActions, int distinctActions,
+                boolean differentWorldPreferences, List<ScoredAction> completeActionScores) {
             this.best = best;
             this.completeActions = completeActions;
             this.distinctActions = distinctActions;
             this.differentWorldPreferences = differentWorldPreferences;
+            this.completeActionScores = Collections.unmodifiableList(new ArrayList<>(completeActionScores));
         }
     }
 
@@ -79,6 +87,7 @@ public final class RootActionTable {
             }
         }
         ScoredAction best = null;
+        List<ScoredAction> completeScores = new ArrayList<>();
         int complete = 0;
         for (String identity : identities) {
             long value = 0L;
@@ -96,8 +105,10 @@ public final class RootActionTable {
             if (covered != expectedWorlds) continue;
             complete++;
             Score mean = new Score((int) (value / expectedWorlds), (int) (available / expectedWorlds));
-            if (best == null || mean.value > best.score.value) best = new ScoredAction(action, mean);
+            ScoredAction aggregate = new ScoredAction(action, mean);
+            completeScores.add(aggregate);
+            if (best == null || mean.value > best.score.value) best = aggregate;
         }
-        return new Result(best, complete, identities.size(), differentPreferences);
+        return new Result(best, complete, identities.size(), differentPreferences, completeScores);
     }
 }
