@@ -1,67 +1,59 @@
 # Stage 7D — Public Card Semantics
 
-Status: **historical small-corpus research result; fixed-root recapture required**.
+Status: **replicated offline; live promotion remains disabled**.
 
-The 32-game replication run `37286004175` failed its repaired action audit on
-seed `20261005` (Whirlwind targets diverged across worlds). The search now aggregates
-matching root recipes instead of world optima; see `STAGE6_FIXED_ROOT_AGGREGATION.md`.
-The numbers below describe the earlier policy and are not a replication result.
-Live promotion remains disabled.
+## Stage 7D-R fixed-root replication
 
-## Result
-
-The repaired Stage 7B live-labeled workflow run `37269454156` completed successfully on 2026-10-05 using pinned Forge `2.0.15`.
+Workflow run `37293614107` completed successfully on 2026-10-05 using pinned Forge `2.0.15` after the fixed-root information-set repair.
 
 Corpus:
 
-- 16 complete Forge games
-- 338 legal decision states
-- 12 training games / 248 states
-- 4 seed-isolated holdout games / 90 states
+- 32 complete Forge games
+- four independent corpus seed groups (`20261004` through `20261007`)
+- both deck orientations for every seed group
+- 750 legal decision states total (75 + 83 + 85 + 75 + 110 + 98 + 123 + 101)
 - three information-set worlds per decision
-- complete-action audit passed
+- 8 seed-isolated holdout games
+- complete root-action identity regression passed for targets, modes, X, choices, source, isolation and immutability
+- fixed-root aggregation regression passed for world disagreement, poor worlds, missing worlds, exact-plan replay and mean score
 
-Paired holdout log-loss on the exact same split:
+Paired holdout game-mean log-loss on the exact same held-out games:
 
 | Representation | Holdout log-loss |
 | --- | ---: |
-| Combined counts | 0.850289 |
-| Perspective-aware counts | 0.594673 |
-| Stage 7C visible card identity | 0.441409 |
-| **Stage 7D public card semantics** | **0.399694** |
+| Training prior | 0.694776 |
+| Combined counts | 0.928861 |
+| Perspective-aware counts | 0.557899 |
+| Stage 7C visible card identity | 0.487562 |
+| **Stage 7D public card semantics** | **0.485651** |
 
-Stage 7D improves holdout log-loss by `0.041715` versus Stage 7C identity hashing, approximately **9.45% relative**.
+Stage 7D beats Stage 7C by `0.001910729` log-loss (about **0.39% relative**) and beats perspective-aware counts by `0.072248` (about **12.95% relative**). The improvement over visible identity is much smaller than the earlier 16-game estimate, so the correct conclusion is modest: public Forge-visible semantics add reproducible signal, but the effect is small on this benchmark.
 
-This is evidence that Forge-derived public characteristics (zone/controller context, mana value, type, and visible/current creature power/toughness) contain useful signal beyond card-name identity alone. It is **not** evidence that the evaluator is ready to choose live actions.
+The workflow's replication gates all passed: at least 32 complete games, at least eight seed-isolated holdout games, identical holdouts for every evaluator, public semantics better than perspective counts, public semantics no worse than visible identity, fixed-root search policy only, and `promotion_allowed == false`.
+
+## Historical small-corpus result
+
+The earlier repaired 16-game run `37269454156` reported 0.441409 for visible identity and 0.399694 for public semantics. That larger apparent gain should no longer be used as the primary estimate; the 32-game fixed-root replication above supersedes it.
+
+The intervening 32-game run `37286004175` was invalidated when its action audit detected root-action divergence across hidden worlds. That failure led to the fixed-root information-set repair. It is not included as evidence for evaluator quality.
 
 ## Integrity constraints
 
-The result is only valid while all of the following remain true:
+The result is valid only while all of the following remain true:
 
-1. Forge remains the rules referee and source of legal actions/gameplay semantics.
+1. Forge remains the rules referee and sole source of legal actions/gameplay semantics.
 2. Opponent hand identities and both library identities/order remain unavailable to the learner.
 3. Face-down objects remain opaque.
-4. Train/holdout separation is by seed family / complete game, never by individual decision row.
-5. All compared representations use the exact same held-out games.
+4. Train/holdout separation is by corpus seed family / complete game, never individual decision row.
+5. Every compared representation uses the exact same held-out games.
 6. No custom-card rules are modified to improve evaluator performance.
-7. Learned evaluation remains offline until an explicit promotion gate is satisfied.
+7. Learned evaluation remains offline until a separate action-quality gate passes.
+8. A root action is compared across determinizations only when its complete executable identity (source, targets, modes, X and choices) is the same legal action.
 
-## Next gate: Stage 7D-R replication
+## Next gate: Stage 8 — counterfactual action ranking
 
-The current holdout is only four games, so sampling noise is still a serious threat. The next justified step is **replication, not live promotion**.
+Outcome prediction is not playing strength. Stage 8 must therefore capture **multiple Forge-legal complete root actions from the same public information set**, evaluate the same complete action across the legal hidden-world samples, and test whether an offline learner ranks actions in a way that predicts superior Forge-refereed continuations on held-out seed families.
 
-Run the existing live-labeled Stage 7B workflow with a larger corpus, preserving the same pinned Forge revision, extractor schema, anti-cheating checks, deterministic seed-family split, and paired evaluator comparison. Target at least **32 complete games** and at least **8 seed-isolated holdout games** before considering the Stage 7D representation replicated.
+Stage 8 must fail closed when a complete action cannot be replayed legally in every required information-set world. It must never substitute a different target/mode/X/choice in another world and call that the same action. Candidate labels must come from Forge-refereed continuation outcomes or another explicitly documented Forge-derived target, not from silently changing card rules or using hidden cards as features.
 
-Replication passes only if:
-
-- every rules/information-security/complete-action gate passes;
-- Stage 7D public semantics beats perspective-aware counts on holdout;
-- Stage 7D public semantics is no worse than Stage 7C identity on holdout;
-- results are reported on identical held-out games for every representation;
-- no training or tuning decision uses holdout labels.
-
-Even after replication, `promotion_allowed` must remain false. The following stage should test **counterfactual action ranking**: evaluate Forge-legal candidate actions from the same information set and verify ranking quality on held-out decisions before the learned model can influence live move selection.
-
-## Why this order
-
-Outcome prediction and action selection are different problems. A model can predict winners well while still choosing bad moves. Replication establishes that Stage 7D's representation improvement is real; counterfactual action-ranking tests whether that representation can support stronger play without bypassing Forge or leaking hidden information.
+Initial Stage 8 remains **offline only**. No learned action ranker may influence live move selection until it beats a reproducible Forge-search baseline on held-out decisions and passes the information-set/action-identity audits.
