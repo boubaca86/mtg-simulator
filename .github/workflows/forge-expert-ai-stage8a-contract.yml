@@ -1,0 +1,27 @@
+name: Forge Expert AI Stage 8A — Counterfactual Contract
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'stage8_validate_counterfactual.py'
+      - 'test_stage8_validate_counterfactual.py'
+      - '.github/workflows/forge-expert-ai-stage8a-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run Stage 8A fail-closed contract regression
+        run: python test_stage8_validate_counterfactual.py
+      - name: Verify validator source compiles
+        run: python -m py_compile stage8_validate_counterfactual.py test_stage8_validate_counterfactual.py
