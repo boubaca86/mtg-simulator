@@ -39,7 +39,9 @@ def validate_row(row, line_no):
     assert row["schema_version"] == "stage8a-v1", f"line {line_no}: wrong schema"
     assert row["forge_version"] == "2.0.15", f"line {line_no}: unpinned Forge"
     assert row["search_policy"] == "fixed-root-v1", f"line {line_no}: unsafe search policy"
-    assert isinstance(row["information_set_samples"], int) and row["information_set_samples"] >= 2
+    assert isinstance(row["information_set_samples"], int) and row["information_set_samples"] >= 2, \
+        f"line {line_no}: information_set_samples must be an integer >=2"
+    assert isinstance(row["public_state"], dict), f"line {line_no}: public_state must be an object"
     keys = set(walk_keys(row["public_state"]))
     leaked = keys & FORBIDDEN_KEYS
     assert not leaked, f"line {line_no}: forbidden learner fields {sorted(leaked)}"
@@ -47,12 +49,15 @@ def validate_row(row, line_no):
     assert isinstance(candidates, list) and len(candidates) >= 2, f"line {line_no}: ranking requires >=2 candidates"
     identities = []
     for c in candidates:
+        assert isinstance(c, dict), f"line {line_no}: candidate must be an object"
         assert set(c) >= {"action_identity", "aggregate_score", "replay_valid_count"}, f"line {line_no}: incomplete candidate"
         assert isinstance(c["action_identity"], str) and c["action_identity"], f"line {line_no}: empty action identity"
-        assert isinstance(c["aggregate_score"], int), f"line {line_no}: non-integer Forge score"
+        assert isinstance(c["aggregate_score"], int) and not isinstance(c["aggregate_score"], bool), f"line {line_no}: non-integer Forge score"
+        assert isinstance(c["replay_valid_count"], int) and not isinstance(c["replay_valid_count"], bool), f"line {line_no}: invalid replay count"
         assert c["replay_valid_count"] == row["information_set_samples"], f"line {line_no}: partial-world candidate"
         identities.append(c["action_identity"])
     assert len(identities) == len(set(identities)), f"line {line_no}: duplicate complete action"
+    assert isinstance(row["selected_action"], str) and row["selected_action"], f"line {line_no}: empty selected action"
     assert row["selected_action"] in set(identities), f"line {line_no}: selected action absent from candidate set"
 
 
