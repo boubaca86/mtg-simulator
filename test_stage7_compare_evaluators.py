@@ -65,12 +65,14 @@ class ComparisonTest(unittest.TestCase):
             compare.split_rows(rows)
 
     def test_paired_models_are_reproducible_and_never_promoted(self):
-        a = compare.compare(fixture(), epochs=2, hash_dim=8)
-        b = compare.compare(copy.deepcopy(fixture()), epochs=2, hash_dim=8)
+        rows = fixture()
+        _, holdout = compare.split_rows(rows)
+        a = compare.compare(rows, epochs=2, hash_dim=8)
+        b = compare.compare(copy.deepcopy(rows), epochs=2, hash_dim=8)
         self.assertEqual(a, b)
         self.assertFalse(a['promotion_allowed'])
         self.assertEqual(set(a['models']), {'combined_counts', 'perspective_counts', 'visible_identity_hash', 'training_prior'})
-        games = set(a['holdout']['games'])
+        games = {r['game_group'] for r in holdout}
         for model in a['models'].values():
             self.assertEqual(set(model['holdout']['per_game']), games)
 
