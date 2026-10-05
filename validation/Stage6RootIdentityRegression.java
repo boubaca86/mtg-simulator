@@ -87,6 +87,10 @@ public final class Stage6RootIdentityRegression {
         try { RootActionTable.aggregate(List.of(w0, w1), 3); }
         catch (IllegalArgumentException expected) { rejected = true; }
         require(rejected, "incomplete world batch was allowed");
+        rejected = false;
+        try { RootActionTable.aggregate(java.util.Arrays.asList(w0, null, w2), 3); }
+        catch (IllegalArgumentException expected) { rejected = true; }
+        require(rejected, "null world was allowed");
     }
 
     private static void testCollectionBeforeUnwind() {

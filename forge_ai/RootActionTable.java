@@ -62,13 +62,14 @@ public final class RootActionTable {
      * Linked insertion order gives reproducible tie-breaking without hidden-state sorting.
      */
     public static Result aggregate(List<RootActionTable> worlds, int expectedWorlds) {
-        if (expectedWorlds < 1 || worlds.size() != expectedWorlds || worlds.contains(null)) {
+        if (worlds == null || expectedWorlds < 1 || worlds.size() != expectedWorlds) {
             throw new IllegalArgumentException("Incomplete information-set world batch");
         }
         Set<String> identities = new LinkedHashSet<>();
         String firstPreference = null;
         boolean differentPreferences = false;
         for (RootActionTable world : worlds) {
+            if (world == null) throw new IllegalArgumentException("Missing information-set world");
             identities.addAll(world.actions.keySet());
             ScoredAction preferred = world.best();
             if (preferred != null) {

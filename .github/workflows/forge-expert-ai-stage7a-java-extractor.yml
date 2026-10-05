@@ -32,13 +32,20 @@ jobs:
           grep -q 'opponent_library_count' "$F"
           grep -q 'complete_action_identity' "$F"
           grep -q 'SECURITY BOUNDARY' "$F"
-          # Exactly one opponent-hand access is permitted, and it must be size() only.
-          test "$(grep -c 'opponent.getCardsIn(ZoneType.Hand)' "$F")" -eq 1
-          grep -q 'opponent.getCardsIn(ZoneType.Hand).size()' "$F"
-          # Exactly one access to each library, also size() only.
-          test "$(grep -c 'getCardsIn(ZoneType.Library)' "$F")" -eq 2
-          grep -q 'actor.getCardsIn(ZoneType.Library).size()' "$F"
-          grep -q 'opponent.getCardsIn(ZoneType.Library).size()' "$F"
+          # Count calls, not lines: the extractor may put both libraries on one line.
+          # Each restricted zone must be accessed exactly once and only via size().
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          source=Path('forge-src/forge-ai/src/main/java/forge/ai/simulation/LegalDecisionFeatures.java').read_text()
+          compact=re.sub(r'\s+', '', source)
+          for receiver, zone in [('opponent','Hand'), ('actor','Library'), ('opponent','Library')]:
+              call=f'{receiver}.getCardsIn(ZoneType.{zone})'
+              assert compact.count(call) == 1, f'expected one restricted-zone access: {call}'
+              assert compact.count(call+'.size()') == 1, f'restricted zone read beyond its count: {call}'
+          assert compact.count('getCardsIn(ZoneType.Library)') == 2, 'unexpected library access'
+          print('Restricted-zone accesses are counts only.')
+          PY
       - name: Compile patched Forge AI module
         working-directory: forge-src
         run: mvn -B -pl forge-ai -am -DskipTests -Dcheckstyle.skip=true package
