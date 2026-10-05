@@ -2,13 +2,16 @@
 
 ## Status
 
-INTEGRITY REPAIR IN PROGRESS. The previous Stage 6 audit dropped child target/mode
-choices, and Stage 7B used a one-based/zero-based winner mismatch. The historical
-`0.400665` model result and zero-divergence action audit cannot support advancement.
-See `STAGE7_INTEGRITY_REPAIR.md` for reproduced evidence and the corrected gates.
+Fixed-root aggregation passed its real-Forge and failed-seed checks, and the
+corrected 32-game Stage 7D replication passed. See
+`STAGE6_FIXED_ROOT_AGGREGATION.md` and `STAGE7D_PUBLIC_SEMANTICS_RESULTS.md` for the
+evidence and remaining limits. Stage 8 now evaluates contextual action ranking
+offline; see `STAGE8_CONTEXTUAL_RANKING_RESULTS.md`.
 
-Stage 7C's offline paired comparison is implemented but must pass on freshly
-captured, correctly labeled data. Learned move selection remains disabled.
+The previous Stage 6 audit dropped child target/mode choices, and Stage 7B used a
+one-based/zero-based winner mismatch. The historical `0.400665` model result and
+zero-divergence action audit remain retired. `STAGE7_INTEGRITY_REPAIR.md` preserves
+the forensic record. Learned move selection remains disabled.
 
 ## Objective
 

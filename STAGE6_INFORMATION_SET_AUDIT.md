@@ -2,7 +2,7 @@
 
 **Current implementation:** `STAGE6_FIXED_ROOT_AGGREGATION.md` describes the
 replacement of per-world optimum averaging with fixed-root recipe aggregation,
-the failed-seed regression, and the remaining limits. Live verification is pending.
+the passing real-Forge and failed-seed regressions, and the remaining limits.
 
 **2026-10-05: reopened.** The earlier Java audit serialized the root before merging
 its child target/mode/choice nodes. The repaired snapshot and real-Forge regression

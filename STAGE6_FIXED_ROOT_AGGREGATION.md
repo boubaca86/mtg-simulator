@@ -1,6 +1,22 @@
 # Fixed root-action aggregation — 2026-10-05
 
-Status: implemented; real-Forge regression and live recapture pending.
+Status: root aggregation verified against real Forge; 32-game replication passed.
+
+Verified implementation: `6a8a22a` (plus queue-only change `b2aa03e`).
+
+| Check | Evidence | Result |
+| --- | --- | --- |
+| Real Forge root snapshot and adversarial aggregation regression | [37292986594](https://github.com/boubaca86/mtg-simulator/actions/runs/37292986594) | Pass |
+| Legal extractor boundary and Forge AI compilation | [37292986679](https://github.com/boubaca86/mtg-simulator/actions/runs/37292986679) | Pass |
+| Failed-seed live action gate | [37292986741](https://github.com/boubaca86/mtg-simulator/actions/runs/37292986741) | 4 completed games, 140 fully covered candidates, 2 disagreements reconciled; no timeout or replay mismatch |
+| Failed-seed reproducibility | [37292986701](https://github.com/boubaca86/mtg-simulator/actions/runs/37292986701) | 85 legal decision rows, byte-identical across two 4-game passes |
+| Python label/model contracts | [37292456387](https://github.com/boubaca86/mtg-simulator/actions/runs/37292456387) | 19 tests passed |
+| Fixed-root semantic replication | [37293614107](https://github.com/boubaca86/mtg-simulator/actions/runs/37293614107) | 32 complete games and 750 proposals; paired Stage 7D gates passed |
+| Counterfactual capture follow-up | [37351285061](https://github.com/boubaca86/mtg-simulator/actions/runs/37351285061) | 518 rankable proposals and 2,035 candidates; see Stage 8 contextual ranking protocol |
+
+The integration follow-up fixed Java immutable-list null validation and a stale
+extractor check that counted source lines instead of restricted-zone calls. Its
+size-only constraints still reject hidden-zone reads beyond counts.
 
 The 32-game replication run [37286004175](https://github.com/boubaca86/mtg-simulator/actions/runs/37286004175)
 failed on `st-first`, seed `20261005`. Its log records two divergences involving
@@ -66,6 +82,12 @@ same-name explicit card choices need further representation work). Choices after
 new hidden information is revealed also need a contingent-policy treatment.
 Root recipe availability is conservatively intersected across sampled worlds;
 this is not a general proof of legal-information-only action enumeration.
+
+Stage 7 capture records selected root search plans, including phase probes that
+may subsequently be deferred. These are state/outcome observations, not a complete
+executed-action trajectory. Stage 8 captures alternatives for those proposals;
+executed-action evaluation still needs a hook distinguishing a proposed plan from
+the action actually taken.
 
 Stage 6 remains experimental beyond this boundary. The learned evaluator remains
 offline with `promotion_allowed=false`; a clean root regression or better outcome

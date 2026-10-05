@@ -11,6 +11,11 @@ on:
       - 'stage8_label_counterfactual.py'
       - 'test_stage8_label_counterfactual.py'
       - 'patch_forge_stage8_counterfactual_capture.py'
+      - 'stage8_action_ranker.py'
+      - 'stage8_ranker_features.py'
+      - 'stage8_legacy_ranker.py'
+      - 'test_stage8_action_ranker.py'
+      - 'stage7_dataset_validation.py'
       - '.github/workflows/forge-expert-ai-stage8a-contract.yml'
   workflow_dispatch:
 
@@ -32,10 +37,14 @@ jobs:
         run: python test_stage8_serialize_counterfactual.py
       - name: Run Stage 8A live-capture grouping regression
         run: python test_stage8_label_counterfactual.py
+      - name: Run contextual ranking and evaluation regressions
+        run: python -m unittest -v test_stage8_action_ranker
       - name: Verify Stage 8A sources compile
         run: |
           python -m py_compile \
             stage8_validate_counterfactual.py test_stage8_validate_counterfactual.py \
             stage8_serialize_counterfactual.py test_stage8_serialize_counterfactual.py \
             stage8_label_counterfactual.py test_stage8_label_counterfactual.py \
-            patch_forge_stage8_counterfactual_capture.py
+            patch_forge_stage8_counterfactual_capture.py \
+            stage8_action_ranker.py stage8_ranker_features.py \
+            stage8_legacy_ranker.py test_stage8_action_ranker.py

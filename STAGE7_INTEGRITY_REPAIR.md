@@ -1,5 +1,9 @@
 # Stage 6/7 integrity repair — 2026-10-05 UTC
 
+Follow-up: the root aggregation and real-Forge regressions now pass; see
+`STAGE6_FIXED_ROOT_AGGREGATION.md` for current evidence and the remaining scope.
+The findings below preserve the original forensic record.
+
 The earlier Stage 7B `0.400665` holdout log-loss is **invalid as model evidence**.
 The earlier Stage 6 zero-divergence audit is also **not evidence of complete-action consistency**.
 Neither result supports an expert-strength claim or promotion of a learned model.

@@ -20,6 +20,9 @@ on:
       - "stage8_serialize_counterfactual.py"
       - "stage8_validate_counterfactual.py"
       - "stage8_action_ranker.py"
+      - "stage8_ranker_features.py"
+      - "stage8_legacy_ranker.py"
+      - "stage7_dataset_validation.py"
       - "forge_ai/RootActionTable.java"
       - "patch_forge_complete_action_identity.py"
       - "validation/Stage6RootIdentityRegression.java"
@@ -82,14 +85,22 @@ jobs:
         run: python3 stage7_compare_evaluators.py stage7b-labeled.jsonl --output stage7c-comparison.json
       - name: Evaluate Stage 8B seed-isolated action ranker
         run: |
-          python3 stage8_action_ranker.py stage8a-counterfactual.jsonl --output stage8b-ranking.json
+          python3 stage8_action_ranker.py stage8a-counterfactual.jsonl --observations stage7b-labeled.jsonl --output stage8b-ranking.json
           python3 - <<'PY'
           import json
           r=json.load(open('stage8b-ranking.json'))
           assert r['promotion_allowed'] is False
           assert r['holdout']['decisions'] > 0
           assert r['holdout']['pairwise_comparisons'] > 0
-          print('Stage 8B holdout:', r['holdout'])
+          assert r['coverage']['rankable_decisions'] == r['holdout']['decisions']
+          assert 0 < r['coverage']['fraction'] <= 1
+          assert set(r['models']) == {'uniform', 'legacy_action_hash', 'action_only', 'public_counts', 'visible_identity', 'public_semantics'}
+          for name, model in r['models'].items():
+              assert model['holdout']['decisions'] == r['holdout']['decisions']
+              assert 0 <= model['holdout']['normalized_regret'] <= 1
+              assert all(f['holdout_seed'] not in f['train_seeds'] for f in model['folds'])
+          print('Stage 8B coverage:', r['coverage'])
+          print('All model results are offline development evidence; CI success is not a promotion gate.')
           PY
       - uses: actions/upload-artifact@v6
         if: always()
