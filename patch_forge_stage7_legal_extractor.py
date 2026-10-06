@@ -14,7 +14,11 @@ import forge.game.zone.ZoneType;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /** Legal-information boundary for expert-AI datasets. Forge remains referee. */
 public final class LegalDecisionFeatures {
@@ -40,6 +44,64 @@ public final class LegalDecisionFeatures {
             d.append("|t=").append(card.getNetToughness());
         }
         return d.toString();
+    }
+
+    private static String targetDescriptor(String zone, String role, Card card) {
+        return "zone=" + zone + "|role=" + role + "|" + visibleDescriptor(card);
+    }
+
+    private static void addTargetCards(List<String> out, Set<Integer> matched, Set<Integer> targetIds,
+            CardCollectionView cards, String zone, String role) {
+        for (Card card : cards) {
+            if (targetIds.contains(card.getId())) {
+                out.add(targetDescriptor(zone, role, card));
+                matched.add(card.getId());
+            }
+        }
+    }
+
+    /**
+     * Resolve transient Forge object IDs only inside the rules/referee boundary,
+     * then discard those IDs. The learner receives public descriptors, never raw
+     * IDs that could accidentally correlate with deck construction or hidden order.
+     */
+    public static String describeActionTargetsJson(Player actor, String actionIdentity) {
+        if (actor == null || actionIdentity == null) throw new IllegalArgumentException("actor and action are required");
+        int start = actionIdentity.indexOf("|targets=");
+        int end = actionIdentity.indexOf("|choices=", start < 0 ? 0 : start);
+        if (start < 0 || end < 0 || end < start) throw new IllegalArgumentException("malformed complete action identity");
+        String targetText = actionIdentity.substring(start + "|targets=".length(), end);
+        Matcher matcher = Pattern.compile("\\((\\d+)\\)").matcher(targetText);
+        Set<Integer> targetIds = new LinkedHashSet<>();
+        while (matcher.find()) targetIds.add(Integer.parseInt(matcher.group(1)));
+        if (targetIds.isEmpty()) return "[]";
+
+        Player opponent = actor.getOpponents().isEmpty() ? null : actor.getOpponents().get(0);
+        Game game = actor.getGame();
+        List<String> values = new ArrayList<>();
+        Set<Integer> matched = new LinkedHashSet<>();
+
+        addTargetCards(values, matched, targetIds, actor.getCardsIn(ZoneType.Hand), "own_hand", "self");
+        addTargetCards(values, matched, targetIds, actor.getCardsIn(ZoneType.Battlefield), "own_battlefield", "self");
+        addTargetCards(values, matched, targetIds, actor.getCardsIn(ZoneType.Graveyard), "own_graveyard", "self");
+        if (opponent != null) {
+            // SECURITY: opponent Hand and both Libraries are intentionally never scanned.
+            addTargetCards(values, matched, targetIds, opponent.getCardsIn(ZoneType.Battlefield), "opponent_battlefield", "opponent");
+            addTargetCards(values, matched, targetIds, opponent.getCardsIn(ZoneType.Graveyard), "opponent_graveyard", "opponent");
+        }
+        addTargetCards(values, matched, targetIds, game.getCardsIn(ZoneType.Exile), "exile_public", "public");
+        for (SpellAbilityStackInstance e : game.getStack()) {
+            Card card = e.getSpellAbility().getHostCard();
+            if (targetIds.contains(card.getId())) {
+                values.add(targetDescriptor("stack_public", "public", card));
+                matched.add(card.getId());
+            }
+        }
+        for (int i = matched.size(); i < targetIds.size(); i++) {
+            values.add("zone=unresolved|role=unknown|<opaque>");
+        }
+        Collections.sort(values);
+        return jsonStrings(values);
     }
 
     private static List<String> sortedNames(CardCollectionView cards) {
