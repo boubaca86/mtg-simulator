@@ -60,8 +60,9 @@ public final class ExpertActionLifecycleAudit {
                 priorityReturnIndex, actionIdentity, turn, phase, actor));
     }
 
-    /** Called only after ComputerUtil successfully added the final (possibly
-     * transformed) ability to Forge's real stack. */
+    /** Called by MagicStack after Forge has made any activated-ability copy.
+     * originalSa is the object that entered MagicStack.add; stackSa is the exact
+     * object that Forge will place in its SpellAbilityStackInstance. */
     public static synchronized void bindStackAbility(SpellAbility originalSa, SpellAbility stackSa) {
         if (!Boolean.getBoolean("forge.expert.stage8.lifecycle")) return;
         Record record = RETURNED.remove(originalSa);
@@ -159,30 +160,12 @@ def patch_stage8f_bridge(path: Path) -> None:
 
 
 def patch_computer_util(path: Path) -> None:
+    # Stage 8G v2 intentionally does not bind in ComputerUtil. MagicStack may
+    # replace an activated SpellAbility with a fresh stack copy, so binding here
+    # would retain the reusable pre-stack object and miss resolution.
     text = path.read_text(encoding="utf-8")
-    text = replace_once(
-        text,
-        """    public static boolean handlePlayingSpellAbility(final Player ai, SpellAbility sa, Consumer<SpellAbility> chooseTargets) {
-        final Card source = sa.getHostCard();
-""",
-        """    public static boolean handlePlayingSpellAbility(final Player ai, SpellAbility sa, Consumer<SpellAbility> chooseTargets) {
-        final SpellAbility expertStage8OriginalSa = sa;
-        final Card source = sa.getHostCard();
-""",
-        "ComputerUtil original SpellAbility capture",
-    )
-    text = replace_once(
-        text,
-        """            game.getStack().addAndUnfreeze(sa);
-            if (sa.getSplicedCards() != null && !sa.getSplicedCards().isEmpty()) {
-""",
-        """            game.getStack().addAndUnfreeze(sa);
-            ExpertActionLifecycleAudit.bindStackAbility(expertStage8OriginalSa, sa);
-            if (sa.getSplicedCards() != null && !sa.getSplicedCards().isEmpty()) {
-""",
-        "successful real-stack binding",
-    )
-    path.write_text(text, encoding="utf-8")
+    if "ExpertActionLifecycleAudit.bindStackAbility" in text:
+        raise RuntimeError("Unexpected pre-stack Stage 8G lifecycle binding in ComputerUtil")
 
 
 def patch_player_controller(path: Path) -> None:
@@ -200,6 +183,30 @@ def patch_player_controller(path: Path) -> None:
 
 def patch_magic_stack(path: Path) -> None:
     text = path.read_text(encoding="utf-8")
+    text = replace_once(
+        text,
+        """    public final void add(SpellAbility sp, SpellAbilityStackInstance si, int id) {
+        final Card source = sp.getHostCard();
+""",
+        """    public final void add(SpellAbility sp, SpellAbilityStackInstance si, int id) {
+        // Preserve the exact object that entered MagicStack.add. Forge may copy
+        // activated abilities below; the lifecycle registry must follow that
+        // new stack object, not the reusable pre-stack ability.
+        final SpellAbility expertStage8ReturnedSa = sp;
+        final Card source = sp.getHostCard();
+""",
+        "MagicStack incoming returned-action identity",
+    )
+    text = replace_once(
+        text,
+        """        if (frozen && !sp.hasParam("IgnoreFreeze") && !sp.isCastFromPlayEffect()) {
+""",
+        """        ExpertActionLifecycleAudit.bindStackAbility(expertStage8ReturnedSa, sp);
+
+        if (frozen && !sp.hasParam("IgnoreFreeze") && !sp.isCastFromPlayEffect()) {
+""",
+        "post-copy exact stack binding",
+    )
     old = """        game.fireEvent(new GameEventSpellResolved(sa, thisHasFizzled));
 
         game.getAction().checkStaticAbilities();
