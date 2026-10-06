@@ -35,13 +35,18 @@ jobs:
 
       - name: Verify predeclared Stage 8J protocol
         run: |
-          set -euo pipefail
-          grep -q '20261016' STAGE8J_SINGLE_INTERVENTION.md
-          grep -q '20261017' STAGE8J_SINGLE_INTERVENTION.md
-          grep -q '20261018' STAGE8J_SINGLE_INTERVENTION.md
-          grep -q '20261019' STAGE8J_SINGLE_INTERVENTION.md
-          grep -q 'at most one learned action per game' STAGE8J_SINGLE_INTERVENTION.md
-          grep -q 'Ai(1)-' STAGE8J_SINGLE_INTERVENTION.md
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          text=Path('STAGE8J_SINGLE_INTERVENTION.md').read_text()
+          for seed in ('20261016','20261017','20261018','20261019'):
+              assert seed in text
+          assert re.search(r'at most one learned action per\s+game', text)
+          assert 'Ai(1)-' in text
+          assert 'at least **4 of the 8**' in text
+          assert 'promotion_allowed=false' in text
+          assert 'broader_learned_control_allowed=false' in text
+          PY
 
       - name: Test Stage 8J safety contract
         run: |
