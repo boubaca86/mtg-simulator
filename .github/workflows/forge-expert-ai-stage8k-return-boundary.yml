@@ -40,8 +40,8 @@ jobs:
           text=Path('STAGE8K_RETURN_BOUNDARY_CONTROL.md').read_text()
           for seed in ('20261024','20261025','20261026','20261027'):
               assert seed in text
-          assert 'post-plan/pre-return' in text
-          assert 'at least **one targeted learned intervention**' in text
+          assert 'Apply after Forge finalizes its plan' in text
+          assert 'At least **one targeted learned intervention**' in text
           assert 'promotion_allowed=false' in text
           assert 'broader_learned_control_allowed=false' in text
           PY
