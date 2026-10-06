@@ -1,7 +1,9 @@
 # Stage 8 — next fresh-seed replication
 
-Status: **predeclared, not yet run**. This is an offline research gate, not a
-scheduled job or authorization for learned live move selection.
+Status: **completed; positive-replication threshold not met**. Results and the
+documented operational timeout extension are in `STAGE8_FRESH_SEED_RESULTS.md`.
+The predeclared model comparison and thresholds below remain unchanged. This is
+an offline research gate, not authorization for learned live move selection.
 
 ## Freeze before capture
 

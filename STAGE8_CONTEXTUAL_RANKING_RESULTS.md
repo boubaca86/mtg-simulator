@@ -96,8 +96,10 @@ not the fresh-seed test.
 
 This corpus has already informed feature design. No hyperparameter or feature
 sweep followed these results, and no learned model controls Forge gameplay.
-The next fresh-seed comparison is specified in `STAGE8_FRESH_SEED_PROTOCOL.md`;
-it has not been run. Stronger execution/target-state capture and independent
+The fresh-seed comparison specified in `STAGE8_FRESH_SEED_PROTOCOL.md` is complete;
+it did not meet the predeclared positive-replication threshold. See
+`STAGE8_FRESH_SEED_RESULTS.md` for the complete result and timeout deviation.
+Stronger execution/target-state capture and independent
 continuation or shadow evaluation remain later work. The current results measure
 imitation of Forge's fixed-root scores,
 not wins against an opponent or master-level play.

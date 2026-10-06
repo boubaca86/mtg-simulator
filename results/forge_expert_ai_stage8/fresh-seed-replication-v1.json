@@ -1,0 +1,802 @@
+{
+  "candidate_count": 1742,
+  "capture_protocol_deviation": {
+    "failed_original_run": 37365982753,
+    "kind": "operational_timeout_extension",
+    "note": "Entire incomplete original source log quarantined; the same four seed families, models, decks and thresholds were retained. No model outcome was produced by the failed run.",
+    "original_seconds": 180,
+    "retry_commit": "a3a9436a832502c6ba92432a95c7d0e77c2c95cc",
+    "retry_seconds": 600
+  },
+  "config": {
+    "averaged_weights": true,
+    "epochs": 20,
+    "learning_rate": 0.05,
+    "normalize_updates": true,
+    "selection": "uniform-among-predicted-ties"
+  },
+  "coverage": {
+    "captured_games": 32,
+    "captured_proposals": 641,
+    "fraction": 0.7020280811232449,
+    "per_game": {
+      "stage8-fresh-red-first-20261008:game-1": {
+        "captured_proposals": 18,
+        "fraction": 0.6111111111111112,
+        "rankable_decisions": 11
+      },
+      "stage8-fresh-red-first-20261008:game-2": {
+        "captured_proposals": 18,
+        "fraction": 0.4444444444444444,
+        "rankable_decisions": 8
+      },
+      "stage8-fresh-red-first-20261008:game-3": {
+        "captured_proposals": 16,
+        "fraction": 0.75,
+        "rankable_decisions": 12
+      },
+      "stage8-fresh-red-first-20261008:game-4": {
+        "captured_proposals": 27,
+        "fraction": 0.7407407407407407,
+        "rankable_decisions": 20
+      },
+      "stage8-fresh-red-first-20261009:game-1": {
+        "captured_proposals": 24,
+        "fraction": 0.7916666666666666,
+        "rankable_decisions": 19
+      },
+      "stage8-fresh-red-first-20261009:game-2": {
+        "captured_proposals": 15,
+        "fraction": 0.7333333333333333,
+        "rankable_decisions": 11
+      },
+      "stage8-fresh-red-first-20261009:game-3": {
+        "captured_proposals": 16,
+        "fraction": 0.6875,
+        "rankable_decisions": 11
+      },
+      "stage8-fresh-red-first-20261009:game-4": {
+        "captured_proposals": 23,
+        "fraction": 0.7391304347826086,
+        "rankable_decisions": 17
+      },
+      "stage8-fresh-red-first-20261010:game-1": {
+        "captured_proposals": 22,
+        "fraction": 0.8181818181818182,
+        "rankable_decisions": 18
+      },
+      "stage8-fresh-red-first-20261010:game-2": {
+        "captured_proposals": 18,
+        "fraction": 0.7777777777777778,
+        "rankable_decisions": 14
+      },
+      "stage8-fresh-red-first-20261010:game-3": {
+        "captured_proposals": 17,
+        "fraction": 0.8235294117647058,
+        "rankable_decisions": 14
+      },
+      "stage8-fresh-red-first-20261010:game-4": {
+        "captured_proposals": 14,
+        "fraction": 0.8571428571428571,
+        "rankable_decisions": 12
+      },
+      "stage8-fresh-red-first-20261011:game-1": {
+        "captured_proposals": 19,
+        "fraction": 0.8421052631578947,
+        "rankable_decisions": 16
+      },
+      "stage8-fresh-red-first-20261011:game-2": {
+        "captured_proposals": 23,
+        "fraction": 0.8260869565217391,
+        "rankable_decisions": 19
+      },
+      "stage8-fresh-red-first-20261011:game-3": {
+        "captured_proposals": 17,
+        "fraction": 0.7647058823529411,
+        "rankable_decisions": 13
+      },
+      "stage8-fresh-red-first-20261011:game-4": {
+        "captured_proposals": 21,
+        "fraction": 0.8095238095238095,
+        "rankable_decisions": 17
+      },
+      "stage8-fresh-st-first-20261008:game-1": {
+        "captured_proposals": 5,
+        "fraction": 0.2,
+        "rankable_decisions": 1
+      },
+      "stage8-fresh-st-first-20261008:game-2": {
+        "captured_proposals": 39,
+        "fraction": 0.8974358974358975,
+        "rankable_decisions": 35
+      },
+      "stage8-fresh-st-first-20261008:game-3": {
+        "captured_proposals": 10,
+        "fraction": 0.6,
+        "rankable_decisions": 6
+      },
+      "stage8-fresh-st-first-20261008:game-4": {
+        "captured_proposals": 14,
+        "fraction": 0.6428571428571429,
+        "rankable_decisions": 9
+      },
+      "stage8-fresh-st-first-20261009:game-1": {
+        "captured_proposals": 17,
+        "fraction": 0.7058823529411765,
+        "rankable_decisions": 12
+      },
+      "stage8-fresh-st-first-20261009:game-2": {
+        "captured_proposals": 20,
+        "fraction": 0.9,
+        "rankable_decisions": 18
+      },
+      "stage8-fresh-st-first-20261009:game-3": {
+        "captured_proposals": 28,
+        "fraction": 0.32142857142857145,
+        "rankable_decisions": 9
+      },
+      "stage8-fresh-st-first-20261009:game-4": {
+        "captured_proposals": 20,
+        "fraction": 0.5,
+        "rankable_decisions": 10
+      },
+      "stage8-fresh-st-first-20261010:game-1": {
+        "captured_proposals": 12,
+        "fraction": 0.16666666666666666,
+        "rankable_decisions": 2
+      },
+      "stage8-fresh-st-first-20261010:game-2": {
+        "captured_proposals": 16,
+        "fraction": 0.6875,
+        "rankable_decisions": 11
+      },
+      "stage8-fresh-st-first-20261010:game-3": {
+        "captured_proposals": 42,
+        "fraction": 0.6666666666666666,
+        "rankable_decisions": 28
+      },
+      "stage8-fresh-st-first-20261010:game-4": {
+        "captured_proposals": 35,
+        "fraction": 0.8571428571428571,
+        "rankable_decisions": 30
+      },
+      "stage8-fresh-st-first-20261011:game-1": {
+        "captured_proposals": 15,
+        "fraction": 0.3333333333333333,
+        "rankable_decisions": 5
+      },
+      "stage8-fresh-st-first-20261011:game-2": {
+        "captured_proposals": 11,
+        "fraction": 0.2727272727272727,
+        "rankable_decisions": 3
+      },
+      "stage8-fresh-st-first-20261011:game-3": {
+        "captured_proposals": 9,
+        "fraction": 0.4444444444444444,
+        "rankable_decisions": 4
+      },
+      "stage8-fresh-st-first-20261011:game-4": {
+        "captured_proposals": 40,
+        "fraction": 0.875,
+        "rankable_decisions": 35
+      }
+    },
+    "rankable_decisions": 450,
+    "rankable_games": 32,
+    "scope": "captured selected search proposals, not all real priority decisions",
+    "unrepresented_games": []
+  },
+  "development_sha256": "106912cfd8800cad8abe65231abeca03578c4185205a2e11b19e87000cc8ee7e",
+  "fresh_sha256": "3bb4addb85dbfb202e571988fab84309e8ce029d2e609560c86be14207cc8371",
+  "limitations": [
+    "Offline imitation of Forge fixed-root labels only.",
+    "No learned model controls gameplay.",
+    "Passing and uncaptured priority windows remain outside proposal coverage."
+  ],
+  "models": {
+    "action_only": {
+      "overall": {
+        "decisions": 450,
+        "game_macro": {
+          "normalized_regret": 0.13114699402746335,
+          "top1_accuracy": 0.8058578807780626
+        },
+        "games": 32,
+        "informative_decisions": 433,
+        "informative_top1_accuracy": 0.8223633564280215,
+        "mean_regret": 38177268.73518518,
+        "normalized_regret": 0.11416796147233359,
+        "pairwise_accuracy": 0.7420787681374,
+        "pairwise_comparisons": 3377,
+        "prediction_tie_decisions": 24,
+        "terminal_scale_decisions": 14,
+        "top1_accuracy": 0.8290740740740741
+      },
+      "per_seed": {
+        "20261008": {
+          "decision_weighted": {
+            "normalized_regret": 0.06782620766115033,
+            "pairwise_accuracy": 0.676255230125523,
+            "top1_accuracy": 0.875
+          },
+          "game_macro": {
+            "normalized_regret": 0.0827827574823524,
+            "top1_accuracy": 0.8478918650793651
+          },
+          "games": 8
+        },
+        "20261009": {
+          "decision_weighted": {
+            "normalized_regret": 0.17901621925066383,
+            "pairwise_accuracy": 0.7737068965517241,
+            "top1_accuracy": 0.7710280373831776
+          },
+          "game_macro": {
+            "normalized_regret": 0.1733107863115279,
+            "top1_accuracy": 0.7727694905713481
+          },
+          "games": 8
+        },
+        "20261010": {
+          "decision_weighted": {
+            "normalized_regret": 0.04167975301767702,
+            "pairwise_accuracy": 0.8020581113801453,
+            "top1_accuracy": 0.9186046511627907
+          },
+          "game_macro": {
+            "normalized_regret": 0.035598908479195945,
+            "top1_accuracy": 0.922267316017316
+          },
+          "games": 8
+        },
+        "20261011": {
+          "decision_weighted": {
+            "normalized_regret": 0.17790969537510196,
+            "pairwise_accuracy": 0.7409372236958444,
+            "top1_accuracy": 0.7395833333333333
+          },
+          "game_macro": {
+            "normalized_regret": 0.23289552383677714,
+            "top1_accuracy": 0.6805028514442214
+          },
+          "games": 8
+        }
+      }
+    },
+    "legacy_action_hash": {
+      "overall": {
+        "decisions": 450,
+        "game_macro": {
+          "normalized_regret": 0.3405390606134366,
+          "top1_accuracy": 0.5707205505953813
+        },
+        "games": 32,
+        "informative_decisions": 433,
+        "informative_top1_accuracy": 0.547589054517461,
+        "mean_regret": 37381944.27278788,
+        "normalized_regret": 0.33990353003060936,
+        "pairwise_accuracy": 0.5627776132662126,
+        "pairwise_comparisons": 3377,
+        "prediction_tie_decisions": 147,
+        "terminal_scale_decisions": 14,
+        "top1_accuracy": 0.5646801346801347
+      },
+      "per_seed": {
+        "20261008": {
+          "decision_weighted": {
+            "normalized_regret": 0.3551604781036575,
+            "pairwise_accuracy": 0.5700836820083682,
+            "top1_accuracy": 0.5477718360071302
+          },
+          "game_macro": {
+            "normalized_regret": 0.35856682808148066,
+            "top1_accuracy": 0.5351757154882155
+          },
+          "games": 8
+        },
+        "20261009": {
+          "decision_weighted": {
+            "normalized_regret": 0.3814058937885277,
+            "pairwise_accuracy": 0.5172413793103449,
+            "top1_accuracy": 0.5610591900311527
+          },
+          "game_macro": {
+            "normalized_regret": 0.3991488606110733,
+            "top1_accuracy": 0.5373670919723551
+          },
+          "games": 8
+        },
+        "20261010": {
+          "decision_weighted": {
+            "normalized_regret": 0.332703881433608,
+            "pairwise_accuracy": 0.6071428571428571,
+            "top1_accuracy": 0.5633074935400517
+          },
+          "game_macro": {
+            "normalized_regret": 0.3617345423074554,
+            "top1_accuracy": 0.5243145743145743
+          },
+          "games": 8
+        },
+        "20261011": {
+          "decision_weighted": {
+            "normalized_regret": 0.29465168220440413,
+            "pairwise_accuracy": 0.5428824049513705,
+            "top1_accuracy": 0.5851190476190476
+          },
+          "game_macro": {
+            "normalized_regret": 0.24270601145373683,
+            "top1_accuracy": 0.6860248206063801
+          },
+          "games": 8
+        }
+      }
+    },
+    "public_counts": {
+      "overall": {
+        "decisions": 450,
+        "game_macro": {
+          "normalized_regret": 0.12713062508456516,
+          "top1_accuracy": 0.8253528784113633
+        },
+        "games": 32,
+        "informative_decisions": 433,
+        "informative_top1_accuracy": 0.8483448806774442,
+        "mean_regret": 38177270.06229629,
+        "normalized_regret": 0.10524630693107795,
+        "pairwise_accuracy": 0.7271246668640805,
+        "pairwise_comparisons": 3377,
+        "prediction_tie_decisions": 34,
+        "terminal_scale_decisions": 14,
+        "top1_accuracy": 0.854074074074074
+      },
+      "per_seed": {
+        "20261008": {
+          "decision_weighted": {
+            "normalized_regret": 0.156602727231089,
+            "pairwise_accuracy": 0.6192468619246861,
+            "top1_accuracy": 0.7671568627450981
+          },
+          "game_macro": {
+            "normalized_regret": 0.1817893504610187,
+            "top1_accuracy": 0.7212143759018759
+          },
+          "games": 8
+        },
+        "20261009": {
+          "decision_weighted": {
+            "normalized_regret": 0.16226412902247425,
+            "pairwise_accuracy": 0.7931034482758621,
+            "top1_accuracy": 0.7990654205607477
+          },
+          "game_macro": {
+            "normalized_regret": 0.15049311663685477,
+            "top1_accuracy": 0.8051224317478187
+          },
+          "games": 8
+        },
+        "20261010": {
+          "decision_weighted": {
+            "normalized_regret": 0.04004630230683558,
+            "pairwise_accuracy": 0.7518159806295399,
+            "top1_accuracy": 0.9250645994832041
+          },
+          "game_macro": {
+            "normalized_regret": 0.03495051648273784,
+            "top1_accuracy": 0.9276785714285715
+          },
+          "games": 8
+        },
+        "20261011": {
+          "decision_weighted": {
+            "normalized_regret": 0.07909933159310235,
+            "pairwise_accuracy": 0.773209549071618,
+            "top1_accuracy": 0.9040178571428571
+          },
+          "game_macro": {
+            "normalized_regret": 0.14128951675764928,
+            "top1_accuracy": 0.8473961345671872
+          },
+          "games": 8
+        }
+      }
+    },
+    "public_semantics": {
+      "overall": {
+        "decisions": 450,
+        "game_macro": {
+          "normalized_regret": 0.10333439975904153,
+          "top1_accuracy": 0.8523556545095341
+        },
+        "games": 32,
+        "informative_decisions": 433,
+        "informative_top1_accuracy": 0.8627790608160123,
+        "mean_regret": 38177268.95018519,
+        "normalized_regret": 0.09017226785289333,
+        "pairwise_accuracy": 0.7370447142434113,
+        "pairwise_comparisons": 3377,
+        "prediction_tie_decisions": 31,
+        "terminal_scale_decisions": 14,
+        "top1_accuracy": 0.8679629629629629
+      },
+      "per_seed": {
+        "20261008": {
+          "decision_weighted": {
+            "normalized_regret": 0.14047035245005765,
+            "pairwise_accuracy": 0.6563807531380753,
+            "top1_accuracy": 0.8063725490196079
+          },
+          "game_macro": {
+            "normalized_regret": 0.16092183953654984,
+            "top1_accuracy": 0.7725130772005772
+          },
+          "games": 8
+        },
+        "20261009": {
+          "decision_weighted": {
+            "normalized_regret": 0.13238608993081757,
+            "pairwise_accuracy": 0.7607758620689655,
+            "top1_accuracy": 0.8177570093457944
+          },
+          "game_macro": {
+            "normalized_regret": 0.11728986333010696,
+            "top1_accuracy": 0.8309298480157613
+          },
+          "games": 8
+        },
+        "20261010": {
+          "decision_weighted": {
+            "normalized_regret": 0.03549082342126512,
+            "pairwise_accuracy": 0.8069007263922519,
+            "top1_accuracy": 0.9341085271317829
+          },
+          "game_macro": {
+            "normalized_regret": 0.032646702673729266,
+            "top1_accuracy": 0.9353174603174603
+          },
+          "games": 8
+        },
+        "20261011": {
+          "decision_weighted": {
+            "normalized_regret": 0.06701711374960206,
+            "pairwise_accuracy": 0.74447391688771,
+            "top1_accuracy": 0.8958333333333333
+          },
+          "game_macro": {
+            "normalized_regret": 0.10247919349578007,
+            "top1_accuracy": 0.8706622325043378
+          },
+          "games": 8
+        }
+      }
+    },
+    "uniform": {
+      "overall": {
+        "decisions": 450,
+        "game_macro": {
+          "normalized_regret": 0.4697417199161589,
+          "top1_accuracy": 0.39665991338292206
+        },
+        "games": 32,
+        "informative_decisions": 433,
+        "informative_top1_accuracy": 0.370106667133226,
+        "mean_regret": 35827377.13346425,
+        "normalized_regret": 0.4623407117485776,
+        "pairwise_accuracy": 0.5,
+        "pairwise_comparisons": 3377,
+        "prediction_tie_decisions": 450,
+        "terminal_scale_decisions": 14,
+        "top1_accuracy": 0.39390263748597076
+      },
+      "per_seed": {
+        "20261008": {
+          "decision_weighted": {
+            "normalized_regret": 0.43195009647415833,
+            "pairwise_accuracy": 0.5,
+            "top1_accuracy": 0.4282193432928727
+          },
+          "game_macro": {
+            "normalized_regret": 0.4629206997318582,
+            "top1_accuracy": 0.4010547062890813
+          },
+          "games": 8
+        },
+        "20261009": {
+          "decision_weighted": {
+            "normalized_regret": 0.4823662974708195,
+            "pairwise_accuracy": 0.5,
+            "top1_accuracy": 0.4397863818424566
+          },
+          "game_macro": {
+            "normalized_regret": 0.471464413181374,
+            "top1_accuracy": 0.44595343919066827
+          },
+          "games": 8
+        },
+        "20261010": {
+          "decision_weighted": {
+            "normalized_regret": 0.4834811486846645,
+            "pairwise_accuracy": 0.5,
+            "top1_accuracy": 0.369576999228162
+          },
+          "game_macro": {
+            "normalized_regret": 0.4865474535293152,
+            "top1_accuracy": 0.3618608276643991
+          },
+          "games": 8
+        },
+        "20261011": {
+          "decision_weighted": {
+            "normalized_regret": 0.44653703961425323,
+            "pairwise_accuracy": 0.5,
+            "top1_accuracy": 0.3468324829931973
+          },
+          "game_macro": {
+            "normalized_regret": 0.4580343132220882,
+            "top1_accuracy": 0.37777068038753964
+          },
+          "games": 8
+        }
+      }
+    },
+    "visible_identity": {
+      "overall": {
+        "decisions": 450,
+        "game_macro": {
+          "normalized_regret": 0.08581250575081051,
+          "top1_accuracy": 0.8707405127659578
+        },
+        "games": 32,
+        "informative_decisions": 433,
+        "informative_top1_accuracy": 0.8783679753656658,
+        "mean_regret": 38177263.80148148,
+        "normalized_regret": 0.0758339401901832,
+        "pairwise_accuracy": 0.7291975125851348,
+        "pairwise_comparisons": 3377,
+        "prediction_tie_decisions": 19,
+        "terminal_scale_decisions": 14,
+        "top1_accuracy": 0.882962962962963
+      },
+      "per_seed": {
+        "20261008": {
+          "decision_weighted": {
+            "normalized_regret": 0.0635155297415753,
+            "pairwise_accuracy": 0.6689330543933054,
+            "top1_accuracy": 0.8856209150326797
+          },
+          "game_macro": {
+            "normalized_regret": 0.08658693932708107,
+            "top1_accuracy": 0.848859126984127
+          },
+          "games": 8
+        },
+        "20261009": {
+          "decision_weighted": {
+            "normalized_regret": 0.15446414698081393,
+            "pairwise_accuracy": 0.7553879310344828,
+            "top1_accuracy": 0.794392523364486
+          },
+          "game_macro": {
+            "normalized_regret": 0.13651175194635226,
+            "top1_accuracy": 0.8108392360133846
+          },
+          "games": 8
+        },
+        "20261010": {
+          "decision_weighted": {
+            "normalized_regret": 0.02789055378863957,
+            "pairwise_accuracy": 0.7826876513317191,
+            "top1_accuracy": 0.9457364341085271
+          },
+          "game_macro": {
+            "normalized_regret": 0.025711603754934698,
+            "top1_accuracy": 0.9467261904761904
+          },
+          "games": 8
+        },
+        "20261011": {
+          "decision_weighted": {
+            "normalized_regret": 0.06715307041303718,
+            "pairwise_accuracy": 0.7303271441202476,
+            "top1_accuracy": 0.8928571428571429
+          },
+          "game_macro": {
+            "normalized_regret": 0.09443972797487397,
+            "top1_accuracy": 0.8765374975901292
+          },
+          "games": 8
+        }
+      }
+    }
+  },
+  "primary_contrast": {
+    "families_with_lower_regret": 3,
+    "positive_replication": false,
+    "public_counts_vs_action_only": [
+      {
+        "regret_improvement": -0.0990065929786663,
+        "seed": 20261008,
+        "top1_delta": -0.12667748917748922
+      },
+      {
+        "regret_improvement": 0.022817669674673136,
+        "seed": 20261009,
+        "top1_delta": 0.032352941176470584
+      },
+      {
+        "regret_improvement": 0.0006483919964581086,
+        "seed": 20261010,
+        "top1_delta": 0.005411255411255422
+      },
+      {
+        "regret_improvement": 0.09160600707912786,
+        "seed": 20261011,
+        "top1_delta": 0.1668932831229658
+      }
+    ],
+    "seed_macro_regret_improvement": 0.0040163689428982,
+    "seed_macro_top1_delta": 0.019494997633300648
+  },
+  "promotion_allowed": false,
+  "provenance": {
+    "artifact_id": 11383832643,
+    "artifact_sha256": "0a87c28d78a0702d376d7fb3487798ac6d0705fff79b637ec820baf392c4ebd2",
+    "capture_commit": "a3a9436a832502c6ba92432a95c7d0e77c2c95cc",
+    "deck_sha256": {
+      "Benchmark Red Forge.dck": "615cb364a215c12528732bd277bd5dd96faa6dee5513d985aefa9d7a734ea818",
+      "ST Forge Full.dck": "628bb3f09e1785ade8138641d7fa6cbeda24517a935216b0157ad3c22acc9c76"
+    },
+    "frozen_model_commit": "71e6ab6b403cd889c60bb5743a31931e25366ff5",
+    "raw_report_sha256": "c892a71010b7159c656b0b3512ef40639d8e26e01e6a2ceede785de5b0528f4f",
+    "source_files_identical_to_frozen_commit": {
+      "forge_ai/RootActionTable.java": "ff531b602abb5ce0fb44bda40a4ffe0f1e9b557d5f519185a8cf58dc945e4fab",
+      "forge_export.py": "5d770654c822891f7a24ecde3e948f6b6028c6fac82b34932a18754eec8761bc",
+      "patch_forge_complete_action_identity.py": "aced3854fd78f77aa5bdb44500ae455266662aad2bf0cb06d3ea5a1ebf38350f",
+      "patch_forge_expert_cli.py": "c444ea8580777ff5e8e8c8a6c0872569b4f88c79515127031d78fc1229a2326d",
+      "patch_forge_information_set.py": "6997ac39c1945c53561bfcf6b173ae0793cae6e12bd6161bc0ff6d3f8a73a9c2",
+      "patch_forge_infoset_ensemble.py": "edf0d1e765310adfca8a43cf943bd5152415ef6b451093f8753d536cc5a06523",
+      "patch_forge_stage7_dataset_capture.py": "76176c35d3836eb3342f4a1cda95cf0705533f0168862cc99de049190d2cfc31",
+      "patch_forge_stage7_legal_extractor.py": "44fccbfc03d3f6ffc439e4c34d84e0d7794ad873458df4bea7a470e184354492",
+      "patch_forge_stage8_counterfactual_capture.py": "9f8acce60ecdd6da022750d2a02f50a690bbc16ccbfdcfdd475b515ecc9c1afd",
+      "patch_forge_strategy_fusion_audit.py": "2ce05254b28afb004be5f4537a9eba95d8a0310054ea2d43892fe41e46f4b56d",
+      "stage7_dataset_validation.py": "022b5933d9456b7c7b9dda286a3237d0d8a576bbb67820c2aab5fcde926aae6d",
+      "stage8_action_ranker.py": "069907b576d07c80e3113172ba80c1263c754ff95f7da95d7c98211265702a4a",
+      "stage8_label_counterfactual.py": "5b8a997ce56eb9765bcad9c3e7f8ecf2ed578539ca6d9814dfd6c440442c59d2",
+      "stage8_legacy_ranker.py": "87d4064e8f7356716fd71d5540188771cba936abdaadfa8308979b76017ca123",
+      "stage8_ranker_features.py": "7cced66099521165aa11e1ca3f9f8e85625510ad841233dd1ec00ad383483eb3",
+      "stage8_serialize_counterfactual.py": "96a94acfbeca73c1206ff87c8db44564532d3abf2657ba9299bb8c3f7120f60a",
+      "stage8_validate_counterfactual.py": "581f618eead967ef75dfd06061a2df8215fe6e879de9a4f4b2e8fc9a73e97272"
+    },
+    "workflow_run": 37396331864
+  },
+  "schema_version": "stage8-fresh-seed-v1",
+  "verification": {
+    "all_whole_log_contracts_passed": true,
+    "counterfactual_regenerated_byte_for_byte_from_all_source_logs": true,
+    "max_game_duration_seconds": 359.983,
+    "report_reproduced_byte_for_byte": true,
+    "source_log_count": 8,
+    "source_logs": [
+      {
+        "captured_proposals": 68,
+        "complete_world_audits": 176,
+        "completed_games": 4,
+        "contract_valid": true,
+        "file": "stage8-fresh-st-first-20261008.log",
+        "game_durations_ms": [
+          5941,
+          45074,
+          7530,
+          58134
+        ],
+        "rankable_decisions": 51,
+        "sha256": "7501c6716e6bc8bbe162fdde1bed7ac6f56f891699dfa419a9bf277aeda982ca"
+      },
+      {
+        "captured_proposals": 79,
+        "complete_world_audits": 110,
+        "completed_games": 4,
+        "contract_valid": true,
+        "file": "stage8-fresh-red-first-20261008.log",
+        "game_durations_ms": [
+          36471,
+          19580,
+          61914,
+          12368
+        ],
+        "rankable_decisions": 51,
+        "sha256": "c70e3c87cb5e5db8864aebc8e99aa16527ca28a77c2d1b898a262bab2943e29b"
+      },
+      {
+        "captured_proposals": 85,
+        "complete_world_audits": 212,
+        "completed_games": 4,
+        "contract_valid": true,
+        "file": "stage8-fresh-st-first-20261009.log",
+        "game_durations_ms": [
+          39445,
+          66724,
+          13641,
+          27585
+        ],
+        "rankable_decisions": 49,
+        "sha256": "0fe395c59037f5b850cdfaf69eac157b3eac95a05659b2f047eb6fcc9d04d4c8"
+      },
+      {
+        "captured_proposals": 78,
+        "complete_world_audits": 141,
+        "completed_games": 4,
+        "contract_valid": true,
+        "file": "stage8-fresh-red-first-20261009.log",
+        "game_durations_ms": [
+          15178,
+          13897,
+          5734,
+          19603
+        ],
+        "rankable_decisions": 58,
+        "sha256": "127678b108cb29c14dfdf475900d7df8f3da28f4e75f9c175c401696101e256d"
+      },
+      {
+        "captured_proposals": 105,
+        "complete_world_audits": 152,
+        "completed_games": 4,
+        "contract_valid": true,
+        "file": "stage8-fresh-st-first-20261010.log",
+        "game_durations_ms": [
+          11132,
+          7019,
+          28432,
+          67902
+        ],
+        "rankable_decisions": 71,
+        "sha256": "7e4fdebc0b5afec50051c474576eccc621444a7a62a4eb26c26c5672e1be0717"
+      },
+      {
+        "captured_proposals": 71,
+        "complete_world_audits": 171,
+        "completed_games": 4,
+        "contract_valid": true,
+        "file": "stage8-fresh-red-first-20261010.log",
+        "game_durations_ms": [
+          22420,
+          21146,
+          12006,
+          8905
+        ],
+        "rankable_decisions": 58,
+        "sha256": "6c9b57dd16efb06aaee4a5d921907c542a206ef7896df650a98bb782bf405dee"
+      },
+      {
+        "captured_proposals": 75,
+        "complete_world_audits": 140,
+        "completed_games": 4,
+        "contract_valid": true,
+        "file": "stage8-fresh-st-first-20261011.log",
+        "game_durations_ms": [
+          15145,
+          3094,
+          5559,
+          359983
+        ],
+        "rankable_decisions": 47,
+        "sha256": "dafa27d9609b3a08e8530a818167a06fd5294acdd75b6f5e1ad8723c98d1df64"
+      },
+      {
+        "captured_proposals": 80,
+        "complete_world_audits": 235,
+        "completed_games": 4,
+        "contract_valid": true,
+        "file": "stage8-fresh-red-first-20261011.log",
+        "game_durations_ms": [
+          37420,
+          72854,
+          25702,
+          12083
+        ],
+        "rankable_decisions": 65,
+        "sha256": "93768343089f069eb7ad7b026aebc3d009aa3c7240d5ffc59eae4ca643d23b2f"
+      }
+    ]
+  }
+}
