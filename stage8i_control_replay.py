@@ -77,7 +77,7 @@ def extract_requests(source: Path, output: Path) -> dict:
         raise ValueError("baseline capture indices are not contiguous from zero")
 
     raw = "".join(
-        f"{idx}\\t{base64.urlsafe_b64encode(identity.encode()).decode()}\\n"
+        f"{idx}\t{base64.urlsafe_b64encode(identity.encode()).decode()}\n"
         for idx, identity in rows
     ).encode()
     output.write_bytes(raw)
