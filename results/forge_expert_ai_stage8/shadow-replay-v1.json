@@ -25,6 +25,15 @@
     "tied": 14
   },
   "proposals_scored": 820,
+  "provenance": {
+    "artifact_id": 11405356263,
+    "artifact_sha256": "fdb467e0fffe365011186de647f99d38dff269281b0d2ed20748db41c9c0929d",
+    "checkpoint_reproduced_with_distinct_python_hash_seed": true,
+    "ci_checkpoint_and_outputs_byte_identical_to_local": true,
+    "contract_run": 37449513492,
+    "implementation_commit": "6641faf318f63f76f73b889ec5a501558c2e9be7",
+    "workflow_run": 37449513507
+  },
   "rankable_metrics": {
     "decisions": 534,
     "game_macro": {

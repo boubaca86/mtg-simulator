@@ -1,7 +1,7 @@
 # Stage 8D — frozen shadow recommendations
 
-Status: implemented and verified locally on all 820 captured proposals from the
-32-game Stage 8C confirmation corpus. CI verification is pending.
+Status: implemented and verified locally and in CI on all 820 captured proposals
+from the 32-game Stage 8C confirmation corpus.
 
 The Stage 8C fresh-seed gate passed; see `STAGE8C_FRESH_SEED_RESULTS.md`.
 This step packages that exact model into a reproducible checkpoint and adds a
@@ -67,6 +67,18 @@ summary exactly. Forge's proposal belongs to the model's preferred set in 672
 events; that count includes forced proposals and is not a playing-strength metric.
 
 Model ID: `6c4dd27f364aaa6c9e9100f88eb323eaa419dab0a49845ee0f748b9998746288`.
+
+At implementation commit `6641faf318f63f76f73b889ec5a501558c2e9be7`, both the
+[shadow replay workflow](https://github.com/boubaca86/mtg-simulator/actions/runs/37449513507)
+and [Stage 8 contract workflow](https://github.com/boubaca86/mtg-simulator/actions/runs/37449513492)
+passed. CI exported byte-identical checkpoints under distinct Python hash seeds.
+The downloaded checkpoint, all 820 recommendation records, metric report and
+88-event streaming sample also match the local outputs byte for byte.
+All 54 local unit tests and the validator/serializer/parser regressions passed.
+
+Artifact `11405356263` contains the checkpoint and complete recommendations;
+ZIP SHA-256 `fdb467e0fffe365011186de647f99d38dff269281b0d2ed20748db41c9c0929d`.
+The compact evidence record is `results/forge_expert_ai_stage8/shadow-replay-v1.json`.
 
 ## Remaining boundary
 
