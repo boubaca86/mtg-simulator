@@ -22,7 +22,7 @@ from stage8f_acceptance_audit import ACCEPT_PREFIX
 from stage8h_lifecycle_audit import TERMINAL_PREFIX, audit_log as audit_lifecycle_log
 
 CONTROL_PREFIX = "EXPERT_STAGE8I_CONTROL_SELECTION: "
-RESULT_RE = re.compile(r" ended in \\d+ ms\\.")
+RESULT_RE = re.compile(r" ended in \d+ ms\.")
 
 
 def _payload(line: str, prefix: str) -> dict:
