@@ -127,7 +127,9 @@ def patch_picker(path: Path) -> None:
         }
 """
     new = """        if (!game.getStack().isEmpty() && game.getStack().peekAbility().getActivatingPlayer().equals(player)) {
-            stage8EmitPriorityPass("own-stack");
+            if (controller == null) {
+                stage8EmitPriorityPass("own-stack");
+            }
             return null;
         }
 """
