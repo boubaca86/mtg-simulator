@@ -125,7 +125,7 @@ def audit_log(path: Path, expected_games: int, policy=None):
     return report
 
 
-def aggregate(reports):
+def aggregate(reports, policy=None):
     totals = {
         "games_completed": sum(r["games_completed"] for r in reports),
         "returned_actions": sum(r["returned_actions"] for r in reports),
