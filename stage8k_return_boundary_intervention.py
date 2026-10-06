@@ -28,7 +28,7 @@ from stage8h_lifecycle_audit import (
 
 ARM_PREFIX = "EXPERT_STAGE8K_CONTROL_ARMED: "
 CONTROL_PREFIX = "EXPERT_STAGE8K_RETURN_BOUNDARY_SELECTION: "
-WIN_RE = re.compile(r"^Game Result: Game 1 ended in \\d+ ms\\. (.+) has won!$")
+WIN_RE = re.compile(r"^Game Result: Game 1 ended in \d+ ms\. (.+) has won!$")
 
 
 def _payload(line: str, prefix: str) -> dict:
@@ -108,7 +108,7 @@ def _write_request(
 ) -> str:
     forge_encoded = base64.urlsafe_b64encode(forge_identity.encode()).decode()
     learned_encoded = base64.urlsafe_b64encode(learned_identity.encode()).decode()
-    raw = f"{decision_index}\\t{forge_encoded}\\t{learned_encoded}\\n".encode()
+    raw = f"{decision_index}\t{forge_encoded}\t{learned_encoded}\n".encode()
     path.write_bytes(raw)
     return hashlib.sha256(raw).hexdigest()
 
@@ -215,7 +215,7 @@ def plan_intervention(
         "forge_referee": True,
         "promotion_allowed": False,
     }
-    metadata.write_text(json.dumps(report, sort_keys=True, indent=2) + "\\n")
+    metadata.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n")
     return report
 
 
@@ -233,7 +233,7 @@ def _audit_controlled(path: Path, intervention: dict | None) -> dict:
     games = 0
 
     for raw in path.read_text().splitlines():
-        line = raw.rstrip("\\n")
+        line = raw.rstrip("\n")
         if line.startswith(CAPTURE_PREFIX):
             event = _payload(line, CAPTURE_PREFIX)
             idx = event.get("decision_index")
@@ -598,7 +598,7 @@ def main() -> None:
         args.minimum_interventions,
         args.minimum_targeted_interventions,
     )
-    args.output.write_text(json.dumps(report, sort_keys=True, indent=2) + "\\n")
+    args.output.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n")
     print(json.dumps({
         "safety_gate_passed": report["safety_gate_passed"],
         **report["totals"],
