@@ -1,25 +1,36 @@
 # Stage 8J — target-free single learned-action intervention protocol
 
-Status: **original run failed safely; target-free rerun predeclared and not yet started**.
+Status: **target-free rerun passed; original failure retained and diagnosis corrected**.
 
-## Original Stage 8J result and amendment
+## Original Stage 8J failure and corrected diagnosis
 
 The original fresh-seed run (GitHub Actions run `37473357477`) completed the
 Forge build, regressions, all baseline games, and all controlled games. It failed
 at the final lifecycle audit.
 
-The first real failure was a learned targeted action whose complete identity
-requested **Lightning Strike** with **Servitor** as its target. That request was
-present in Forge's captured legal candidate set, but the learned action did not
-reach the complete returned-action → controller-acceptance → terminal-lifecycle
-chain.
+At capture decision 7, the learned policy requested **Lightning Strike** targeting
+**Servitor** instead of Forge's **Lightning Elemental**. The requested action was
+present in Forge's exact captured legal candidate set.
 
-This remains a real failed safety result. The audit is not weakened, and the
-observed seed families `20261016–20261019` are not reused as fresh evidence.
+Deeper log inspection showed that the missing lifecycle was **not proof of a
+target-rebinding failure**. Stage 8J substituted the learned candidate too early,
+while Forge was still comparing the current-phase plan against its existing
+after-blockers phase-bloom plan. That changed the score entering Forge's
+act-now-versus-wait decision, and Forge emitted a priority pass instead of
+returning the capture-7 action.
 
-The amended Stage 8J question is narrower: can the frozen learned policy safely
-replace one Forge choice when the learned replacement has **no target at all**?
-Exact target rebinding is deferred to a dedicated Stage 8K experiment.
+The same **Lightning Strike → Servitor** complete action later crossed Forge's
+real returned-action boundary at `COMBAT_DECLARE_BLOCKERS`. Therefore the first
+proven integration defect was the **control boundary**: learned substitution
+occurred before Forge had finished deciding whether to act now or defer.
+
+The original failure remains a real failed safety result. The audit is not
+weakened, and the observed seed families `20261016–20261019` are not reused as
+fresh evidence.
+
+The amended Stage 8J question was deliberately narrower: can the frozen learned
+policy safely replace one Forge choice when the learned replacement has **no
+target at all**?
 
 ## Prior stage
 
@@ -182,16 +193,50 @@ counterfactual scores, not to maximize independently observed match win rate.
 Stage 8J establishes whether a genuinely different model-requested legal,
 target-free action can traverse the full live Forge lifecycle safely.
 
-## Next stage if the safety gate passes
+## Target-free rerun result
+
+The amended target-free run used untouched seed families
+`20261020–20261023`, both deck orientations, one game per JVM.
+
+GitHub Actions run: `37520372008`
+
+Artifact: `stage8j-target-free-single-learned-intervention`
+(`11439104210`)
+
+Result:
+
+- 8 paired experiments;
+- 7 interventions planned;
+- 7 interventions applied;
+- 0 lifecycle anomalies;
+- 0 invalid requests accepted;
+- 0 pre-intervention drift;
+- controlled-side baseline score: 4.0;
+- controlled-side result score: 4.0;
+- score delta: 0.0;
+- **safety gate passed**.
+
+This establishes that bounded learned substitutions can safely traverse the live
+Forge lifecycle when the substitution does not perturb the unresolved
+act-now-versus-defer boundary.
+
+It is still not a playing-strength promotion. `promotion_allowed=false` and
+`broader_learned_control_allowed=false`.
+
+## Next stage after the safety pass
 
 Do **not** immediately enable unrestricted learned control.
 
-The next justified stage is **Stage 8K: targeted-action rebinding**. It must prove
-that an exact target-bearing complete action identity selected by the learned
-policy survives the full Forge lifecycle with the same legal target, without the
-bridge constructing or mutating gameplay semantics. Forge must independently
-confirm legality from the live state, and the model must receive no hidden
-information.
+The next justified stage is **Stage 8K: return-boundary learned control**. Forge
+must first finish its normal search and current-vs-later-phase decision. Only
+after Forge has committed to returning an action may the learned controller
+replace that action with another exact complete action already present in Forge's
+live legal candidate set.
+
+Stage 8K may include targeted actions, but targeting is not reconstructed by the
+learner. The exact Forge candidate recipe must replay normally through Forge.
+This isolates the real control-boundary defect found in the original Stage 8J
+failure while preserving Forge's legality, timing and rules authority.
 
 Only after that boundary is proven should the project broaden learned control
 and collect outcome-bearing public-state/action trajectories for an
