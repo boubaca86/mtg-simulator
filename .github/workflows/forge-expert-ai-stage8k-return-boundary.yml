@@ -1,0 +1,227 @@
+name: Forge Expert AI Stage 8K — Return-Boundary Learned Control
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'patch_forge_stage8k_return_boundary_control.py'
+      - 'stage8k_return_boundary_intervention.py'
+      - 'test_stage8k_return_boundary_intervention.py'
+      - 'validation/Stage8KReturnBoundaryRegression.java'
+      - 'STAGE8K_RETURN_BOUNDARY_CONTROL.md'
+      - '.github/workflows/forge-expert-ai-stage8k-return-boundary.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  return-boundary-control:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify predeclared Stage 8K protocol
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text=Path('STAGE8K_RETURN_BOUNDARY_CONTROL.md').read_text()
+          for seed in ('20261024','20261025','20261026','20261027'):
+              assert seed in text
+          assert 'post-plan/pre-return' in text
+          assert 'at least **one targeted learned intervention**' in text
+          assert 'promotion_allowed=false' in text
+          assert 'broader_learned_control_allowed=false' in text
+          PY
+
+      - name: Test Stage 8K safety contract
+        run: |
+          python -m unittest -v             test_stage8k_return_boundary_intervention             test_stage8j_single_intervention             test_stage8i_control_replay             test_stage8h_lifecycle_audit             test_stage8f_acceptance_audit             test_stage8e_returned_action_audit             test_stage8d_shadow_policy             test_stage8c_target_features
+          python -m py_compile             patch_forge_stage8k_return_boundary_control.py             stage8k_return_boundary_intervention.py             test_stage8k_return_boundary_intervention.py
+
+      - name: Retrieve frozen Stage 8D checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11405356263" --jq '.digest')" = "sha256:fdb467e0fffe365011186de647f99d38dff269281b0d2ed20748db41c9c0929d"
+          gh run download 37449513507 -n stage8d-frozen-shadow-replay -D frozen-shadow
+          test -s frozen-shadow/shadow-model.json
+          python - <<'PY'
+          import json
+          model=json.load(open('frozen-shadow/shadow-model.json'))
+          assert model['model_id']=='6c4dd27f364aaa6c9e9100f88eb323eaa419dab0a49845ee0f748b9998746288'
+          assert model['promotion_allowed'] is False
+          PY
+
+      - name: Export unchanged decks
+        run: python forge_export.py --user-dir "$HOME/.forge"
+
+      - name: Record deck hashes
+        run: |
+          sha256sum             "$HOME/.forge/decks/constructed/ST Forge Full.dck"             "$HOME/.forge/decks/constructed/Benchmark Red Forge.dck"             | tee stage8k-deck-sha256.txt
+
+      - name: Clone pinned Forge 2.0.15
+        run: git clone --depth 1 --branch forge-2.0.15 https://github.com/Card-Forge/forge.git forge-src
+
+      - name: Apply expert-AI patches through Stage 8K
+        run: |
+          python patch_forge_expert_cli.py forge-src/forge-gui-desktop/src/main/java/forge/view/SimulateMatch.java
+          python patch_forge_information_set.py forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java
+          python patch_forge_infoset_ensemble.py             --game-simulator forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java             --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java             --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python patch_forge_complete_action_identity.py forge-src/forge-ai/src/main/java/forge/ai/simulation/Plan.java
+          python patch_forge_strategy_fusion_audit.py             --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java             --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python patch_forge_stage7_legal_extractor.py forge-src/forge-ai/src/main/java
+          python patch_forge_stage7_dataset_capture.py forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python patch_forge_stage8_counterfactual_capture.py forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python patch_forge_stage8e_execution_binding.py             --plan forge-src/forge-ai/src/main/java/forge/ai/simulation/Plan.java             --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java             --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python patch_forge_stage8f_acceptance_binding.py             --forge-ai-java forge-src/forge-ai/src/main/java             --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java             --player-controller-ai forge-src/forge-ai/src/main/java/forge/ai/PlayerControllerAi.java
+          python patch_forge_stage8h_lifecycle.py             --forge-game-java forge-src/forge-game/src/main/java             --expert-bridge forge-src/forge-ai/src/main/java/forge/ai/simulation/ExpertActionAuditBridge.java             --computer-util forge-src/forge-ai/src/main/java/forge/ai/ComputerUtil.java             --player-controller-ai forge-src/forge-ai/src/main/java/forge/ai/PlayerControllerAi.java             --magic-stack forge-src/forge-game/src/main/java/forge/game/zone/MagicStack.java
+          python patch_forge_stage8i_control_adapter.py             --forge-ai-java forge-src/forge-ai/src/main/java             --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python patch_forge_stage8j_sparse_control.py             --adapter forge-src/forge-ai/src/main/java/forge/ai/simulation/ExpertPolicyControlAdapter.java             --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python patch_forge_stage8k_return_boundary_control.py             --adapter forge-src/forge-ai/src/main/java/forge/ai/simulation/ExpertPolicyControlAdapter.java             --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+
+      - name: Build patched Forge
+        working-directory: forge-src
+        run: |
+          mvn -B -pl forge-gui-desktop -am -DskipTests -Dcheckstyle.skip=true package
+          FORGE_JAR="$(find forge-gui-desktop/target -type f -name '*-jar-with-dependencies.jar' -print -quit)"
+          test -n "$FORGE_JAR"
+          echo "FORGE_JAR=$(realpath "$FORGE_JAR")" >> "$GITHUB_ENV"
+          echo "FORGE_HOME=$(realpath forge-gui)" >> "$GITHUB_ENV"
+
+      - name: Re-run safety and return-boundary regressions
+        run: |
+          javac -cp "$FORGE_JAR" -d stage8k-regression             validation/Stage6RootIdentityRegression.java             validation/Stage8TargetSemanticsRegression.java             validation/Stage8IBoundedControlRegression.java             validation/Stage8JSparseControlRegression.java             validation/Stage8KReturnBoundaryRegression.java
+          java -cp "stage8k-regression:$FORGE_JAR" forge.ai.simulation.Stage6RootIdentityRegression
+          java -cp "stage8k-regression:$FORGE_JAR" forge.ai.simulation.Stage8TargetSemanticsRegression
+          java -cp "stage8k-regression:$FORGE_JAR" forge.ai.simulation.Stage8IBoundedControlRegression valid
+          java -cp "stage8k-regression:$FORGE_JAR" forge.ai.simulation.Stage8IBoundedControlRegression invalid
+          java -cp "stage8k-regression:$FORGE_JAR" forge.ai.simulation.Stage8JSparseControlRegression missing
+          java -cp "stage8k-regression:$FORGE_JAR" forge.ai.simulation.Stage8JSparseControlRegression valid
+          java -cp "stage8k-regression:$FORGE_JAR" forge.ai.simulation.Stage8JSparseControlRegression wrong-actor
+          java -cp "stage8k-regression:$FORGE_JAR" forge.ai.simulation.Stage8KReturnBoundaryRegression missing
+          java -cp "stage8k-regression:$FORGE_JAR" forge.ai.simulation.Stage8KReturnBoundaryRegression valid
+          java -cp "stage8k-regression:$FORGE_JAR" forge.ai.simulation.Stage8KReturnBoundaryRegression wrong-forge
+
+      - name: Capture fresh Forge-only baselines and freeze interventions
+        shell: bash
+        run: |
+          set -euo pipefail
+          for SEED in 20261024 20261025 20261026 20261027; do
+            for ORIENTATION in st-first red-first; do
+              if [ "$ORIENTATION" = st-first ]; then
+                DECK_A="ST Forge Full.dck"
+                DECK_B="Benchmark Red Forge.dck"
+                MATCHUP="st-vs-benchmark-red"
+              else
+                DECK_A="Benchmark Red Forge.dck"
+                DECK_B="ST Forge Full.dck"
+                MATCHUP="benchmark-red-vs-st"
+              fi
+
+              cd "$FORGE_HOME"
+              java -Xmx10g                 -Dforge.expert.infoset=true                 -Dforge.expert.infoset.samples=3                 -Dforge.expert.stage7.dataset=true                 -Dforge.expert.stage8.capture=true                 -Dforge.expert.stage8.execution=true                 -Dforge.expert.stage8.acceptance=true                 -Dforge.expert.stage8.lifecycle=true                 -Dforge.expert.stage7.matchup="$MATCHUP"                 -jar "$FORGE_JAR" sim                 -D "$HOME/.forge/decks/constructed"                 -d "$DECK_A" "$DECK_B"                 -x full default -n 1 -s "$SEED" -q -c 600                 > "$GITHUB_WORKSPACE/stage8k-baseline-$ORIENTATION-$SEED.log" 2>&1
+              cd "$GITHUB_WORKSPACE"
+
+              python stage8k_return_boundary_intervention.py plan                 frozen-shadow/shadow-model.json                 "stage8k-baseline-$ORIENTATION-$SEED.log"                 --actor-prefix 'Ai(1)-'                 --output "stage8k-$ORIENTATION-$SEED.requests.tsv"                 --metadata "stage8k-$ORIENTATION-$SEED.plan.json"
+            done
+          done
+
+      - name: Run fresh return-boundary controlled games
+        shell: bash
+        run: |
+          set -euo pipefail
+          for SEED in 20261024 20261025 20261026 20261027; do
+            for ORIENTATION in st-first red-first; do
+              if [ "$ORIENTATION" = st-first ]; then
+                DECK_A="ST Forge Full.dck"
+                DECK_B="Benchmark Red Forge.dck"
+                MATCHUP="st-vs-benchmark-red"
+              else
+                DECK_A="Benchmark Red Forge.dck"
+                DECK_B="ST Forge Full.dck"
+                MATCHUP="benchmark-red-vs-st"
+              fi
+              REQUEST_FILE="$GITHUB_WORKSPACE/stage8k-$ORIENTATION-$SEED.requests.tsv"
+
+              cd "$FORGE_HOME"
+              if [ -s "$REQUEST_FILE" ]; then
+                java -Xmx10g                   -Dforge.expert.infoset=true                   -Dforge.expert.infoset.samples=3                   -Dforge.expert.stage7.dataset=true                   -Dforge.expert.stage8.capture=true                   -Dforge.expert.stage8.execution=true                   -Dforge.expert.stage8.acceptance=true                   -Dforge.expert.stage8.lifecycle=true                   -Dforge.expert.stage8.control=true                   -Dforge.expert.stage8.control.return_boundary=true                   -Dforge.expert.stage8.control.file="$REQUEST_FILE"                   -Dforge.expert.stage8.control.require_forge_match=false                   -Dforge.expert.stage8.control.allow_missing=true                   "-Dforge.expert.stage8.control.actor_prefix=Ai(1)-"                   -Dforge.expert.stage7.matchup="$MATCHUP"                   -jar "$FORGE_JAR" sim                   -D "$HOME/.forge/decks/constructed"                   -d "$DECK_A" "$DECK_B"                   -x full default -n 1 -s "$SEED" -q -c 600                   > "$GITHUB_WORKSPACE/stage8k-controlled-$ORIENTATION-$SEED.log" 2>&1
+              else
+                java -Xmx10g                   -Dforge.expert.infoset=true                   -Dforge.expert.infoset.samples=3                   -Dforge.expert.stage7.dataset=true                   -Dforge.expert.stage8.capture=true                   -Dforge.expert.stage8.execution=true                   -Dforge.expert.stage8.acceptance=true                   -Dforge.expert.stage8.lifecycle=true                   -Dforge.expert.stage7.matchup="$MATCHUP"                   -jar "$FORGE_JAR" sim                   -D "$HOME/.forge/decks/constructed"                   -d "$DECK_A" "$DECK_B"                   -x full default -n 1 -s "$SEED" -q -c 600                   > "$GITHUB_WORKSPACE/stage8k-controlled-$ORIENTATION-$SEED.log" 2>&1
+              fi
+              cd "$GITHUB_WORKSPACE"
+            done
+          done
+
+      - name: Audit predeclared Stage 8K safety gate
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from stage8d_shadow_policy import load_checkpoint
+          from stage8k_return_boundary_intervention import compare_pair, aggregate
+
+          actor='Ai(1)-'
+          policy=load_checkpoint(Path('frozen-shadow/shadow-model.json'))
+          pairs=[]
+          for seed in (20261024, 20261025, 20261026, 20261027):
+              for orientation in ('st-first', 'red-first'):
+                  pairs.append(compare_pair(
+                      policy,
+                      Path(f'stage8k-baseline-{orientation}-{seed}.log'),
+                      Path(f'stage8k-controlled-{orientation}-{seed}.log'),
+                      Path(f'stage8k-{orientation}-{seed}.plan.json'),
+                      Path(f'stage8k-{orientation}-{seed}.requests.tsv'),
+                      actor,
+                  ))
+          report=aggregate(
+              pairs,
+              minimum_interventions=4,
+              minimum_targeted_interventions=1,
+          )
+          Path('stage8k-return-boundary-report.json').write_text(
+              json.dumps(report, sort_keys=True, indent=2)+'\n'
+          )
+          t=report['totals']
+          assert report['schema_version']=='stage8k-return-boundary-result-v1'
+          assert report['safety_gate_passed'] is True
+          assert report['promotion_allowed'] is False
+          assert report['broader_learned_control_allowed'] is False
+          assert report['forge_referee'] is True
+          assert t['games']==8
+          assert t['interventions_planned']==t['interventions_applied']
+          assert t['interventions_applied']>=4
+          assert t['targeted_interventions_applied']>=1
+          assert t['lifecycle_anomalies']==0
+          assert t['invalid_requests_accepted']==0
+          assert t['pre_intervention_drift']==0
+          print('Stage 8K totals:', t)
+          print('Stage 8K safety gate:', report['safety_gate_passed'])
+          PY
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: stage8k-return-boundary-control
+          path: |
+            stage8k-return-boundary-report.json
+            stage8k-deck-sha256.txt
+            stage8k-*.plan.json
+            stage8k-*.requests.tsv
+            stage8k-baseline-*.log
+            stage8k-controlled-*.log
