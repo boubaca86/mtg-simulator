@@ -64,7 +64,7 @@ jobs:
             for ORIENTATION in st-first red-first; do
               if [ "$ORIENTATION" = st-first ]; then DECK_A="ST Forge Full.dck"; DECK_B="Benchmark Red Forge.dck"; MATCHUP="st-vs-benchmark-red"; else DECK_A="Benchmark Red Forge.dck"; DECK_B="ST Forge Full.dck"; MATCHUP="benchmark-red-vs-st"; fi
               cd "$FORGE_HOME"
-              java -Xmx6g -Dforge.expert.infoset=true -Dforge.expert.infoset.samples=3 -Dforge.expert.stage7.dataset=true -Dforge.expert.stage8.capture=true -Dforge.expert.stage7.matchup="$MATCHUP" -jar "$FORGE_JAR" sim -D "$HOME/.forge/decks/constructed" -d "$DECK_A" "$DECK_B" -x full default -n 4 -s "$SEED" -q -c 180 > "$GITHUB_WORKSPACE/stage8-fresh-${ORIENTATION}-${SEED}.log" 2>&1
+              java -Xmx6g -Dforge.expert.infoset=true -Dforge.expert.infoset.samples=3 -Dforge.expert.stage7.dataset=true -Dforge.expert.stage8.capture=true -Dforge.expert.stage7.matchup="$MATCHUP" -jar "$FORGE_JAR" sim -D "$HOME/.forge/decks/constructed" -d "$DECK_A" "$DECK_B" -x full default -n 4 -s "$SEED" -q -c 600 > "$GITHUB_WORKSPACE/stage8-fresh-${ORIENTATION}-${SEED}.log" 2>&1
               cd "$GITHUB_WORKSPACE"
               python3 stage8_label_counterfactual.py "stage8-fresh-${ORIENTATION}-${SEED}.log" "stage8-fresh-raw-${ORIENTATION}-${SEED}.jsonl" --expected-games 4 --corpus-seed "$SEED"
               python3 stage8_serialize_counterfactual.py "stage8-fresh-raw-${ORIENTATION}-${SEED}.jsonl" "stage8-fresh-${ORIENTATION}-${SEED}.jsonl"
