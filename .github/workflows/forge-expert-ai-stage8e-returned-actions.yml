@@ -1,0 +1,119 @@
+name: Forge Expert AI Stage 8E — Returned Action Binding
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'patch_forge_stage8e_execution_binding.py'
+      - 'stage8e_returned_action_audit.py'
+      - 'test_stage8e_returned_action_audit.py'
+      - 'STAGE8E_RETURNED_ACTION_BINDING.md'
+      - '.github/workflows/forge-expert-ai-stage8e-returned-actions.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  returned-action-binding:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Test Stage 8E audit logic
+        run: python -m unittest -v test_stage8e_returned_action_audit test_stage8d_shadow_policy test_stage8c_target_features
+
+      - name: Retrieve frozen Stage 8D checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/11405356263" --jq '.digest')" = "sha256:fdb467e0fffe365011186de647f99d38dff269281b0d2ed20748db41c9c0929d"
+          gh run download 37449513507 -n stage8d-frozen-shadow-replay -D frozen-shadow
+          test -s frozen-shadow/shadow-model.json
+
+      - name: Export unchanged decks
+        run: python forge_export.py --user-dir "$HOME/.forge"
+
+      - name: Record deck hashes
+        run: sha256sum "$HOME/.forge/decks/constructed/ST Forge Full.dck" "$HOME/.forge/decks/constructed/Benchmark Red Forge.dck" | tee stage8e-deck-sha256.txt
+
+      - name: Clone pinned Forge 2.0.15
+        run: git clone --depth 1 --branch forge-2.0.15 https://github.com/Card-Forge/forge.git forge-src
+
+      - name: Apply frozen expert-AI patches and Stage 8E instrumentation
+        run: |
+          python patch_forge_expert_cli.py forge-src/forge-gui-desktop/src/main/java/forge/view/SimulateMatch.java
+          python patch_forge_information_set.py forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java
+          python patch_forge_infoset_ensemble.py --game-simulator forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python patch_forge_complete_action_identity.py forge-src/forge-ai/src/main/java/forge/ai/simulation/Plan.java
+          python patch_forge_strategy_fusion_audit.py --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python patch_forge_stage7_legal_extractor.py forge-src/forge-ai/src/main/java
+          python patch_forge_stage7_dataset_capture.py forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python patch_forge_stage8_counterfactual_capture.py forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python patch_forge_stage8e_execution_binding.py --plan forge-src/forge-ai/src/main/java/forge/ai/simulation/Plan.java --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+
+      - name: Build patched Forge
+        working-directory: forge-src
+        run: |
+          mvn -B -pl forge-gui-desktop -am -DskipTests -Dcheckstyle.skip=true package
+          FORGE_JAR="$(find forge-gui-desktop/target -type f -name '*-jar-with-dependencies.jar' -print -quit)"
+          echo "FORGE_JAR=$(realpath "$FORGE_JAR")" >> "$GITHUB_ENV"
+          echo "FORGE_HOME=$(realpath forge-gui)" >> "$GITHUB_ENV"
+
+      - name: Re-run action and target-boundary regressions
+        run: |
+          javac -cp "$FORGE_JAR" -d stage8e-regression validation/Stage6RootIdentityRegression.java validation/Stage8TargetSemanticsRegression.java
+          java -cp "stage8e-regression:$FORGE_JAR" forge.ai.simulation.Stage6RootIdentityRegression
+          java -cp "stage8e-regression:$FORGE_JAR" forge.ai.simulation.Stage8TargetSemanticsRegression
+
+      - name: Capture returned-action boundary on observed seed
+        shell: bash
+        run: |
+          set -euo pipefail
+          for ORIENTATION in st-first red-first; do
+            if [ "$ORIENTATION" = st-first ]; then
+              DECK_A="ST Forge Full.dck"; DECK_B="Benchmark Red Forge.dck"; MATCHUP="st-vs-benchmark-red"
+            else
+              DECK_A="Benchmark Red Forge.dck"; DECK_B="ST Forge Full.dck"; MATCHUP="benchmark-red-vs-st"
+            fi
+            cd "$FORGE_HOME"
+            java -Xmx10g               -Dforge.expert.infoset=true               -Dforge.expert.infoset.samples=3               -Dforge.expert.stage7.dataset=true               -Dforge.expert.stage8.capture=true               -Dforge.expert.stage8.execution=true               -Dforge.expert.stage7.matchup="$MATCHUP"               -jar "$FORGE_JAR" sim               -D "$HOME/.forge/decks/constructed"               -d "$DECK_A" "$DECK_B"               -x full default -n 4 -s 20261012 -q -c 600               > "$GITHUB_WORKSPACE/stage8e-${ORIENTATION}-20261012.log" 2>&1
+            cd "$GITHUB_WORKSPACE"
+          done
+
+      - name: Audit capture-to-return binding with frozen shadow model
+        run: |
+          python stage8e_returned_action_audit.py             frozen-shadow/shadow-model.json             stage8e-st-first-20261012.log             stage8e-red-first-20261012.log             --expected-games 4             --output stage8e-returned-action-report.json
+          python - <<'PY'
+          import json
+          r=json.load(open('stage8e-returned-action-report.json'))
+          assert r['schema_version']=='stage8e-returned-action-audit-v1'
+          assert r['promotion_allowed'] is False
+          assert r['resolution_verified'] is False
+          assert r['totals']['games_completed']==8
+          assert r['totals']['returned_actions'] > 0
+          assert r['totals']['binding_mismatches']==0
+          assert r['shadow']['bound_actions_scored']==r['totals']['returned_actions']
+          print('Stage 8E totals:', r['totals'])
+          print('Stage 8E shadow:', r['shadow'])
+          PY
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: stage8e-returned-action-binding
+          path: |
+            stage8e-returned-action-report.json
+            stage8e-deck-sha256.txt
+            stage8e-*.log
