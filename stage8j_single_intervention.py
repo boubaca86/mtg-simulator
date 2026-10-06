@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Stage 8J: one public-only learned action intervention per game.
+"""Stage 8J: one public-only, target-free learned action intervention per game.
 
 The frozen Stage 8D model is allowed to request at most one action that differs
 from Forge, only at a baseline action that actually reached the return boundary.
-The request must still match a complete legal candidate in the live Forge state.
-All later decisions remain Forge-controlled.
+The learned replacement must be target-free (targets=<none>) and must still
+match a complete legal candidate in the live Forge state. Targeted-action
+rebinding is deliberately deferred to a dedicated later stage. All later
+decisions remain Forge-controlled.
 """
 from __future__ import annotations
 
@@ -22,6 +24,11 @@ from stage8h_lifecycle_audit import TERMINAL_PREFIX, audit_log as audit_lifecycl
 from stage8i_control_replay import CONTROL_PREFIX
 
 WIN_RE = re.compile(r"^Game Result: Game 1 ended in \d+ ms\. (.+) has won!$")
+
+
+def _target_free_identity(identity: str) -> bool:
+    """Return True only when the complete action identity explicitly has no targets."""
+    return any(part == "targets=<none>" for part in identity.split("|"))
 
 
 def _payload(line: str, prefix: str) -> dict:
@@ -119,6 +126,10 @@ def plan_intervention(checkpoint: Path, baseline: Path, output: Path,
             continue
         if prediction["recommendation"] == capture["selected_action"]:
             continue
+        if not _target_free_identity(prediction["recommendation"]):
+            # Stage 8J's original run exposed a target-rebinding lifecycle gap.
+            # Preserve that evidence and leave targeted actions to Stage 8K.
+            continue
 
         scores = sorted(
             (float(row["model_score"]) for row in prediction["candidate_scores"]),
@@ -132,6 +143,7 @@ def plan_intervention(checkpoint: Path, baseline: Path, output: Path,
             "phase": state["phase"],
             "forge_action": capture["selected_action"],
             "learned_action": prediction["recommendation"],
+            "learned_action_target_free": True,
             "model_score_margin": margin,
             "candidate_count": len(capture["candidates"]),
             "safe_capture_sha256": _safe_signature(capture),
@@ -148,7 +160,7 @@ def plan_intervention(checkpoint: Path, baseline: Path, output: Path,
 
     report = {
         "schema_version": "stage8j-single-intervention-plan-v1",
-        "mode": "single-public-only-learned-intervention",
+        "mode": "single-public-only-target-free-learned-intervention",
         "model_id": policy.model_id,
         "actor_prefix": actor_prefix,
         "baseline_log": baseline.name,
@@ -158,6 +170,8 @@ def plan_intervention(checkpoint: Path, baseline: Path, output: Path,
         "request_file_sha256": request_sha,
         "request_fields": ["decision_index", "complete_action_identity"],
         "hidden_information_fields": 0,
+        "targeted_learned_actions_allowed": False,
+        "target_rebinding_deferred": True,
         "forge_referee": True,
         "promotion_allowed": False,
     }
@@ -183,6 +197,8 @@ def compare_pair(checkpoint, baseline: Path, controlled: Path, plan_path: Path,
         raise ValueError("Stage 8J plan actor/referee drift")
     if plan.get("promotion_allowed") is not False:
         raise ValueError("Stage 8J plan unexpectedly allows promotion")
+    if plan.get("targeted_learned_actions_allowed") is not False:
+        raise ValueError("Stage 8J plan unexpectedly allows targeted learned actions")
 
     base_caps = _events(baseline, CAPTURE_PREFIX)
     ctrl_caps = _events(controlled, CAPTURE_PREFIX)
@@ -192,6 +208,10 @@ def compare_pair(checkpoint, baseline: Path, controlled: Path, plan_path: Path,
     applied = False
     intervention_terminal = None
     if plan["intervention_planned"]:
+        if not _target_free_identity(intervention["learned_action"]):
+            raise ValueError("Stage 8J intervention is not target-free")
+        if intervention.get("learned_action_target_free") is not True:
+            raise ValueError("Stage 8J intervention target-free audit field missing")
         if not request_path.read_bytes():
             raise ValueError("planned Stage 8J intervention has empty request file")
         if len(controls) != 1:
@@ -201,6 +221,7 @@ def compare_pair(checkpoint, baseline: Path, controlled: Path, plan_path: Path,
         if (event.get("decision_index") != idx
                 or event.get("acting_player_name") != intervention["actor"]
                 or event.get("requested_action") != intervention["learned_action"]
+                or not _target_free_identity(event.get("requested_action", ""))
                 or event.get("forge_selected_action") != intervention["forge_action"]
                 or event.get("requested_action_in_candidates") is not True
                 or event.get("same_as_forge") is not False
@@ -278,9 +299,10 @@ def aggregate(pairs: list[dict], minimum_interventions: int) -> dict:
     drift = sum(p["pre_intervention_drift"] for p in pairs)
     return {
         "schema_version": "stage8j-single-intervention-result-v1",
-        "mode": "single-public-only-learned-intervention",
+        "mode": "single-public-only-target-free-learned-intervention",
         "promotion_allowed": False,
         "broader_learned_control_allowed": False,
+        "targeted_learned_actions_allowed": False,
         "forge_referee": True,
         "minimum_interventions": minimum_interventions,
         "pairs": pairs,
@@ -309,8 +331,9 @@ def aggregate(pairs: list[dict], minimum_interventions: int) -> dict:
             "are descriptive and are not a promotion criterion."
         ),
         "next_stage": (
-            "Collect outcome-bearing exploration trajectories and train/evaluate an "
-            "outcome-oriented policy/value signal before broader learned control."
+            "Validate exact targeted-action rebinding in a dedicated Stage 8K before "
+            "allowing targeted learned control; then proceed to outcome-bearing "
+            "exploration with public-only information."
         ),
     }
 
