@@ -1,4 +1,4 @@
-name: Forge Expert AI Stage 8J — Single Learned Intervention
+name: Forge Expert AI Stage 8J — Target-Free Single Learned Intervention
 
 on:
   workflow_dispatch:
@@ -39,10 +39,12 @@ jobs:
           import re
           from pathlib import Path
           text=Path('STAGE8J_SINGLE_INTERVENTION.md').read_text()
-          for seed in ('20261016','20261017','20261018','20261019'):
+          for seed in ('20261020','20261021','20261022','20261023'):
               assert seed in text
           assert re.search(r'at most one learned action per\s+game', text)
           assert 'Ai(1)-' in text
+          assert 'targets=<none>' in text
+          assert 'targeted_learned_actions_allowed=false' in text
           assert 'at least **4 of the 8**' in text
           assert 'promotion_allowed=false' in text
           assert 'broader_learned_control_allowed=false' in text
@@ -156,7 +158,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for SEED in 20261016 20261017 20261018 20261019; do
+          for SEED in 20261020 20261021 20261022 20261023; do
             for ORIENTATION in st-first red-first; do
               if [ "$ORIENTATION" = st-first ]; then
                 DECK_A="ST Forge Full.dck"
@@ -198,7 +200,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for SEED in 20261016 20261017 20261018 20261019; do
+          for SEED in 20261020 20261021 20261022 20261023; do
             for ORIENTATION in st-first red-first; do
               if [ "$ORIENTATION" = st-first ]; then
                 DECK_A="ST Forge Full.dck"
@@ -263,7 +265,7 @@ jobs:
           actor='Ai(1)-'
           policy=load_checkpoint(Path('frozen-shadow/shadow-model.json'))
           pairs=[]
-          for seed in (20261016, 20261017, 20261018, 20261019):
+          for seed in (20261020, 20261021, 20261022, 20261023):
               for orientation in ('st-first', 'red-first'):
                   pairs.append(compare_pair(
                       policy,
@@ -282,6 +284,7 @@ jobs:
           assert report['safety_gate_passed'] is True
           assert report['promotion_allowed'] is False
           assert report['broader_learned_control_allowed'] is False
+          assert report['targeted_learned_actions_allowed'] is False
           assert report['forge_referee'] is True
           assert t['games']==8
           assert t['interventions_planned']==t['interventions_applied']
@@ -296,7 +299,7 @@ jobs:
       - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: stage8j-single-learned-intervention
+          name: stage8j-target-free-single-learned-intervention
           path: |
             stage8j-single-intervention-report.json
             stage8j-deck-sha256.txt
