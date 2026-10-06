@@ -74,7 +74,7 @@ def patch_adapter(path: Path) -> None:
 
         StringBuilder out = new StringBuilder(1024);
 """
-    replacement = """        boolean requireForgeMatch = Boolean.parseBoolean(
+    replacement = r"""        boolean requireForgeMatch = Boolean.parseBoolean(
                 System.getProperty("forge.expert.stage8.control.require_forge_match", "true"));
         if (requireForgeMatch && !sameAsForge) {
             throw new IllegalStateException("Stage 8I replay request differs from Forge selection");
@@ -148,17 +148,17 @@ def patch_adapter(path: Path) -> None:
         String requested = replacement.completeActionIdentity();
         StringBuilder out = new StringBuilder(1024);
         out.append('{');
-        out.append(""schema_version":"stage8k-return-boundary-selection-v1",");
-        out.append(""decision_index":").append(decisionIndex).append(',');
-        out.append(""acting_player_name":"")
-                .append(jsonEscape(actorName == null ? "" : actorName)).append("",");
-        out.append(""requested_action":"").append(jsonEscape(requested)).append("",");
-        out.append(""forge_selected_action":"").append(jsonEscape(liveForge)).append("",");
-        out.append(""substitution_boundary":"post-forge-plan-pre-return",");
-        out.append(""forge_search_unchanged":true,");
-        out.append(""forge_phase_deferral_unchanged":true,");
-        out.append(""forge_referee":true,");
-        out.append(""promotion_allowed":false");
+        out.append("\"schema_version\":\"stage8k-return-boundary-selection-v1\",");
+        out.append("\"decision_index\":").append(decisionIndex).append(',');
+        out.append("\"acting_player_name\":\"")
+                .append(jsonEscape(actorName == null ? "" : actorName)).append("\",");
+        out.append("\"requested_action\":\"").append(jsonEscape(requested)).append("\",");
+        out.append("\"forge_selected_action\":\"").append(jsonEscape(liveForge)).append("\",");
+        out.append("\"substitution_boundary\":\"post-forge-plan-pre-return\",");
+        out.append("\"forge_search_unchanged\":true,");
+        out.append("\"forge_phase_deferral_unchanged\":true,");
+        out.append("\"forge_referee\":true,");
+        out.append("\"promotion_allowed\":false");
         System.out.println("EXPERT_STAGE8K_RETURN_BOUNDARY_SELECTION: " + out.append('}'));
         return result;
     }
