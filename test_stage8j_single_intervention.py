@@ -6,6 +6,7 @@ from pathlib import Path
 
 from stage8j_single_intervention import (
     _safe_signature,
+    _target_free_identity,
     _side_score,
     _winner,
     _write_request,
@@ -45,6 +46,17 @@ def capture(selected="recipe=v2|ability=A"):
 
 
 class Stage8JSingleInterventionTests(unittest.TestCase):
+    def test_target_free_identity_requires_explicit_none_target_field(self):
+        self.assertTrue(_target_free_identity(
+            "recipe=v2|ability=Servitor|targets=<none>|choices=<none>"
+        ))
+        self.assertFalse(_target_free_identity(
+            "recipe=v2|ability=Lightning Strike|targets=[Servitor (117)]|choices=<none>"
+        ))
+        self.assertFalse(_target_free_identity(
+            "recipe=v2|ability=Malformed Without Target Field|choices=<none>"
+        ))
+
     def test_safe_signature_ignores_only_selected_action_metadata_and_scores(self):
         left = capture("recipe=v2|ability=A")
         right = json.loads(json.dumps(left))
@@ -101,6 +113,7 @@ class Stage8JSingleInterventionTests(unittest.TestCase):
         self.assertEqual(report["totals"]["controlled_side_score_delta"], -4.0)
         self.assertFalse(report["promotion_allowed"])
         self.assertFalse(report["broader_learned_control_allowed"])
+        self.assertFalse(report["targeted_learned_actions_allowed"])
 
     def test_safety_gate_fails_for_too_few_or_anomalous_interventions(self):
         good = {
