@@ -65,13 +65,13 @@ def patch_adapter(path: Path) -> None:
 """
     text = replace_once(text, old, new, "Stage 8J sparse request boundary")
 
-    old = """        out.append("\"decision_index\":").append(decisionIndex).append(',');
-        out.append("\"requested_action\":\"").append(jsonEscape(requested)).append("\",");
+    old = """        out.append("\\"decision_index\\":").append(decisionIndex).append(',');
+        out.append("\\"requested_action\\":\\"").append(jsonEscape(requested)).append("\\",");
 """
-    new = """        out.append("\"decision_index\":").append(decisionIndex).append(',');
-        out.append("\"acting_player_name\":\"")
-                .append(jsonEscape(actorName == null ? "" : actorName)).append("\",");
-        out.append("\"requested_action\":\"").append(jsonEscape(requested)).append("\",");
+    new = """        out.append("\\"decision_index\\":").append(decisionIndex).append(',');
+        out.append("\\"acting_player_name\\":\\"")
+                .append(jsonEscape(actorName == null ? "" : actorName)).append("\\",");
+        out.append("\\"requested_action\\":\\"").append(jsonEscape(requested)).append("\\",");
 """
     text = replace_once(text, old, new, "Stage 8J actor audit field")
 
