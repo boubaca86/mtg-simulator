@@ -35,7 +35,7 @@ def patch_adapter(path: Path) -> None:
 
     text = replace_once(
         text,
-        """                String[] parts = line.split("\\t", -1);
+        r"""                String[] parts = line.split("\\t", -1);
                 if (parts.length != 2) throw new IllegalArgumentException("Invalid Stage 8I request line");
                 long index = Long.parseLong(parts[0]);
                 if (index < 0) throw new IllegalArgumentException("Negative Stage 8I decision index");
@@ -43,7 +43,7 @@ def patch_adapter(path: Path) -> None:
                 if (identity.isEmpty()) throw new IllegalArgumentException("Empty Stage 8I action identity");
                 if (parsed.put(index, identity) != null) {
 """,
-        """                String[] parts = line.split("\\t", -1);
+        r"""                String[] parts = line.split("\\t", -1);
                 int expectedFields = returnBoundaryEnabled() ? 3 : 2;
                 if (parts.length != expectedFields) {
                     throw new IllegalArgumentException("Invalid Stage 8 control request line");
