@@ -1,5 +1,7 @@
 package forge.ai.simulation;
 
+import forge.card.CardRarity;
+import forge.card.CardRules;
 import forge.game.Game;
 import forge.game.GameObject;
 import forge.game.GameRules;
@@ -9,6 +11,7 @@ import forge.game.card.Card;
 import forge.game.player.Player;
 import forge.game.spellability.SpellAbility;
 import forge.game.zone.ZoneType;
+import forge.item.PaperCard;
 import forge.util.Localizer;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -23,8 +26,13 @@ public final class Stage8TargetSemanticsRegression {
     }
 
     private static Card card(Player owner, int id, String name, int power, ZoneType zone) {
-        Card card = new Card(id, owner.getGame());
+        // Supply real printed rules so getCMC does not consult the global card
+        // database, which a focused fixture does not initialize.
+        CardRules rules = CardRules.fromScript(List.of("Name:" + name, "ManaCost:2",
+                "Types:Creature", "PT:" + power + "/" + power, "Oracle:Regression fixture."));
+        Card card = new Card(id, new PaperCard(rules, "TEST", CardRarity.Common), owner.getGame());
         card.setName(name);
+        card.setManaCost(rules.getManaCost());
         card.setOwner(owner);
         card.setController(owner, 0);
         card.addType("Creature");
