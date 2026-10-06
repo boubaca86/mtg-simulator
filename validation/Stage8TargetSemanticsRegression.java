@@ -1,5 +1,6 @@
 package forge.ai.simulation;
 
+import forge.ai.LobbyPlayerAi;
 import forge.card.CardRarity;
 import forge.card.CardRules;
 import forge.game.Game;
@@ -67,8 +68,8 @@ public final class Stage8TargetSemanticsRegression {
         Localizer.getInstance().initialize("en-US", "forge-src/forge-gui/res/languages");
         GameRules rules = new GameRules(GameType.Constructed);
         Game game = new Game(List.of(), rules, new Match(rules, List.of(), "target regression"));
-        Player actor = new Player("Ai(1)-Fixture", game, 1);
-        Player opponent = new Player("Ai(2)-Fixture with (22), punctuation", game, 2);
+        Player actor = new LobbyPlayerAi("Ai(1)-Fixture", null).createIngamePlayer(game, 1);
+        Player opponent = new LobbyPlayerAi("Ai(2)-Fixture with (22), punctuation", null).createIngamePlayer(game, 2);
         actor.setTeam(1); opponent.setTeam(2);
         game.getPlayers().add(actor); game.getPlayers().add(opponent);
         game.getRegisteredPlayers().add(actor); game.getRegisteredPlayers().add(opponent);
