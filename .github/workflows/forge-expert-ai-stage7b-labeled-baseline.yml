@@ -22,6 +22,9 @@ on:
       - "stage8_action_ranker.py"
       - "stage8_ranker_features.py"
       - "stage8_legacy_ranker.py"
+      - "stage8c_target_features.py"
+      - "stage8c_target_ranker.py"
+      - "test_stage8c_target_features.py"
       - "stage7_dataset_validation.py"
       - "forge_ai/RootActionTable.java"
       - "patch_forge_complete_action_identity.py"
@@ -102,6 +105,21 @@ jobs:
           print('Stage 8B coverage:', r['coverage'])
           print('All model results are offline development evidence; CI success is not a promotion gate.')
           PY
+      - name: Evaluate Stage 8C public target-aware ranker
+        run: |
+          python3 -m unittest test_stage8c_target_features
+          python3 stage8c_target_ranker.py stage8a-counterfactual.jsonl --output stage8c-target-ranking.json
+          python3 - <<'PY'
+          import json
+          r=json.load(open('stage8c-target-ranking.json'))
+          assert r['promotion_allowed'] is False
+          old=r['models']['public_semantics']['holdout']
+          new=r['models']['target_semantics']['holdout']
+          assert old['decisions'] == new['decisions'] > 0
+          assert old['pairwise_comparisons'] == new['pairwise_comparisons'] > 0
+          print('Stage 8C target-minus-public-semantics:', r['target_minus_public_semantics'])
+          print('Development evidence only; no learned model controls Forge gameplay.')
+          PY
       - uses: actions/upload-artifact@v6
         if: always()
         with:
@@ -111,5 +129,6 @@ jobs:
             stage7c-comparison.json
             stage8a-counterfactual.jsonl
             stage8b-ranking.json
+            stage8c-target-ranking.json
             stage8-*.jsonl
             stage7b-*.log
