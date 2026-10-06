@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from stage8c_target_features import validated_target_descriptors
 
 FORGE_VERSION = "2.0.15"
 SEARCH_POLICY = "fixed-root-v1"
@@ -50,6 +51,7 @@ def normalize(raw: dict) -> dict:
             "aggregate_score": score,
             "replay_valid_count": replay,
         }
+        validated_target_descriptors(c)
         if "target_public_semantics" in c:
             target_semantics = c["target_public_semantics"]
             if (not isinstance(target_semantics, list)
@@ -58,6 +60,7 @@ def normalize(raw: dict) -> dict:
             if any("id=" in x.lower() for x in target_semantics):
                 raise ValueError("raw object IDs may not cross the learner boundary")
             normalized["target_public_semantics"] = target_semantics
+            normalized["target_semantics_version"] = c["target_semantics_version"]
         candidates.append(normalized)
 
     # Preserve Forge's deterministic first-seen candidate order. Sorting by score

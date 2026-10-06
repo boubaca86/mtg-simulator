@@ -1,6 +1,12 @@
 # Stage 8C — Public target semantics
 
-Status: development-only offline ranking experiment. No learned model controls Forge gameplay.
+Status: typed-target repair implemented; real-Forge/live verification pending.
+Development-only offline ranking; no learned model controls Forge gameplay.
+
+The first resolver parsed numbers from display strings and could mistake
+`Ai(2)` for card ID 2. Its unversioned target captures are retired. The repaired
+boundary requires `target_semantics_version=forge-public-targets-v2`; see
+`STAGE8C_TYPED_TARGET_REPAIR.md` for the failure, implementation and verification.
 
 ## Motivation
 
@@ -19,14 +25,16 @@ Forge remains the sole source of legality, card behavior, targets, modes, X,
 choices and fixed-root counterfactual scores.
 
 Transient Forge object IDs are permitted only inside Forge while resolving the
-already-selected target against legally visible zones. The learner-facing
-capture never serializes those IDs. It receives only public descriptors:
+already-selected target against legally visible zones. Target descriptors never
+serialize those IDs; exact executable action recipes retain their existing
+identity for auditing. The target feature array receives only public descriptors:
 
 - legal public zone;
 - public controller role (self/opponent/public);
 - visible card name, or an opaque marker for face-down objects;
 - public mana value and type;
 - current public power/toughness for creatures.
+- an explicit player target and self/opponent role, without card characteristics.
 
 The resolver never scans the opponent hand or either library. An object that
 cannot be resolved through the legal public zones becomes an opaque unresolved
@@ -36,8 +44,9 @@ target rather than causing hidden state to be inspected.
 
 The existing Stage 8A schema remains readable. target_public_semantics is an
 optional candidate field so the frozen Stage 8 fresh-seed replication remains
-reproducible on its original commit and corpus. Stage 8C itself fails closed if
-fresh target semantics are absent.
+reproducible on its original commit and corpus. A supplied target feature array
+must have the v2 marker and valid descriptors. Stage 8C fails closed if typed
+target semantics are absent, obsolete or unversioned.
 
 Existing complete action identities and exact execution recipes are unchanged.
 No custom card text or gameplay semantics are modified.
@@ -67,5 +76,7 @@ The Stage 8C tests require that:
 - Stage 8B remains unable to exploit transient object IDs;
 - raw object IDs are rejected at the learner boundary;
 - missing target semantics fail closed for Stage 8C;
-- player-only targets may legitimately have no card descriptor;
+- player targets cannot be mistaken for card IDs or carry card characteristics;
+- target order and multiplicity survive capture;
+- unknown and face-down targets cannot acquire hidden characteristics;
 - target-aware fitting remains seed-family isolated and offline.

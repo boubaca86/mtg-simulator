@@ -6,19 +6,21 @@ from pathlib import Path
 JAVA = r'''package forge.ai.simulation;
 
 import forge.game.Game;
+import forge.game.GameObject;
 import forge.game.card.Card;
 import forge.game.card.CardCollectionView;
 import forge.game.player.Player;
 import forge.game.spellability.SpellAbilityStackInstance;
+import forge.game.spellability.SpellAbility;
 import forge.game.zone.ZoneType;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /** Legal-information boundary for expert-AI datasets. Forge remains referee. */
 public final class LegalDecisionFeatures {
@@ -50,57 +52,91 @@ public final class LegalDecisionFeatures {
         return "zone=" + zone + "|role=" + role + "|" + visibleDescriptor(card);
     }
 
-    private static void addTargetCards(List<String> out, Set<Integer> matched, Set<Integer> targetIds,
+    private static void addTargetCards(Map<Integer, String> out, Set<Integer> targetIds,
             CardCollectionView cards, String zone, String role) {
         for (Card card : cards) {
             if (targetIds.contains(card.getId())) {
-                out.add(targetDescriptor(zone, role, card));
-                matched.add(card.getId());
+                out.put(card.getId(), targetDescriptor(zone, role, card));
             }
         }
     }
 
-    /**
-     * Resolve transient Forge object IDs only inside the rules/referee boundary,
-     * then discard those IDs. The learner receives public descriptors, never raw
-     * IDs that could accidentally correlate with deck construction or hidden order.
-     */
-    public static String describeActionTargetsJson(Player actor, String actionIdentity) {
-        if (actor == null || actionIdentity == null) throw new IllegalArgumentException("actor and action are required");
-        int start = actionIdentity.indexOf("|targets=");
-        int end = actionIdentity.indexOf("|choices=", start < 0 ? 0 : start);
-        if (start < 0 || end < 0 || end < start) throw new IllegalArgumentException("malformed complete action identity");
-        String targetText = actionIdentity.substring(start + "|targets=".length(), end);
-        Matcher matcher = Pattern.compile("\\((\\d+)\\)").matcher(targetText);
-        Set<Integer> targetIds = new LinkedHashSet<>();
-        while (matcher.find()) targetIds.add(Integer.parseInt(matcher.group(1)));
-        if (targetIds.isEmpty()) return "[]";
+    public static final String TARGET_SEMANTICS_VERSION = "forge-public-targets-v2";
+
+    /** Internal reference only: never serialize the ID or a sampled-world card. */
+    public static final class TargetReference {
+        final String kind;
+        final int objectId;
+        private TargetReference(String kind, int objectId) { this.kind = kind; this.objectId = objectId; }
+    }
+
+    /** Snapshot types/IDs while Forge still holds the selected target objects.
+     * Names such as Ai(2), card names and display punctuation are never parsed. */
+    public static List<TargetReference> captureTargetReferences(Iterable<GameObject> targets) {
+        List<TargetReference> refs = new ArrayList<>();
+        for (GameObject target : targets) {
+            if (target instanceof Card card) refs.add(new TargetReference("card", card.getId()));
+            else if (target instanceof Player player) refs.add(new TargetReference("player", player.getId()));
+            else if (target instanceof SpellAbility spell) refs.add(new TargetReference("spell", spell.getHostCard().getId()));
+            else refs.add(new TargetReference("unknown", -1));
+        }
+        return Collections.unmodifiableList(refs);
+    }
+
+    private static String roleFor(Player actor, Player player) {
+        if (player == null) return "unknown";
+        if (player.getId() == actor.getId()) return "self";
+        return actor.getOpponents().contains(player) ? "opponent" : "public";
+    }
+
+    /** Resolve only against the actual root's legal zones, not sampled objects.
+     * Keep target order and multiplicity, and keep player/card ID namespaces apart. */
+    public static String describeActionTargetsJson(Player actor, MultiTargetSelector.Targets targets) {
+        if (actor == null) throw new IllegalArgumentException("actor is required");
+        if (targets == null) return "[]";
+        List<TargetReference> refs = targets.publicTargetReferences();
+        Set<Integer> cardIds = new LinkedHashSet<>();
+        Set<Integer> spellIds = new LinkedHashSet<>();
+        for (TargetReference ref : refs) {
+            if (ref.kind.equals("card")) cardIds.add(ref.objectId);
+            else if (ref.kind.equals("spell")) spellIds.add(ref.objectId);
+        }
 
         Player opponent = actor.getOpponents().isEmpty() ? null : actor.getOpponents().get(0);
         Game game = actor.getGame();
-        List<String> values = new ArrayList<>();
-        Set<Integer> matched = new LinkedHashSet<>();
-
-        addTargetCards(values, matched, targetIds, actor.getCardsIn(ZoneType.Hand), "own_hand", "self");
-        addTargetCards(values, matched, targetIds, actor.getCardsIn(ZoneType.Battlefield), "own_battlefield", "self");
-        addTargetCards(values, matched, targetIds, actor.getCardsIn(ZoneType.Graveyard), "own_graveyard", "self");
-        if (opponent != null) {
-            // SECURITY: opponent Hand and both Libraries are intentionally never scanned.
-            addTargetCards(values, matched, targetIds, opponent.getCardsIn(ZoneType.Battlefield), "opponent_battlefield", "opponent");
-            addTargetCards(values, matched, targetIds, opponent.getCardsIn(ZoneType.Graveyard), "opponent_graveyard", "opponent");
+        Map<Integer, String> cards = new LinkedHashMap<>();
+        Map<Integer, String> spells = new LinkedHashMap<>();
+        if (!cardIds.isEmpty()) {
+            addTargetCards(cards, cardIds, actor.getCardsIn(ZoneType.Hand), "own_hand", "self");
+            addTargetCards(cards, cardIds, actor.getCardsIn(ZoneType.Battlefield), "own_battlefield", "self");
+            addTargetCards(cards, cardIds, actor.getCardsIn(ZoneType.Graveyard), "own_graveyard", "self");
+            if (opponent != null) {
+                // SECURITY: opponent Hand and both Libraries are intentionally never scanned.
+                addTargetCards(cards, cardIds, opponent.getCardsIn(ZoneType.Battlefield), "opponent_battlefield", "opponent");
+                addTargetCards(cards, cardIds, opponent.getCardsIn(ZoneType.Graveyard), "opponent_graveyard", "opponent");
+            }
+            addTargetCards(cards, cardIds, game.getCardsIn(ZoneType.Exile), "exile_public", "public");
+            addTargetCards(cards, cardIds, game.getCardsIn(ZoneType.Stack), "stack_public", "public");
         }
-        addTargetCards(values, matched, targetIds, game.getCardsIn(ZoneType.Exile), "exile_public", "public");
-        for (SpellAbilityStackInstance e : game.getStack()) {
+        if (!spellIds.isEmpty()) for (SpellAbilityStackInstance e : game.getStack()) {
             Card card = e.getSpellAbility().getHostCard();
-            if (targetIds.contains(card.getId())) {
-                values.add(targetDescriptor("stack_public", "public", card));
-                matched.add(card.getId());
+            if (spellIds.contains(card.getId())) {
+                spells.put(card.getId(), targetDescriptor("stack_public", roleFor(actor, e.getSpellAbility().getActivatingPlayer()), card));
             }
         }
-        for (int i = matched.size(); i < targetIds.size(); i++) {
-            values.add("zone=unresolved|role=unknown|<opaque>");
+        List<String> values = new ArrayList<>();
+        for (TargetReference ref : refs) {
+            String value = null;
+            if (ref.kind.equals("card")) value = cards.get(ref.objectId);
+            else if (ref.kind.equals("spell")) value = spells.get(ref.objectId);
+            else if (ref.kind.equals("player")) {
+                for (Player player : game.getPlayers()) if (player.getId() == ref.objectId) {
+                    value = "zone=player|role=" + roleFor(actor, player) + "|<player>";
+                    break;
+                }
+            }
+            values.add(value == null ? "zone=unresolved|role=unknown|<opaque>" : value);
         }
-        Collections.sort(values);
         return jsonStrings(values);
     }
 
@@ -160,10 +196,48 @@ public final class LegalDecisionFeatures {
 }
 '''
 
+
+def patch_target_references(root: Path) -> None:
+    """Retain typed immutable targets alongside Forge's unchanged replay recipe."""
+    folder = root / "forge" / "ai" / "simulation"
+    edits = {
+        folder / "PossibleTargetSelector.java": [
+            ('        final String description;',
+             '        final String description;\n        final List<LegalDecisionFeatures.TargetReference> publicTargetReferences;'),
+            ('int targetIndex, String description)  {',
+             'int targetIndex, String description, List<LegalDecisionFeatures.TargetReference> refs)  {'),
+            ('            this.description = description;',
+             '            this.description = description;\n            this.publicTargetReferences = java.util.Collections.unmodifiableList(new ArrayList<>(refs));'),
+            ('nextTargetIndex - 1, targetingSa.getTargets().toString());',
+             'nextTargetIndex - 1, targetingSa.getTargets().toString(), LegalDecisionFeatures.captureTargetReferences(targetingSa.getTargets()));'),
+        ],
+        folder / "MultiTargetSelector.java": [
+            ('        private ArrayList<PossibleTargetSelector.Targets> targets;',
+             '''        private ArrayList<PossibleTargetSelector.Targets> targets;
+
+        public List<LegalDecisionFeatures.TargetReference> publicTargetReferences() {
+            List<LegalDecisionFeatures.TargetReference> refs = new ArrayList<>();
+            for (PossibleTargetSelector.Targets target : targets) refs.addAll(target.publicTargetReferences);
+            return java.util.Collections.unmodifiableList(refs);
+        }'''),
+        ],
+    }
+    prepared = {}
+    for path, replacements in edits.items():
+        text = path.read_text()
+        for old, new in replacements:
+            if text.count(old) != 1:
+                raise RuntimeError(f"Expected one typed-target patch site in {path.name}: {old}")
+            text = text.replace(old, new, 1)
+        prepared[path] = text
+    for path, text in prepared.items():
+        path.write_text(text)
+
 def main() -> None:
     p=argparse.ArgumentParser(); p.add_argument("forge_ai_java",type=Path); a=p.parse_args()
     target=a.forge_ai_java/"forge"/"ai"/"simulation"/"LegalDecisionFeatures.java"; target.parent.mkdir(parents=True,exist_ok=True)
     if target.exists(): raise RuntimeError(f"Refusing to overwrite existing Forge source: {target}")
+    patch_target_references(a.forge_ai_java)
     target.write_text(JAVA,encoding="utf-8"); print(f"Added Stage 7 legal-information extractor: {target}")
 
 if __name__=="__main__": main()

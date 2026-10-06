@@ -10,6 +10,7 @@ import argparse
 import json
 from collections import defaultdict
 from pathlib import Path
+from stage8c_target_features import validated_target_descriptors
 
 FORBIDDEN_KEYS = {
     "opponent_hand_cards", "opponent_hand_identities", "opponent_library",
@@ -55,12 +56,7 @@ def validate_row(row, line_no):
         assert isinstance(c["aggregate_score"], int) and not isinstance(c["aggregate_score"], bool), f"line {line_no}: non-integer Forge score"
         assert isinstance(c["replay_valid_count"], int) and not isinstance(c["replay_valid_count"], bool), f"line {line_no}: invalid replay count"
         assert c["replay_valid_count"] == row["information_set_samples"], f"line {line_no}: partial-world candidate"
-        if "target_public_semantics" in c:
-            target_semantics = c["target_public_semantics"]
-            assert isinstance(target_semantics, list) and all(isinstance(x, str) and x for x in target_semantics), \
-                f"line {line_no}: invalid public target semantics"
-            assert not any("id=" in x.lower() for x in target_semantics), \
-                f"line {line_no}: raw object ID crossed learner boundary"
+        validated_target_descriptors(c)
         identities.append(c["action_identity"])
     assert len(identities) == len(set(identities)), f"line {line_no}: duplicate complete action"
     assert isinstance(row["selected_action"], str) and row["selected_action"], f"line {line_no}: empty selected action"

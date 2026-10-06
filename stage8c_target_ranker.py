@@ -9,7 +9,7 @@ from pathlib import Path
 
 import stage8_action_ranker as base
 from stage8_ranker_features import features as stage8b_features
-from stage8c_target_features import features as target_features
+from stage8c_target_features import TARGET_SEMANTICS_VERSION, features as target_features
 
 
 MODELS = ("public_semantics", "target_semantics")
@@ -60,7 +60,8 @@ def compare(rows):
     old = report["public_semantics"]["holdout"]
     new = report["target_semantics"]["holdout"]
     return {
-        "schema_version": "stage8c-target-ranking-v1",
+        "schema_version": "stage8c-target-ranking-v2",
+        "target_semantics_version": TARGET_SEMANTICS_VERSION,
         "method": "leave-one-seed-out-public-target-semantics",
         "promotion_allowed": False,
         "seed_count": len(seeds),

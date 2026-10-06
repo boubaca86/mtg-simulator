@@ -29,6 +29,7 @@ on:
       - "forge_ai/RootActionTable.java"
       - "patch_forge_complete_action_identity.py"
       - "validation/Stage6RootIdentityRegression.java"
+      - "validation/Stage8TargetSemanticsRegression.java"
       - ".github/workflows/forge-expert-ai-stage7b-labeled-baseline.yml"
 permissions:
   contents: read
@@ -66,8 +67,9 @@ jobs:
           echo "FORGE_HOME=$(realpath forge-gui)" >> "$GITHUB_ENV"
       - name: Test the real Forge action snapshot
         run: |
-          javac -cp "$FORGE_JAR" -d stage6-regression validation/Stage6RootIdentityRegression.java
+          javac -cp "$FORGE_JAR" -d stage6-regression validation/Stage6RootIdentityRegression.java validation/Stage8TargetSemanticsRegression.java
           java -cp "stage6-regression:$FORGE_JAR" forge.ai.simulation.Stage6RootIdentityRegression
+          java -cp "stage6-regression:$FORGE_JAR" forge.ai.simulation.Stage8TargetSemanticsRegression
       - name: Capture fixed benchmark seed groups
         shell: bash
         run: |

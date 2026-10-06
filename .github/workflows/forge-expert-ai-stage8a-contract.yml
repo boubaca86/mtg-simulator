@@ -42,6 +42,8 @@ jobs:
         run: python test_stage8_label_counterfactual.py
       - name: Run contextual ranking and evaluation regressions
         run: python -m unittest -v test_stage8_action_ranker
+      - name: Run typed public target regressions
+        run: python -m unittest -v test_stage8c_target_features
       - name: Verify Stage 8A sources compile
         run: |
           python -m py_compile \
@@ -50,4 +52,5 @@ jobs:
             stage8_label_counterfactual.py test_stage8_label_counterfactual.py \
             patch_forge_stage8_counterfactual_capture.py \
             stage8_action_ranker.py stage8_ranker_features.py \
-            stage8_legacy_ranker.py test_stage8_action_ranker.py
+            stage8_legacy_ranker.py test_stage8_action_ranker.py \
+            stage8c_target_features.py stage8c_target_ranker.py test_stage8c_target_features.py

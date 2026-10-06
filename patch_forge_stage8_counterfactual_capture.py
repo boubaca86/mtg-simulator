@@ -115,8 +115,10 @@ def main() -> None:
             out.append("\"action_identity\":\"").append(stage8JsonEscape(candidateIdentity)).append("\",");
             out.append("\"aggregate_score\":").append(candidate.score.value).append(',');
             out.append("\"replay_valid_count\":").append(samples).append(',');
+            out.append("\"target_semantics_version\":\"")
+                    .append(LegalDecisionFeatures.TARGET_SEMANTICS_VERSION).append("\",");
             out.append("\"target_public_semantics\":")
-                    .append(LegalDecisionFeatures.describeActionTargetsJson(actor, candidateIdentity));
+                    .append(LegalDecisionFeatures.describeActionTargetsJson(actor, candidate.action.targets));
             out.append('}');
         }
         out.append("],\"information_set_samples\":").append(samples);
