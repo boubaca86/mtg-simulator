@@ -1,0 +1,355 @@
+{
+  "config": {
+    "averaged_weights": true,
+    "epochs": 20,
+    "learning_rate": 0.05,
+    "normalize_updates": true,
+    "selection": "uniform-among-predicted-ties"
+  },
+  "dataset_sha256": "1173a323a329460d69abfd2c8cab71816430759830b26c927874cc389ff42903",
+  "limitations": [
+    "Development comparison only; these seed families are not an untouched promotion test.",
+    "Forge fixed-root scores remain imitation labels, not independent proof of optimal play.",
+    "Target semantics contain public descriptors only; raw Forge object IDs are discarded before serialization.",
+    "No learned model controls gameplay."
+  ],
+  "method": "leave-one-seed-out-public-target-semantics",
+  "models": {
+    "public_semantics": {
+      "folds": [
+        {
+          "holdout": {
+            "decisions": 104,
+            "game_macro": {
+              "normalized_regret": 0.08461166774629825,
+              "top1_accuracy": 0.8868625891652208
+            },
+            "games": 8,
+            "informative_decisions": 97,
+            "informative_top1_accuracy": 0.865979381443299,
+            "mean_regret": 14.625,
+            "normalized_regret": 0.0989320456934532,
+            "pairwise_accuracy": 0.690694626474443,
+            "pairwise_comparisons": 763,
+            "prediction_tie_decisions": 0,
+            "terminal_scale_decisions": 8,
+            "top1_accuracy": 0.875
+          },
+          "holdout_seed": 20261004,
+          "train_seeds": [
+            20261005,
+            20261006,
+            20261007
+          ]
+        },
+        {
+          "holdout": {
+            "decisions": 99,
+            "game_macro": {
+              "normalized_regret": 0.05830211664178163,
+              "top1_accuracy": 0.9083797155225727
+            },
+            "games": 7,
+            "informative_decisions": 84,
+            "informative_top1_accuracy": 0.8690476190476191,
+            "mean_regret": 7.828282828282828,
+            "normalized_regret": 0.06369399671502451,
+            "pairwise_accuracy": 0.7130434782608696,
+            "pairwise_comparisons": 690,
+            "prediction_tie_decisions": 0,
+            "terminal_scale_decisions": 13,
+            "top1_accuracy": 0.8888888888888888
+          },
+          "holdout_seed": 20261005,
+          "train_seeds": [
+            20261004,
+            20261006,
+            20261007
+          ]
+        },
+        {
+          "holdout": {
+            "decisions": 152,
+            "game_macro": {
+              "normalized_regret": 0.10744824009510848,
+              "top1_accuracy": 0.8207521645021645
+            },
+            "games": 8,
+            "informative_decisions": 149,
+            "informative_top1_accuracy": 0.8389261744966443,
+            "mean_regret": 13.210526315789474,
+            "normalized_regret": 0.08632183187914681,
+            "pairwise_accuracy": 0.6826979472140763,
+            "pairwise_comparisons": 1705,
+            "prediction_tie_decisions": 0,
+            "terminal_scale_decisions": 1,
+            "top1_accuracy": 0.8421052631578947
+          },
+          "holdout_seed": 20261006,
+          "train_seeds": [
+            20261004,
+            20261005,
+            20261007
+          ]
+        },
+        {
+          "holdout": {
+            "decisions": 163,
+            "game_macro": {
+              "normalized_regret": 0.09419037628980656,
+              "top1_accuracy": 0.8014119142351901
+            },
+            "games": 8,
+            "informative_decisions": 158,
+            "informative_top1_accuracy": 0.6835443037974683,
+            "mean_regret": 7.4969325153374236,
+            "normalized_regret": 0.1106449823682263,
+            "pairwise_accuracy": 0.766905737704918,
+            "pairwise_comparisons": 976,
+            "prediction_tie_decisions": 9,
+            "terminal_scale_decisions": 10,
+            "top1_accuracy": 0.6932515337423313
+          },
+          "holdout_seed": 20261007,
+          "train_seeds": [
+            20261004,
+            20261005,
+            20261006
+          ]
+        }
+      ],
+      "holdout": {
+        "decisions": 518,
+        "game_macro": {
+          "normalized_regret": 0.08703603514652186,
+          "top1_accuracy": 0.8526087532864068
+        },
+        "games": 31,
+        "informative_decisions": 488,
+        "informative_top1_accuracy": 0.7991803278688525,
+        "mean_regret": 10.667953667953668,
+        "normalized_regret": 0.09218279729451305,
+        "pairwise_accuracy": 0.7091194968553459,
+        "pairwise_comparisons": 4134,
+        "prediction_tie_decisions": 9,
+        "terminal_scale_decisions": 32,
+        "top1_accuracy": 0.8108108108108109
+      }
+    },
+    "target_semantics": {
+      "folds": [
+        {
+          "holdout": {
+            "decisions": 104,
+            "game_macro": {
+              "normalized_regret": 0.08647567544912174,
+              "top1_accuracy": 0.8935644399460189
+            },
+            "games": 8,
+            "informative_decisions": 97,
+            "informative_top1_accuracy": 0.8969072164948454,
+            "mean_regret": 13.73076923076923,
+            "normalized_regret": 0.07879773289087116,
+            "pairwise_accuracy": 0.7640891218872871,
+            "pairwise_comparisons": 763,
+            "prediction_tie_decisions": 0,
+            "terminal_scale_decisions": 8,
+            "top1_accuracy": 0.9038461538461539
+          },
+          "holdout_seed": 20261004,
+          "train_seeds": [
+            20261005,
+            20261006,
+            20261007
+          ]
+        },
+        {
+          "holdout": {
+            "decisions": 99,
+            "game_macro": {
+              "normalized_regret": 0.06666022439747975,
+              "top1_accuracy": 0.8923623995052566
+            },
+            "games": 7,
+            "informative_decisions": 84,
+            "informative_top1_accuracy": 0.8452380952380952,
+            "mean_regret": 8.94949494949495,
+            "normalized_regret": 0.07577261421532876,
+            "pairwise_accuracy": 0.7036231884057971,
+            "pairwise_comparisons": 690,
+            "prediction_tie_decisions": 0,
+            "terminal_scale_decisions": 13,
+            "top1_accuracy": 0.8686868686868687
+          },
+          "holdout_seed": 20261005,
+          "train_seeds": [
+            20261004,
+            20261006,
+            20261007
+          ]
+        },
+        {
+          "holdout": {
+            "decisions": 152,
+            "game_macro": {
+              "normalized_regret": 0.09052289348226186,
+              "top1_accuracy": 0.8461580086580086
+            },
+            "games": 8,
+            "informative_decisions": 149,
+            "informative_top1_accuracy": 0.8523489932885906,
+            "mean_regret": 11.282894736842104,
+            "normalized_regret": 0.07982390901609236,
+            "pairwise_accuracy": 0.6703812316715543,
+            "pairwise_comparisons": 1705,
+            "prediction_tie_decisions": 0,
+            "terminal_scale_decisions": 1,
+            "top1_accuracy": 0.8552631578947368
+          },
+          "holdout_seed": 20261006,
+          "train_seeds": [
+            20261004,
+            20261005,
+            20261007
+          ]
+        },
+        {
+          "holdout": {
+            "decisions": 163,
+            "game_macro": {
+              "normalized_regret": 0.07514492099961505,
+              "top1_accuracy": 0.8168881047113805
+            },
+            "games": 8,
+            "informative_decisions": 158,
+            "informative_top1_accuracy": 0.7151898734177216,
+            "mean_regret": 8.50920245398773,
+            "normalized_regret": 0.09014846005593534,
+            "pairwise_accuracy": 0.8012295081967213,
+            "pairwise_comparisons": 976,
+            "prediction_tie_decisions": 5,
+            "terminal_scale_decisions": 10,
+            "top1_accuracy": 0.7239263803680982
+          },
+          "holdout_seed": 20261007,
+          "train_seeds": [
+            20261004,
+            20261005,
+            20261006
+          ]
+        }
+      ],
+      "holdout": {
+        "decisions": 518,
+        "game_macro": {
+          "normalized_regret": 0.08012159645904347,
+          "top1_accuracy": 0.8612716523567762
+        },
+        "games": 31,
+        "informative_decisions": 488,
+        "informative_top1_accuracy": 0.8155737704918032,
+        "mean_regret": 10.455598455598455,
+        "normalized_regret": 0.08209244437747422,
+        "pairwise_accuracy": 0.7241170778906628,
+        "pairwise_comparisons": 4134,
+        "prediction_tie_decisions": 5,
+        "terminal_scale_decisions": 32,
+        "top1_accuracy": 0.8262548262548263
+      }
+    }
+  },
+  "promotion_allowed": false,
+  "provenance": {
+    "artifact_id": 11385157491,
+    "artifact_sha256": "114369fdb621ba6d05e1ee35b7166113122a924d2c67b38819bfb4634f38494c",
+    "capture_commit": "c3add5b439c9907cea3c4b7e1f45c9e694584564",
+    "raw_report_sha256": "ba7b3db2977c91c41a5dfbdec97838b119bcc9832c1a71fb0b14ec1db6011732",
+    "workflow_run": 37399134353
+  },
+  "schema_version": "stage8c-target-ranking-v2",
+  "seed_count": 4,
+  "target_minus_public_semantics": {
+    "normalized_regret_delta": -0.01009035291703883,
+    "pairwise_delta": 0.014997581035316898,
+    "top1_delta": 0.015444015444015413
+  },
+  "target_semantics_version": "forge-public-targets-v2",
+  "verification": {
+    "all_six_stage8b_model_reports_unchanged": true,
+    "all_targets_versioned_and_validated": true,
+    "coverage": {
+      "captured_games": 32,
+      "captured_proposals": 750,
+      "fraction": 0.6906666666666667,
+      "rankable_decisions": 518,
+      "rankable_games": 31,
+      "scope": "captured selected search proposals, not all real priority decisions"
+    },
+    "dataset_sha256": "1173a323a329460d69abfd2c8cab71816430759830b26c927874cc389ff42903",
+    "descriptor_examples": {
+      "opponent_battlefield": "zone=opponent_battlefield|role=opponent|Goblin Piker|mv=2|type=Creature - Goblin Warrior|p=2|t=1",
+      "own_battlefield": "zone=own_battlefield|role=self|Raging Goblin|mv=1|type=Creature - Goblin Berserker|p=1|t=1",
+      "player": "zone=player|role=self|<player>"
+    },
+    "model_summary": {
+      "public_semantics": {
+        "decisions": 518,
+        "game_macro": {
+          "normalized_regret": 0.08703603514652186,
+          "top1_accuracy": 0.8526087532864068
+        },
+        "games": 31,
+        "informative_decisions": 488,
+        "informative_top1_accuracy": 0.7991803278688525,
+        "mean_regret": 10.667953667953668,
+        "normalized_regret": 0.09218279729451305,
+        "pairwise_accuracy": 0.7091194968553459,
+        "pairwise_comparisons": 4134,
+        "prediction_tie_decisions": 9,
+        "terminal_scale_decisions": 32,
+        "top1_accuracy": 0.8108108108108109
+      },
+      "target_semantics": {
+        "decisions": 518,
+        "game_macro": {
+          "normalized_regret": 0.08012159645904347,
+          "top1_accuracy": 0.8612716523567762
+        },
+        "games": 31,
+        "informative_decisions": 488,
+        "informative_top1_accuracy": 0.8155737704918032,
+        "mean_regret": 10.455598455598455,
+        "normalized_regret": 0.08209244437747422,
+        "pairwise_accuracy": 0.7241170778906628,
+        "pairwise_comparisons": 4134,
+        "prediction_tie_decisions": 5,
+        "terminal_scale_decisions": 32,
+        "top1_accuracy": 0.8262548262548263
+      }
+    },
+    "observations_identical_to_frozen_development": true,
+    "observations_sha256": "9630d9d0ba24e449a17e9760b051c8adfde285c23e272ad2090fd2ee67df60b6",
+    "original_actions_and_scores_byte_identical": true,
+    "original_projection_sha256": "106912cfd8800cad8abe65231abeca03578c4185205a2e11b19e87000cc8ee7e",
+    "target_counts": {
+      "candidates": 2035,
+      "target_occurrences": 1638,
+      "targeted_candidates": 1638,
+      "untargeted_candidates": 397
+    },
+    "target_minus_public_semantics": {
+      "normalized_regret_delta": -0.01009035291703883,
+      "pairwise_delta": 0.014997581035316898,
+      "top1_delta": 0.015444015444015413
+    },
+    "target_roles": {
+      "opponent": 1149,
+      "self": 489
+    },
+    "target_zones": {
+      "opponent_battlefield": 892,
+      "own_battlefield": 234,
+      "player": 512
+    }
+  }
+}

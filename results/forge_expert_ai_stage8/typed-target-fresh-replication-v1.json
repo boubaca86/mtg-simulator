@@ -1,0 +1,299 @@
+{
+  "candidate_count": 2200,
+  "config": {
+    "averaged_weights": true,
+    "epochs": 20,
+    "learning_rate": 0.05,
+    "normalize_updates": true,
+    "selection": "uniform-among-predicted-ties"
+  },
+  "coverage": {
+    "captured_games": 32,
+    "captured_proposals": 820,
+    "fraction": 0.651219512195122,
+    "rankable_decisions": 534,
+    "rankable_games": 32,
+    "scope": "captured selected search proposals, not all real priority decisions",
+    "unrepresented_games": []
+  },
+  "development_seeds": [
+    20261004,
+    20261005,
+    20261006,
+    20261007
+  ],
+  "development_sha256": "1173a323a329460d69abfd2c8cab71816430759830b26c927874cc389ff42903",
+  "fresh_seeds": [
+    20261012,
+    20261013,
+    20261014,
+    20261015
+  ],
+  "fresh_sha256": "b4e595609f297d926bce7f7bcfb73823701258395f646db859da918444f71580",
+  "limitations": [
+    "Offline imitation of Forge fixed-root labels only.",
+    "No learned model controls gameplay.",
+    "Passing and uncaptured priority windows remain outside proposal coverage.",
+    "A positive replication would justify shadow execution instrumentation, not live policy control."
+  ],
+  "models": {
+    "public_semantics": {
+      "overall": {
+        "decisions": 534,
+        "game_macro": {
+          "normalized_regret": 0.13739553252741224,
+          "top1_accuracy": 0.7887508902744802
+        },
+        "games": 32,
+        "informative_decisions": 487,
+        "informative_top1_accuracy": 0.7758384668035592,
+        "mean_regret": 88472202.33333333,
+        "normalized_regret": 0.1314658385116143,
+        "pairwise_accuracy": 0.7014310919427563,
+        "pairwise_comparisons": 5101,
+        "prediction_tie_decisions": 22,
+        "terminal_scale_decisions": 37,
+        "top1_accuracy": 0.7955680399500624
+      },
+      "per_seed": {
+        "20261012": {
+          "decision_weighted": {
+            "normalized_regret": 0.12783630009365127,
+            "pairwise_accuracy": 0.708994708994709,
+            "top1_accuracy": 0.7735849056603774
+          },
+          "game_macro": {
+            "normalized_regret": 0.10895358733454961,
+            "top1_accuracy": 0.7767780357757138
+          },
+          "games": 8
+        },
+        "20261013": {
+          "decision_weighted": {
+            "normalized_regret": 0.1465676503677553,
+            "pairwise_accuracy": 0.691431401684002,
+            "top1_accuracy": 0.8286516853932584
+          },
+          "game_macro": {
+            "normalized_regret": 0.18557560066827325,
+            "top1_accuracy": 0.7937065675552517
+          },
+          "games": 8
+        },
+        "20261014": {
+          "decision_weighted": {
+            "normalized_regret": 0.11609322979761864,
+            "pairwise_accuracy": 0.7037037037037037,
+            "top1_accuracy": 0.8392857142857143
+          },
+          "game_macro": {
+            "normalized_regret": 0.1394096046144292,
+            "top1_accuracy": 0.8174412393162394
+          },
+          "games": 8
+        },
+        "20261015": {
+          "decision_weighted": {
+            "normalized_regret": 0.12725091632232807,
+            "pairwise_accuracy": 0.7103548153511948,
+            "top1_accuracy": 0.7342995169082125
+          },
+          "game_macro": {
+            "normalized_regret": 0.11564333749239691,
+            "top1_accuracy": 0.7670777184507162
+          },
+          "games": 8
+        }
+      }
+    },
+    "target_semantics": {
+      "overall": {
+        "decisions": 534,
+        "game_macro": {
+          "normalized_regret": 0.12626590230747026,
+          "top1_accuracy": 0.7927152621278234
+        },
+        "games": 32,
+        "informative_decisions": 487,
+        "informative_top1_accuracy": 0.7813141683778234,
+        "mean_regret": 88472198.54588015,
+        "normalized_regret": 0.12209541890141778,
+        "pairwise_accuracy": 0.6987845520486179,
+        "pairwise_comparisons": 5101,
+        "prediction_tie_decisions": 14,
+        "terminal_scale_decisions": 37,
+        "top1_accuracy": 0.800561797752809
+      },
+      "per_seed": {
+        "20261012": {
+          "decision_weighted": {
+            "normalized_regret": 0.10707030481138549,
+            "pairwise_accuracy": 0.7202380952380952,
+            "top1_accuracy": 0.7971698113207547
+          },
+          "game_macro": {
+            "normalized_regret": 0.08075538671123204,
+            "top1_accuracy": 0.8061434414774682
+          },
+          "games": 8
+        },
+        "20261013": {
+          "decision_weighted": {
+            "normalized_regret": 0.13814068407562044,
+            "pairwise_accuracy": 0.6892025755324418,
+            "top1_accuracy": 0.8370786516853933
+          },
+          "game_macro": {
+            "normalized_regret": 0.17570717961564167,
+            "top1_accuracy": 0.8035749886078833
+          },
+          "games": 8
+        },
+        "20261014": {
+          "decision_weighted": {
+            "normalized_regret": 0.10893610648748951,
+            "pairwise_accuracy": 0.7137566137566138,
+            "top1_accuracy": 0.8303571428571429
+          },
+          "game_macro": {
+            "normalized_regret": 0.13522485817266475,
+            "top1_accuracy": 0.7985309829059829
+          },
+          "games": 8
+        },
+        "20261015": {
+          "decision_weighted": {
+            "normalized_regret": 0.12362040356007953,
+            "pairwise_accuracy": 0.6908037653874004,
+            "top1_accuracy": 0.7318840579710145
+          },
+          "game_macro": {
+            "normalized_regret": 0.11337618473034257,
+            "top1_accuracy": 0.7626116355199594
+          },
+          "games": 8
+        }
+      }
+    }
+  },
+  "operational_retry": {
+    "failed_logs_excluded": true,
+    "failed_run": 37401589465,
+    "heap_gb_after": 10,
+    "heap_gb_before": 6,
+    "models_seeds_decks_thresholds_unchanged": true
+  },
+  "primary_contrast": {
+    "families_with_lower_regret": 4,
+    "positive_replication": true,
+    "seed_macro_regret_improvement": 0.011129630219941986,
+    "seed_macro_top1_delta": 0.003964371853343196,
+    "target_semantics_vs_public_semantics": [
+      {
+        "regret_improvement": 0.02819820062331757,
+        "seed": 20261012,
+        "top1_delta": 0.029365405701754388
+      },
+      {
+        "regret_improvement": 0.009868421052631582,
+        "seed": 20261013,
+        "top1_delta": 0.009868421052631637
+      },
+      {
+        "regret_improvement": 0.0041847464417644475,
+        "seed": 20261014,
+        "top1_delta": -0.018910256410256454
+      },
+      {
+        "regret_improvement": 0.0022671527620543447,
+        "seed": 20261015,
+        "top1_delta": -0.004466082930756787
+      }
+    ],
+    "thresholds": {
+      "min_families_better": 3,
+      "min_regret_improvement": 0.01,
+      "min_top1_delta": -0.02
+    }
+  },
+  "promotion_allowed": false,
+  "provenance": {
+    "artifact_id": 11404017116,
+    "artifact_sha256": "eb8c6c38de8a18a009bfec3f44d1875dcca4f3d6f8ca7183ad819e4fc8822d3a",
+    "capture_commit": "92a03583cf7aafe12e824e799edceb9dc89b6e1c",
+    "raw_report_sha256": "cf05bd8b946bc46e794d11c30c78ffcc9e0edbbef0b4de28f67b7595d5acb518",
+    "workflow_run": 37445803768
+  },
+  "schema_version": "stage8c-fresh-seed-v1",
+  "target_semantics_version": "forge-public-targets-v2",
+  "verification": {
+    "report_reproduced_byte_for_byte": true,
+    "source_logs": [
+      {
+        "captured_proposals": 88,
+        "complete_games": 4,
+        "contract_valid": true,
+        "file": "stage8c-fresh-st-first-20261012.log",
+        "rankable_decisions": 43,
+        "sha256": "193058558eb2fd44063a1cef2d453670f7794977348f26158646c4b1ccd044f4"
+      },
+      {
+        "captured_proposals": 90,
+        "complete_games": 4,
+        "contract_valid": true,
+        "file": "stage8c-fresh-red-first-20261012.log",
+        "rankable_decisions": 63,
+        "sha256": "0515202ea5b56625a717d8b142cb6f58c593b542ba0aac9d0896d1943b0ed068"
+      },
+      {
+        "captured_proposals": 151,
+        "complete_games": 4,
+        "contract_valid": true,
+        "file": "stage8c-fresh-st-first-20261013.log",
+        "rankable_decisions": 99,
+        "sha256": "e9d18e9fc02e6936194df59703d7cfd8b9da23eef04ba6350eece65a0a173c70"
+      },
+      {
+        "captured_proposals": 100,
+        "complete_games": 4,
+        "contract_valid": true,
+        "file": "stage8c-fresh-red-first-20261013.log",
+        "rankable_decisions": 79,
+        "sha256": "7ac07e79cd0771f5c0165dd5979304bf976f842f5dde1182a877d722364886b1"
+      },
+      {
+        "captured_proposals": 118,
+        "complete_games": 4,
+        "contract_valid": true,
+        "file": "stage8c-fresh-st-first-20261014.log",
+        "rankable_decisions": 66,
+        "sha256": "fc28880c1c9c3eba929f34ec72b756a9209cbde65e972a18af796fbd7823468c"
+      },
+      {
+        "captured_proposals": 62,
+        "complete_games": 4,
+        "contract_valid": true,
+        "file": "stage8c-fresh-red-first-20261014.log",
+        "rankable_decisions": 46,
+        "sha256": "3a1d65674014280295fdf0b84eb47e14ffefbd8fb78e35c6fd002f781043172e"
+      },
+      {
+        "captured_proposals": 97,
+        "complete_games": 4,
+        "contract_valid": true,
+        "file": "stage8c-fresh-st-first-20261015.log",
+        "rankable_decisions": 58,
+        "sha256": "3f933e427824d3a2963af16c10d0b528468b430d7ed4b6a481e96b6554889df2"
+      },
+      {
+        "captured_proposals": 114,
+        "complete_games": 4,
+        "contract_valid": true,
+        "file": "stage8c-fresh-red-first-20261015.log",
+        "rankable_decisions": 80,
+        "sha256": "28bbad333012ca2902d5b78b05f681792df443793c0cf936242952da478a4c5b"
+      }
+    ],
+    "source_logs_regenerated_corpus_byte_for_byte": true
+  }
+}

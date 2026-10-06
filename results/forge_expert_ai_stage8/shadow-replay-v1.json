@@ -1,0 +1,89 @@
+{
+  "coverage": {
+    "captured_games": 32,
+    "captured_proposals": 820,
+    "fraction": 0.651219512195122,
+    "rankable_decisions": 534,
+    "rankable_games": 32,
+    "scope": "captured selected search proposals, not all real priority decisions"
+  },
+  "forge_proposal_in_top_set_count": 672,
+  "fresh_sha256": "b4e595609f297d926bce7f7bcfb73823701258395f646db859da918444f71580",
+  "frozen_model_metrics_reproduced_exactly": true,
+  "limitations": [
+    "Captured search proposals are not verified executed moves.",
+    "This replays the now-observed confirmation corpus; it is not new strength evidence.",
+    "Streaming recommendations remain provisional until whole-log audit.",
+    "Forge alone chooses and executes gameplay actions."
+  ],
+  "mode": "shadow-only",
+  "model_id": "6c4dd27f364aaa6c9e9100f88eb323eaa419dab0a49845ee0f748b9998746288",
+  "promotion_allowed": false,
+  "proposal_status_counts": {
+    "forced": 286,
+    "ranked": 520,
+    "tied": 14
+  },
+  "proposals_scored": 820,
+  "rankable_metrics": {
+    "decisions": 534,
+    "game_macro": {
+      "normalized_regret": 0.12626590230747026,
+      "top1_accuracy": 0.7927152621278234
+    },
+    "games": 32,
+    "informative_decisions": 487,
+    "informative_top1_accuracy": 0.7813141683778234,
+    "mean_regret": 88472198.54588015,
+    "normalized_regret": 0.12209541890141778,
+    "pairwise_accuracy": 0.6987845520486179,
+    "pairwise_comparisons": 5101,
+    "prediction_tie_decisions": 14,
+    "terminal_scale_decisions": 37,
+    "top1_accuracy": 0.800561797752809
+  },
+  "schema_version": "stage8d-shadow-replay-v1",
+  "source_logs": [
+    {
+      "file": "stage8c-fresh-st-first-20261012.log",
+      "proposals": 88,
+      "sha256": "193058558eb2fd44063a1cef2d453670f7794977348f26158646c4b1ccd044f4"
+    },
+    {
+      "file": "stage8c-fresh-red-first-20261012.log",
+      "proposals": 90,
+      "sha256": "0515202ea5b56625a717d8b142cb6f58c593b542ba0aac9d0896d1943b0ed068"
+    },
+    {
+      "file": "stage8c-fresh-st-first-20261013.log",
+      "proposals": 151,
+      "sha256": "e9d18e9fc02e6936194df59703d7cfd8b9da23eef04ba6350eece65a0a173c70"
+    },
+    {
+      "file": "stage8c-fresh-red-first-20261013.log",
+      "proposals": 100,
+      "sha256": "7ac07e79cd0771f5c0165dd5979304bf976f842f5dde1182a877d722364886b1"
+    },
+    {
+      "file": "stage8c-fresh-st-first-20261014.log",
+      "proposals": 118,
+      "sha256": "fc28880c1c9c3eba929f34ec72b756a9209cbde65e972a18af796fbd7823468c"
+    },
+    {
+      "file": "stage8c-fresh-red-first-20261014.log",
+      "proposals": 62,
+      "sha256": "3a1d65674014280295fdf0b84eb47e14ffefbd8fb78e35c6fd002f781043172e"
+    },
+    {
+      "file": "stage8c-fresh-st-first-20261015.log",
+      "proposals": 97,
+      "sha256": "3f933e427824d3a2963af16c10d0b528468b430d7ed4b6a481e96b6554889df2"
+    },
+    {
+      "file": "stage8c-fresh-red-first-20261015.log",
+      "proposals": 114,
+      "sha256": "28bbad333012ca2902d5b78b05f681792df443793c0cf936242952da478a4c5b"
+    }
+  ],
+  "source_logs_unchanged": true
+}

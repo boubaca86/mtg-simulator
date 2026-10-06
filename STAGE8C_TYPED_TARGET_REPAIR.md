@@ -1,6 +1,7 @@
 # Stage 8C — typed target repair
 
-Status: implemented and locally checked; real-Forge/live verification pending.
+Status: implemented; real-Forge regression, legal-information, deterministic
+capture and the repaired 32-game ranking comparison passed.
 
 ## Reproduced failure
 
@@ -57,8 +58,35 @@ Do not add the new version marker to old rows: they require a new Forge capture.
   immutable snapshots, same-name creatures with different stats, simulated-copy
   isolation, hidden-zone traps, face-down opacity and spell/card separation.
 
-Full Forge compilation, that Java regression and a corrected benchmark capture
-must pass before the repaired target model's results are recorded.
+The full Forge build and the real-object regression passed at
+`c3add5b439c9907cea3c4b7e1f45c9e694584564`. The fixture uses initialized Forge
+AI players, printed card rules and language services; it does not mock the target
+resolver. Both original Stage 6 replay/aggregation regressions also passed.
+
+| Check | CI run | Result |
+| --- | --- | --- |
+| Stage 8 contract and Python target regressions | [37398118547](https://github.com/boubaca86/mtg-simulator/actions/runs/37398118547) | Pass |
+| Legal extractor boundary and Forge AI module build | [37398118513](https://github.com/boubaca86/mtg-simulator/actions/runs/37398118513) | Pass |
+| Independent seeded live reproducibility | [37398118299](https://github.com/boubaca86/mtg-simulator/actions/runs/37398118299) | Pass; 85 observations, byte-identical across two runs |
+| Full Forge build, real target regression and repaired capture | [37399134353](https://github.com/boubaca86/mtg-simulator/actions/runs/37399134353) | Pass; 32 games, 750 proposals, 518 rankable decisions |
+
+The repaired corpus contains 2,035 versioned candidates: 512 player targets,
+1,126 public battlefield targets and 397 untargeted candidates. Every player
+target has an explicit role and no card characteristics; none is unresolved.
+
+Removing only the two new typed-target fields reproduces the original Stage 8B
+candidate corpus byte for byte, SHA-256
+`106912cfd8800cad8abe65231abeca03578c4185205a2e11b19e87000cc8ee7e`.
+The 750 observations and all six existing model reports also remain identical.
+Thus the extra capture fields did not alter any recorded action or search score.
+The complete target report reproduced locally. Evidence is in
+`results/forge_expert_ai_stage8/typed-target-development-v2.json`.
+
+The target model improves development top-choice agreement from 81.08% to 82.63%
+and normalized regret from 0.09218 to 0.08209; see
+`STAGE8C_DEVELOPMENT_RESULTS.md`. The earlier unversioned captures are not a valid
+baseline. The subsequent predeclared confirmation is documented separately in
+`STAGE8C_FRESH_SEED_RESULTS.md`.
 
 ## Scope
 

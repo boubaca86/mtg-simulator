@@ -1,6 +1,8 @@
 # Stage 8C — fresh-seed replication protocol
 
-Status: predeclared before capture. Offline only; no learned model controls Forge gameplay.
+Status: completed; all predeclared thresholds passed. See
+`STAGE8C_FRESH_SEED_RESULTS.md` for the result and memory-limit retry. The original
+protocol below is retained. No learned model controls Forge gameplay.
 
 ## Why a new fresh test is required
 

@@ -1,6 +1,8 @@
 # Stage 8C — Public target semantics
 
-Status: typed-target repair implemented; real-Forge/live verification pending.
+Status: typed-target repair, real-Forge regression and corrected live ranking
+capture passed. The predeclared fresh-seed gate also passed; see
+`STAGE8C_FRESH_SEED_RESULTS.md` and the next step in `STAGE8D_SHADOW_POLICY.md`.
 Development-only offline ranking; no learned model controls Forge gameplay.
 
 The first resolver parsed numbers from display strings and could mistake
