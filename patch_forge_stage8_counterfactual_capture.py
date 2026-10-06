@@ -70,7 +70,7 @@ def main() -> None:
 """
     new = old + """                    if (Boolean.getBoolean("forge.expert.stage8.capture")) {
                         System.out.println("EXPERT_STAGE8_CAPTURE: "
-                                + stage8CaptureJson(decisionIndex, deterministicSimulationSeed(), matchupId,
+                                + stage8CaptureJson(player, decisionIndex, deterministicSimulationSeed(), matchupId,
                                         legalJson, actionIdentity, stage8Candidates, samples));
                     }
 """
@@ -86,7 +86,7 @@ def main() -> None:
 
     /** Offline learner-boundary event. Scores are already fixed-root means over
      * every required hidden-world sample. This method never affects move choice. */
-    private static String stage8CaptureJson(long decisionIndex, long runSeed, String matchupId,
+    private static String stage8CaptureJson(Player actor, long decisionIndex, long runSeed, String matchupId,
             String legalJson, String selectedIdentity,
             List<RootActionTable.ScoredAction> candidates, int samples) {
         java.util.LinkedHashMap<String, RootActionTable.ScoredAction> unique = new java.util.LinkedHashMap<>();
@@ -111,9 +111,12 @@ def main() -> None:
         for (RootActionTable.ScoredAction candidate : unique.values()) {
             if (i++ > 0) out.append(',');
             out.append('{');
-            out.append("\"action_identity\":\"").append(stage8JsonEscape(candidate.action.completeActionIdentity())).append("\",");
+            String candidateIdentity = candidate.action.completeActionIdentity();
+            out.append("\"action_identity\":\"").append(stage8JsonEscape(candidateIdentity)).append("\",");
             out.append("\"aggregate_score\":").append(candidate.score.value).append(',');
-            out.append("\"replay_valid_count\":").append(samples);
+            out.append("\"replay_valid_count\":").append(samples).append(',');
+            out.append("\"target_public_semantics\":")
+                    .append(LegalDecisionFeatures.describeActionTargetsJson(actor, candidateIdentity));
             out.append('}');
         }
         out.append("],\"information_set_samples\":").append(samples);
