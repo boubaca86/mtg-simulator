@@ -49,11 +49,11 @@ jobs:
 
       - name: Retrieve frozen Stage 8D checkpoint
         env:
-          GH_TOKEN: \${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          test "$(gh api "repos/\${GITHUB_REPOSITORY}/actions/artifacts/11405356263" --jq '.digest')" = "sha256:fdb467e0fffe365011186de647f99d38dff269281b0d2ed20748db41c9c0929d"
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/11405356263" --jq '.digest')" = "sha256:fdb467e0fffe365011186de647f99d38dff269281b0d2ed20748db41c9c0929d"
           gh run download 37449513507 -n stage8d-frozen-shadow-replay -D frozen-shadow
           test -s frozen-shadow/shadow-model.json
 
@@ -148,12 +148,12 @@ jobs:
               -D "$HOME/.forge/decks/constructed" \
               -d "$DECK_A" "$DECK_B" \
               -x full default -n 4 -s 20261012 -q -c 600 \
-              > "$GITHUB_WORKSPACE/stage8i-baseline-\${ORIENTATION}-20261012.log" 2>&1
+              > "$GITHUB_WORKSPACE/stage8i-baseline-${ORIENTATION}-20261012.log" 2>&1
             cd "$GITHUB_WORKSPACE"
 
             python stage8i_control_replay.py extract \
-              "stage8i-baseline-\${ORIENTATION}-20261012.log" \
-              --output "stage8i-\${ORIENTATION}.requests.tsv"
+              "stage8i-baseline-${ORIENTATION}-20261012.log" \
+              --output "stage8i-${ORIENTATION}.requests.tsv"
           done
 
       - name: Replay through bounded external control adapter
@@ -170,7 +170,7 @@ jobs:
               DECK_B="ST Forge Full.dck"
               MATCHUP="benchmark-red-vs-st"
             fi
-            REQUEST_FILE="$GITHUB_WORKSPACE/stage8i-\${ORIENTATION}.requests.tsv"
+            REQUEST_FILE="$GITHUB_WORKSPACE/stage8i-${ORIENTATION}.requests.tsv"
 
             cd "$FORGE_HOME"
             java -Xmx10g \
@@ -189,7 +189,7 @@ jobs:
               -D "$HOME/.forge/decks/constructed" \
               -d "$DECK_A" "$DECK_B" \
               -x full default -n 4 -s 20261012 -q -c 600 \
-              > "$GITHUB_WORKSPACE/stage8i-controlled-\${ORIENTATION}-20261012.log" 2>&1
+              > "$GITHUB_WORKSPACE/stage8i-controlled-${ORIENTATION}-20261012.log" 2>&1
             cd "$GITHUB_WORKSPACE"
           done
 
