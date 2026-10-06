@@ -1,0 +1,145 @@
+name: Forge Expert AI Stage 8C — Fresh Seed Replication
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'stage8c_fresh_seed_evaluator.py'
+      - '.github/workflows/forge-expert-ai-stage8c-fresh-seeds.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  stage8c-fresh-seed-replication:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Verify frozen Stage 8C implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object stage8c_target_features.py)" = "2252ab16bdac2776c78f8e434968eb520331681f"
+          test "$(git hash-object stage8c_target_ranker.py)" = "d278871dd8fa9467506bb82c8230d6453bbda9a8"
+          test "$(git hash-object stage8_action_ranker.py)" = "4343ff1757ffd4c7ad7e7ff602651bfd34d0e7de"
+          test "$(git hash-object stage8_ranker_features.py)" = "76187b1ac0e06842fcd87f33a7aada6107c3da45"
+          test "$(git hash-object patch_forge_stage7_legal_extractor.py)" = "d509910dea7a3b4589bb2c1d808e272e61f9cba6"
+          test "$(git hash-object patch_forge_stage8_counterfactual_capture.py)" = "25d05811eb64ef643626bce0ddeb5d5fdbb33efc"
+          test "$(git hash-object stage8_serialize_counterfactual.py)" = "88ed91a61d8727848444eece31ffb536af6466bd"
+          test "$(git hash-object stage8_validate_counterfactual.py)" = "35c1104255aa1637e067c081b09b8a784e4c1cc8"
+
+      - name: Retrieve frozen Stage 8C development corpus
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          DIGEST="$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/11385157491" --jq '.digest')"
+          test "$DIGEST" = "sha256:114369fdb621ba6d05e1ee35b7166113122a924d2c67b38819bfb4634f38494c"
+          gh run download 37399134353 -n stage7b-live-labeled-baseline -D frozen-development
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          corpus=Path('frozen-development/stage8a-counterfactual.jsonl')
+          report=json.load(open('frozen-development/stage8c-target-ranking.json'))
+          assert report['schema_version']=='stage8c-target-ranking-v2'
+          assert report['target_semantics_version']=='forge-public-targets-v2'
+          assert report['promotion_allowed'] is False
+          assert report['dataset_sha256']==hashlib.sha256(corpus.read_bytes()).hexdigest()
+          print('Frozen development corpus:', report['dataset_sha256'])
+          PY
+
+      - name: Export unchanged decks
+        run: python3 forge_export.py --user-dir "$HOME/.forge"
+
+      - name: Record deck hashes
+        run: sha256sum "$HOME/.forge/decks/constructed/ST Forge Full.dck" "$HOME/.forge/decks/constructed/Benchmark Red Forge.dck" | tee stage8c-fresh-deck-sha256.txt
+
+      - name: Clone pinned Forge 2.0.15
+        run: git clone --depth 1 --branch forge-2.0.15 https://github.com/Card-Forge/forge.git forge-src
+
+      - name: Apply frozen expert-AI capture patches
+        run: |
+          python3 patch_forge_expert_cli.py forge-src/forge-gui-desktop/src/main/java/forge/view/SimulateMatch.java
+          python3 patch_forge_information_set.py forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java
+          python3 patch_forge_infoset_ensemble.py --game-simulator forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python3 patch_forge_complete_action_identity.py forge-src/forge-ai/src/main/java/forge/ai/simulation/Plan.java
+          python3 patch_forge_strategy_fusion_audit.py --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python3 patch_forge_stage7_legal_extractor.py forge-src/forge-ai/src/main/java
+          python3 patch_forge_stage7_dataset_capture.py forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python3 patch_forge_stage8_counterfactual_capture.py forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+
+      - name: Build patched Forge
+        working-directory: forge-src
+        run: |
+          mvn -B -pl forge-gui-desktop -am -DskipTests -Dcheckstyle.skip=true package
+          FORGE_JAR="$(find forge-gui-desktop/target -type f -name '*-jar-with-dependencies.jar' -print -quit)"
+          echo "FORGE_JAR=$(realpath "$FORGE_JAR")" >> "$GITHUB_ENV"
+          echo "FORGE_HOME=$(realpath forge-gui)" >> "$GITHUB_ENV"
+
+      - name: Re-run action and target-boundary regressions
+        run: |
+          python3 -m unittest test_stage8c_target_features
+          javac -cp "$FORGE_JAR" -d stage8c-regression validation/Stage6RootIdentityRegression.java validation/Stage8TargetSemanticsRegression.java
+          java -cp "stage8c-regression:$FORGE_JAR" forge.ai.simulation.Stage6RootIdentityRegression
+          java -cp "stage8c-regression:$FORGE_JAR" forge.ai.simulation.Stage8TargetSemanticsRegression
+
+      - name: Capture untouched Stage 8C seed families
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > stage8c-fresh-counterfactual.jsonl
+          for SEED in 20261012 20261013 20261014 20261015; do
+            for ORIENTATION in st-first red-first; do
+              if [ "$ORIENTATION" = st-first ]; then
+                DECK_A="ST Forge Full.dck"; DECK_B="Benchmark Red Forge.dck"; MATCHUP="st-vs-benchmark-red"
+              else
+                DECK_A="Benchmark Red Forge.dck"; DECK_B="ST Forge Full.dck"; MATCHUP="benchmark-red-vs-st"
+              fi
+              cd "$FORGE_HOME"
+              java -Xmx6g -Dforge.expert.infoset=true -Dforge.expert.infoset.samples=3 -Dforge.expert.stage7.dataset=true -Dforge.expert.stage8.capture=true -Dforge.expert.stage7.matchup="$MATCHUP" -jar "$FORGE_JAR" sim -D "$HOME/.forge/decks/constructed" -d "$DECK_A" "$DECK_B" -x full default -n 4 -s "$SEED" -q -c 600 > "$GITHUB_WORKSPACE/stage8c-fresh-${ORIENTATION}-${SEED}.log" 2>&1
+              cd "$GITHUB_WORKSPACE"
+              python3 stage8_label_counterfactual.py "stage8c-fresh-${ORIENTATION}-${SEED}.log" "stage8c-fresh-raw-${ORIENTATION}-${SEED}.jsonl" --expected-games 4 --corpus-seed "$SEED"
+              python3 stage8_serialize_counterfactual.py "stage8c-fresh-raw-${ORIENTATION}-${SEED}.jsonl" "stage8c-fresh-${ORIENTATION}-${SEED}.jsonl"
+              python3 stage8_validate_counterfactual.py "stage8c-fresh-${ORIENTATION}-${SEED}.jsonl"
+              python3 - "stage8c-fresh-${ORIENTATION}-${SEED}.jsonl" <<'PY'
+          import json, sys
+          rows=[json.loads(x) for x in open(sys.argv[1]) if x.strip()]
+          assert rows
+          assert all(c.get('target_semantics_version')=='forge-public-targets-v2'
+                     for r in rows for c in r['candidates'])
+          PY
+              cat "stage8c-fresh-${ORIENTATION}-${SEED}.jsonl" >> stage8c-fresh-counterfactual.jsonl
+            done
+          done
+          python3 stage8_validate_counterfactual.py stage8c-fresh-counterfactual.jsonl
+
+      - name: Evaluate frozen Stage 8C model on untouched families
+        run: |
+          python3 stage8c_fresh_seed_evaluator.py frozen-development/stage8a-counterfactual.jsonl stage8c-fresh-counterfactual.jsonl --output stage8c-fresh-seed-report.json
+          python3 - <<'PY'
+          import json
+          r=json.load(open('stage8c-fresh-seed-report.json'))
+          assert r['promotion_allowed'] is False
+          assert r['fresh_seeds']==[20261012,20261013,20261014,20261015]
+          assert r['target_semantics_version']=='forge-public-targets-v2'
+          print('Stage 8C primary contrast:', r['primary_contrast'])
+          PY
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: stage8c-fresh-seed-replication
+          path: |
+            stage8c-fresh-seed-report.json
+            stage8c-fresh-counterfactual.jsonl
+            stage8c-fresh-deck-sha256.txt
+            stage8c-fresh-*.log
