@@ -45,11 +45,20 @@ def normalize(raw: dict) -> dict:
             raise ValueError("candidate aggregate_score must be integer")
         if replay != samples:
             raise ValueError("partial-world candidate cannot be serialized")
-        candidates.append({
+        normalized = {
             "action_identity": identity,
             "aggregate_score": score,
             "replay_valid_count": replay,
-        })
+        }
+        if "target_public_semantics" in c:
+            target_semantics = c["target_public_semantics"]
+            if (not isinstance(target_semantics, list)
+                    or not all(isinstance(x, str) and x for x in target_semantics)):
+                raise ValueError("target_public_semantics must be a list of non-empty public descriptors")
+            if any("id=" in x.lower() for x in target_semantics):
+                raise ValueError("raw object IDs may not cross the learner boundary")
+            normalized["target_public_semantics"] = target_semantics
+        candidates.append(normalized)
 
     # Preserve Forge's deterministic first-seen candidate order. Sorting by score
     # could make serialization depend on hidden-world-derived labels.
