@@ -18,12 +18,13 @@ from pathlib import Path
 from stage7_label_outcomes import label_log
 from stage8d_shadow_policy import CAPTURE_PREFIX, load_checkpoint, observe_capture
 from stage8e_returned_action_audit import RETURN_PREFIX, PASS_PREFIX
-from stage8f_acceptance_audit import ACCEPT_PREFIX
+from stage8f_acceptance_audit import ACCEPT_PREFIX, audit_acceptance_lines
 from stage8h_lifecycle_audit import (
     TERMINAL_PREFIX,
     ALLOWED_OUTCOMES,
     ANOMALY_OUTCOMES,
     audit_log as audit_lifecycle_log,
+    audit_lifecycle_lines,
 )
 
 ARM_PREFIX = "EXPERT_STAGE8K_CONTROL_ARMED: "
@@ -106,29 +107,19 @@ def _safe_signature(capture: dict) -> str:
 def _write_request(
     path: Path, decision_index: int, forge_identity: str, learned_identity: str
 ) -> str:
-    forge_encoded = base64.urlsafe_b64encode(forge_identity.encode()).decode()
-    learned_encoded = base64.urlsafe_b64encode(learned_identity.encode()).decode()
-    raw = f"{decision_index}\t{forge_encoded}\t{learned_encoded}\n".encode()
+    raw = _request_bytes(decision_index, forge_identity, learned_identity)
     path.write_bytes(raw)
     return hashlib.sha256(raw).hexdigest()
 
 
-def plan_intervention(
-    checkpoint: Path,
-    baseline: Path,
-    output: Path,
-    metadata: Path,
-    actor_prefix: str,
-) -> dict:
-    policy = load_checkpoint(checkpoint)
-    audit = audit_lifecycle_log(baseline, 1, policy)
-    if (
-        audit["lifecycle_anomalies"]
-        or audit["pending_at_game_end"]
-        or audit["terminal_coverage_fraction"] != 1.0
-    ):
-        raise ValueError("baseline lifecycle is not clean")
+def _request_bytes(decision_index: int, forge_identity: str, learned_identity: str) -> bytes:
+    forge_encoded = base64.urlsafe_b64encode(forge_identity.encode()).decode()
+    learned_encoded = base64.urlsafe_b64encode(learned_identity.encode()).decode()
+    return f"{decision_index}\t{forge_encoded}\t{learned_encoded}\n".encode()
 
+
+def _choose_intervention(policy, baseline: Path, actor_prefix: str) -> dict | None:
+    """The same deterministic, public-only selection is used at planning and audit."""
     returned = {
         event["capture_decision_index"]
         for event in _events(baseline, RETURN_PREFIX)
@@ -183,6 +174,27 @@ def plan_intervention(
         }
         break
 
+    return chosen
+
+
+def plan_intervention(
+    checkpoint: Path,
+    baseline: Path,
+    output: Path,
+    metadata: Path,
+    actor_prefix: str,
+) -> dict:
+    policy = load_checkpoint(checkpoint)
+    audit = audit_lifecycle_log(baseline, 1, policy)
+    if (
+        audit["lifecycle_anomalies"]
+        or audit["pending_at_game_end"]
+        or audit["failed_dispatches"]
+        or audit["terminal_coverage_fraction"] != 1.0
+    ):
+        raise ValueError("baseline lifecycle is not clean")
+    chosen = _choose_intervention(policy, baseline, actor_prefix)
+
     if chosen is None:
         output.write_bytes(b"")
         request_sha = hashlib.sha256(b"").hexdigest()
@@ -219,9 +231,12 @@ def plan_intervention(
     return report
 
 
-def _audit_controlled(path: Path, intervention: dict | None) -> dict:
+def _audit_controlled(path: Path, intervention: dict | None, policy) -> dict:
     # Whole-log validator quarantines timeouts, exceptions and malformed Stage 7 data.
-    label_log(path, expected_games=1)
+    observations = label_log(path, expected_games=1)
+    observed = {r['decision_index']: r for r in observations}
+    if len(observed) != len(observations):
+        raise ValueError("duplicate Stage 7 observation")
 
     captures = {}
     arms = {}
@@ -234,11 +249,19 @@ def _audit_controlled(path: Path, intervention: dict | None) -> dict:
 
     for raw in path.read_text().splitlines():
         line = raw.rstrip("\n")
+        if games and line.startswith((CAPTURE_PREFIX, ARM_PREFIX, CONTROL_PREFIX,
+                                      RETURN_PREFIX, PASS_PREFIX, ACCEPT_PREFIX, TERMINAL_PREFIX)):
+            raise ValueError("Stage 8K event after the terminal game result")
         if line.startswith(CAPTURE_PREFIX):
             event = _payload(line, CAPTURE_PREFIX)
             idx = event.get("decision_index")
             if type(idx) is not int or idx < 0 or idx in captures:
                 raise ValueError("invalid or duplicate Stage 8K capture")
+            observe_capture(policy, event)
+            state = event['public_state']
+            if (idx not in observed or any(observed[idx].get(k) != v for k, v in state.items())
+                    or state.get('complete_action_identity') != event['selected_action']):
+                raise ValueError("Stage 8K capture differs from its legal Stage 7 observation")
             captures[idx] = event
             continue
 
@@ -249,7 +272,10 @@ def _audit_controlled(path: Path, intervention: dict | None) -> dict:
             idx = event.get("decision_index")
             if type(idx) is not int or idx < 0 or idx in arms:
                 raise ValueError("invalid or duplicate Stage 8K armed event")
-            if event.get("early_substitution") is not False:
+            if (event.get("early_substitution") is not False
+                    or event.get("requested_action_in_candidates") is not True
+                    or event.get("forge_referee") is not True
+                    or event.get("promotion_allowed") is not False):
                 raise ValueError("Stage 8K armed event changed Forge search early")
             arms[idx] = event
             continue
@@ -261,6 +287,8 @@ def _audit_controlled(path: Path, intervention: dict | None) -> dict:
             idx = event.get("decision_index")
             if type(idx) is not int or idx < 0 or idx in controls:
                 raise ValueError("invalid or duplicate Stage 8K control event")
+            if idx not in arms or idx not in captures or idx in returned:
+                raise ValueError("Stage 8K substitution lacks a preceding arm/capture or follows return")
             if (
                 event.get("substitution_boundary") != "post-forge-plan-pre-return"
                 or event.get("forge_search_unchanged") is not True
@@ -274,6 +302,11 @@ def _audit_controlled(path: Path, intervention: dict | None) -> dict:
 
         if line.startswith(RETURN_PREFIX):
             event = _payload(line, RETURN_PREFIX)
+            if (event.get('schema_version') != 'stage8e-returned-action-v1'
+                    or event.get('boundary') != 'spell-ability-return'
+                    or event.get('resolved_or_completed') is not False
+                    or event.get('promotion_allowed') is not False):
+                raise ValueError('invalid Stage 8K returned-action boundary')
             idx = event.get("capture_decision_index")
             if type(idx) is not int or idx < 0 or idx in returned:
                 raise ValueError("invalid or duplicate Stage 8K returned action")
@@ -281,6 +314,8 @@ def _audit_controlled(path: Path, intervention: dict | None) -> dict:
                 raise ValueError("Stage 8K return references unknown capture")
             expected = captures[idx]["selected_action"]
             if intervention is not None and idx == intervention["decision_index"]:
+                if idx not in controls:
+                    raise ValueError("Stage 8K learned return precedes substitution")
                 expected = intervention["learned_action"]
             if event.get("action_identity") != expected:
                 raise ValueError("Stage 8K returned action identity drift")
@@ -294,6 +329,10 @@ def _audit_controlled(path: Path, intervention: dict | None) -> dict:
 
         if line.startswith(PASS_PREFIX):
             event = _payload(line, PASS_PREFIX)
+            if (event.get('schema_version') != 'stage8e-priority-pass-v1'
+                    or event.get('boundary') != 'spell-ability-return'
+                    or event.get('promotion_allowed') is not False):
+                raise ValueError('invalid Stage 8K priority-pass boundary')
             priority_events.append(event["priority_return_index"])
             continue
 
@@ -342,12 +381,26 @@ def _audit_controlled(path: Path, intervention: dict | None) -> dict:
 
     if games != 1:
         raise ValueError("Stage 8K controlled log does not contain exactly one game")
-    if priority_events != list(range(len(priority_events))):
+    if set(captures) != set(observed):
+        raise ValueError("Stage 8K capture and legal observation coverage differ")
+    if (any(type(i) is not int for i in priority_events)
+            or priority_events != list(range(len(priority_events)))):
         raise ValueError("Stage 8K priority-return indices are not contiguous")
     if set(returned) != set(accepted):
         raise ValueError("Stage 8K returned/accepted action sets differ")
     if set(accepted) != set(terminals):
         raise ValueError("Stage 8K controller actions lack terminal coverage")
+
+    # Retain the established Stage 8F/H semantic checks. Exact string binding
+    # alone does not establish that dispatch succeeded or resolution was valid.
+    lines = path.read_text().splitlines()
+    acceptance = audit_acceptance_lines(lines, path.name,
+        {'returned_actions': len(returned), 'games_completed': 1})
+    lifecycle = audit_lifecycle_lines(lines, path.name, acceptance)
+    if acceptance['failed_dispatches']:
+        raise ValueError("Stage 8K controlled game contains a failed dispatch")
+    if lifecycle['pending_at_game_end'] or lifecycle['terminal_coverage_fraction'] != 1.0:
+        raise ValueError("Stage 8K controlled lifecycle is incomplete")
 
     anomaly_count = sum(
         event["outcome"] in ANOMALY_OUTCOMES for event in terminals.values()
@@ -388,6 +441,49 @@ def _audit_controlled(path: Path, intervention: dict | None) -> dict:
     }
 
 
+def _verify_plan_request(policy, baseline: Path, plan: dict, request: Path, actor_prefix: str):
+    if plan.get('model_id') != policy.model_id:
+        raise ValueError('Stage 8K plan does not use the frozen checkpoint')
+    chosen = _choose_intervention(policy, baseline, actor_prefix)
+    if (type(plan.get('intervention_planned')) is not bool
+            or plan['intervention_planned'] != (chosen is not None)
+            or plan.get('intervention') != chosen):
+        raise ValueError('Stage 8K plan differs from the first eligible frozen-model recommendation')
+    expected = b'' if chosen is None else _request_bytes(
+        chosen['decision_index'], chosen['forge_action'], chosen['learned_action'])
+    raw = request.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != plan.get('request_file_sha256') or raw != expected:
+        raise ValueError('Stage 8K request bytes or digest differ from the predeclared intervention')
+
+
+def _verify_unchanged_prefix(baseline: Path, controlled: Path, intervention: dict | None):
+    # Compare chronological events, including later-index phase probes produced
+    # before Forge returns the earlier-index current-phase plan.
+    prefixes = ('EXPERT_STAGE7_DATA: ', CAPTURE_PREFIX, RETURN_PREFIX,
+                PASS_PREFIX, ACCEPT_PREFIX, TERMINAL_PREFIX)
+    index = None if intervention is None else intervention['decision_index']
+
+    def evidence(path, stop_prefix, index_field):
+        events = []
+        for line in path.read_text().splitlines():
+            if index is not None and line.startswith(stop_prefix):
+                if _payload(line, stop_prefix).get(index_field) == index:
+                    return events
+            for prefix in prefixes:
+                if line.startswith(prefix):
+                    events.append((prefix, _payload(line, prefix)))
+                    break
+        if index is not None:
+            raise ValueError('Stage 8K intervention boundary missing from event sequence')
+        return events
+
+    if evidence(baseline, RETURN_PREFIX, 'capture_decision_index') != evidence(
+            controlled, CONTROL_PREFIX, 'decision_index'):
+        raise ValueError('Stage 8K gameplay or phase/pass events drifted before intervention')
+    if intervention is None and _winner(baseline) != _winner(controlled):
+        raise ValueError('Stage 8K no-intervention game changed its terminal result')
+
+
 def compare_pair(
     checkpoint,
     baseline: Path,
@@ -415,10 +511,13 @@ def compare_pair(
     if plan.get("early_search_substitution_allowed") is not False:
         raise ValueError("Stage 8K plan permits early substitution")
 
+    _verify_plan_request(checkpoint, baseline, plan, request_path, actor_prefix)
+
     intervention = plan.get("intervention")
     ctrl = _audit_controlled(
-        controlled, intervention if plan["intervention_planned"] else None
+        controlled, intervention if plan["intervention_planned"] else None, checkpoint
     )
+    _verify_unchanged_prefix(baseline, controlled, intervention)
     base_caps = _events(baseline, CAPTURE_PREFIX)
     base_by_idx = {row["decision_index"]: row for row in base_caps}
     ctrl_by_idx = ctrl["captures"]
@@ -470,6 +569,7 @@ def compare_pair(
         "pre_intervention_drift": 0,
         "invalid_requests_accepted": 0,
         "lifecycle_anomalies": ctrl["lifecycle_anomalies"],
+        "failed_dispatches": ctrl["failed_dispatches"],
         "forge_search_unchanged": True,
         "forge_phase_deferral_unchanged": True,
         "forge_referee": True,
@@ -488,6 +588,7 @@ def aggregate(
         p["intervention_applied"] and p["intervention_targeted"] for p in pairs
     )
     anomalies = sum(p["lifecycle_anomalies"] for p in pairs)
+    failed_dispatches = sum(p['failed_dispatches'] for p in pairs)
     invalid = sum(p["invalid_requests_accepted"] for p in pairs)
     drift = sum(p["pre_intervention_drift"] for p in pairs)
     baseline_score = sum(p["controlled_side_baseline_score"] for p in pairs)
@@ -499,6 +600,7 @@ def aggregate(
         and applied >= minimum_interventions
         and targeted >= minimum_targeted_interventions
         and anomalies == 0
+        and failed_dispatches == 0
         and invalid == 0
         and drift == 0
         and all(p["forge_search_unchanged"] for p in pairs)
@@ -519,6 +621,7 @@ def aggregate(
             "interventions_applied": applied,
             "targeted_interventions_applied": targeted,
             "lifecycle_anomalies": anomalies,
+            "failed_dispatches": failed_dispatches,
             "invalid_requests_accepted": invalid,
             "pre_intervention_drift": drift,
             "controlled_side_baseline_score": baseline_score,
