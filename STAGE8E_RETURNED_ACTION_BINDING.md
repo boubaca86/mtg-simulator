@@ -86,3 +86,25 @@ Artifact `11408271210`, SHA-256
 The next integration boundary is the AI controller's
 `playChosenSpellAbility` acceptance path plus an independently running live
 shadow sidecar. The learned model remains unable to choose or execute actions.
+
+
+## CI result
+
+Workflow run `37453082844` passed at commit `eac94389b6b109eaeca434abb3d2208afbd5abd0`.
+Artifact `11408271210` has SHA-256
+`5b28710e01891c54fdbe8e63ed583796ad4c0f8c38833cb393febd6ac247f5a1`.
+
+Across eight observed-seed games (four per orientation):
+
+- 178 Stage 8 captured search proposals;
+- 120 exact proposals reached the real SpellAbilityPicker return boundary;
+- 58 captures were probe/deferred plans and were not mislabeled as returned actions;
+- 1,345 explicit priority passes;
+- zero capture-to-return identity/context mismatches;
+- frozen shadow model scored all 120 returned actions;
+- 60 returned actions had more than one captured candidate;
+- Forge's returned action was in the shadow model's top set for 46/60 rankable returned actions (76.67%).
+
+This is an integration result, not new playing-strength evidence. The run reused
+observed seed 20261012 intentionally. Learned gameplay remains disabled and
+`promotion_allowed=false`.
