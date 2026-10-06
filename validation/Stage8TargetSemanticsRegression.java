@@ -13,6 +13,7 @@ import forge.game.player.Player;
 import forge.game.spellability.SpellAbility;
 import forge.game.zone.ZoneType;
 import forge.item.PaperCard;
+import forge.util.Lang;
 import forge.util.Localizer;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -65,6 +66,7 @@ public final class Stage8TargetSemanticsRegression {
     }
 
     public static void main(String[] args) throws Exception {
+        Lang.createInstance("en-US");
         Localizer.getInstance().initialize("en-US", "forge-src/forge-gui/res/languages");
         GameRules rules = new GameRules(GameType.Constructed);
         Game game = new Game(List.of(), rules, new Match(rules, List.of(), "target regression"));
