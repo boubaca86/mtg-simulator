@@ -1,6 +1,6 @@
 # Stage 8E — returned-action binding
 
-Status: **implemented; CI validation required**.
+Status: **passed CI returned-action binding validation**.
 
 Stage 8D proved that the frozen public-only shadow model can score every captured
 search proposal without labels, hidden information or gameplay control. The next
@@ -59,3 +59,30 @@ playing-strength claim.
 The next stage after this passes is a live sidecar/post-acceptance integration
 that verifies downstream acceptance/completion while still preventing the learned
 policy from controlling Forge.
+
+## Verified result
+
+Run `37453082844` at commit `eac94389b6b109eaeca434abb3d2208afbd5abd0`
+passed all unit, Forge build, Stage 6 identity and Stage 8 typed-target regressions.
+
+Across eight completed games:
+
+- 178 Stage 8 search proposals were captured;
+- 120 exact proposals reached the real `SpellAbilityPicker` return boundary;
+- 58 captures were correctly separated as probe/deferred plans;
+- 1,345 explicit priority passes were recorded;
+- **0 capture-to-return identity mismatches** occurred;
+- returned-action binding coverage was 67.42%.
+
+The frozen Stage 8D model scored all 120 bound actions. Of the 60 rankable
+(non-forced) returned actions, Forge's returned action was in the shadow model's
+top set 46 times (76.67%). The model had a unique preference on 59 of those
+rankable actions and agreed with Forge 45 times (76.27%). These are shadow
+agreement measurements, not playing-strength or win-rate claims.
+
+Artifact `11408271210`, SHA-256
+`5b28710e01891c54fdbe8e63ed583796ad4c0f8c38833cb393febd6ac247f5a1`.
+
+The next integration boundary is the AI controller's
+`playChosenSpellAbility` acceptance path plus an independently running live
+shadow sidecar. The learned model remains unable to choose or execute actions.
