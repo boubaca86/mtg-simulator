@@ -1,6 +1,6 @@
 # Stage 8F — controller-acceptance binding
 
-Status: **implemented; CI validation required**.
+Status: **passed CI controller-acceptance validation**.
 
 Stage 8E established which Stage 8 search proposals actually survive planning and
 are returned by `SpellAbilityPicker`. Stage 8F moves one boundary farther:
@@ -81,3 +81,31 @@ re-labeled as success.
 Even a clean Stage 8F pass does **not** prove stack resolution. The next boundary
 would trace accepted actions to stack/no-stack completion or resolution without
 giving the learned policy control.
+
+
+## Verified result
+
+Run `37454222152` at commit `373857b7d5456c8366d3ea9b6cda866e39ff3a69`
+passed the unit tests, Forge 2.0.15 build, Stage 6 complete-action regression,
+Stage 8C typed-target regression, return binding, and controller-dispatch audit.
+
+Across eight completed observed-seed games:
+
+- 120 Stage 8E returned expert actions were seen;
+- all **120/120** produced exactly one controller-acceptance event;
+- all **120/120** Forge dispatches reported success;
+- failed dispatches: **0**;
+- missing acceptance events: **0**;
+- identity/context/index binding mismatches: **0**;
+- Forge's original `playChosenSpellAbility` return behavior remained unchanged.
+
+Artifact `11409400859`, SHA-256
+`6cd790a4fb5c7609713665deab90dec648f49e2733099f1bd9237216f47a8842`.
+
+This is integration evidence, not a new playing-strength result.
+`promotion_allowed=false` remains in force.
+
+The next justified integration step is a genuinely live, one-way shadow sidecar:
+it should consume the same public Stage 8 capture stream while Forge is playing,
+emit recommendations immediately, have no command path back into Forge, and
+reproduce those recommendations exactly in an offline post-game audit.
