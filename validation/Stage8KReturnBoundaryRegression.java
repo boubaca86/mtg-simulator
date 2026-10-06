@@ -3,6 +3,7 @@ package forge.ai.simulation;
 import forge.ai.simulation.GameStateEvaluator.Score;
 import forge.game.card.Card;
 import forge.game.spellability.SpellAbility;
+import forge.util.Localizer;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -46,6 +47,7 @@ public final class Stage8KReturnBoundaryRegression {
     }
 
     public static void main(String[] args) throws Exception {
+        Localizer.getInstance().initialize("en-US", "forge-src/forge-gui/res/languages");
         if (args.length != 1) throw new IllegalArgumentException("mode required");
 
         List<SpellAbility> abilities = abilities();
