@@ -1,0 +1,120 @@
+name: Forge Expert AI Stage 8M — Frozen Outcome Policy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'stage8m_outcome_policy.py'
+      - 'test_stage8m_outcome_policy.py'
+      - 'STAGE8M_OUTCOME_POLICY.md'
+      - '.github/workflows/forge-expert-ai-stage8m-train.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  frozen-outcome-policy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Test Stage 8M public-only learner
+        run: |
+          python -m unittest -v \
+            test_stage8m_outcome_policy \
+            test_stage8l_outcome_trajectories \
+            test_stage8c_target_features \
+            test_stage8d_shadow_policy
+
+      - name: Retrieve successful frozen Stage 8L corpus
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11491113213" --jq '.digest')" = "sha256:4179dbe7bd26bcb745efd9d5da800342f13638a85dd6abd97f449bf3d29a1d7c"
+          gh run download 37637623265 -n stage8l-public-outcome-trajectories -D stage8l
+          test -s stage8l/stage8l-outcome-trajectories.jsonl
+          test -s stage8l/stage8l-outcome-trajectory-manifest.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest=json.loads(Path('stage8l/stage8l-outcome-trajectory-manifest.json').read_text())
+          assert manifest['schema_version']=='stage8l-outcome-trajectory-manifest-v1'
+          assert manifest['games']==8
+          assert manifest['trajectory_rows']==115
+          assert manifest['behavior_source_counts']=={
+              'forge':108,
+              'learned-return-boundary':7,
+          }
+          assert manifest['exploration_seed_families']==[20261028,20261029,20261030,20261031]
+          assert manifest['reserved_untouched_evaluation_seed_families']==[20261032,20261033]
+          assert manifest['model_input_contains_search_scores'] is False
+          assert manifest['model_input_contains_terminal_outcomes'] is False
+          assert manifest['model_input_contains_hidden_information'] is False
+          assert manifest['forge_referee'] is True
+          assert manifest['training_performed'] is False
+          assert manifest['promotion_allowed'] is False
+          assert manifest['broader_learned_control_allowed'] is False
+          PY
+
+      - name: Train and freeze Stage 8M outcome model
+        run: |
+          set -euo pipefail
+          python stage8m_outcome_policy.py export \
+            stage8l/stage8l-outcome-trajectories.jsonl \
+            --output stage8m-outcome-model.json \
+            --report stage8m-training-report.json
+          PYTHONHASHSEED=812 python stage8m_outcome_policy.py export \
+            stage8l/stage8l-outcome-trajectories.jsonl \
+            --output stage8m-outcome-model-repeat.json \
+            --report stage8m-training-report-repeat.json
+          cmp stage8m-outcome-model.json stage8m-outcome-model-repeat.json
+          cmp stage8m-training-report.json stage8m-training-report-repeat.json
+
+      - name: Audit frozen Stage 8M checkpoint
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from stage8m_outcome_policy import load_checkpoint
+
+          checkpoint=json.loads(Path('stage8m-outcome-model.json').read_text())
+          report=json.loads(Path('stage8m-training-report.json').read_text())
+          policy=load_checkpoint(Path('stage8m-outcome-model.json'))
+
+          assert checkpoint['schema_version']=='stage8m-outcome-policy-v1'
+          assert checkpoint['model_id']==policy.model_id==report['model_id']
+          assert checkpoint['training_rows']==report['training_rows']==115
+          assert checkpoint['training_games']==report['training_games']==8
+          assert checkpoint['training_seeds']==[20261028,20261029,20261030,20261031]
+          assert checkpoint['reserved_untouched_evaluation_seeds']==[20261032,20261033]
+          assert report['reserved_untouched_evaluation_seeds']==[20261032,20261033]
+          assert checkpoint['training_performed'] is True
+          assert checkpoint['promotion_allowed'] is False
+          assert checkpoint['broader_learned_control_allowed'] is False
+          assert report['promotion_allowed'] is False
+          assert report['broader_learned_control_allowed'] is False
+          assert report['forge_referee_required'] is True
+          assert len(report['cross_validation']['folds'])==4
+          assert report['cross_validation']['strength_claim_allowed'] is False
+          print('Stage 8M model ID:', policy.model_id)
+          print('Stage 8M CV model:', report['cross_validation']['model'])
+          print('Stage 8M CV baseline:', report['cross_validation']['constant_baseline'])
+          PY
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: stage8m-frozen-outcome-policy
+          path: |
+            stage8m-outcome-model.json
+            stage8m-training-report.json
