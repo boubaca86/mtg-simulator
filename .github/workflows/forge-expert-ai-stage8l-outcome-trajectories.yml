@@ -336,7 +336,7 @@ jobs:
           assert manifest['promotion_allowed'] is False
           assert manifest['broader_learned_control_allowed'] is False
 
-          seeds={row['audit']['run_seed'] for row in rows}
+          seeds={row['audit']['corpus_seed'] for row in rows}
           assert seeds=={20261028,20261029,20261030,20261031}
           assert not ({20261032,20261033} & seeds)
           learned=[row for row in rows if row['behavior_source']=='learned-return-boundary']
