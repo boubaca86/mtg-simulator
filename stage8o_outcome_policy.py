@@ -156,7 +156,7 @@ def features(inp, candidate):
         out["phase_"+phase.lower()] = float(phase in state["phase"].upper())
     ability = action.split("|", 1)[0]
     for word in ACTION_WORDS:
-        out["action_"+word] = float(bool(re.search(r"\\b"+word+r"\\b", ability)))
+        out["action_"+word] = float(bool(re.search(r"\b"+word+r"\b", ability)))
     if not all(math.isfinite(v) and -3 <= v <= 3 for v in out.values()):
         raise ValueError("Stage 8O invalid compact feature")
     return out
