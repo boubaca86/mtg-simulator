@@ -322,9 +322,15 @@ def load(path):
         or payload.get("broader_learned_control_allowed") is not False):
         raise ValueError("Stage 8O checkpoint provenance mismatch")
     weights = payload.get("weights")
-    if not isinstance(weights, dict) or set(weights) != set(features.__dict__.get("expected", weights)):
-        if not isinstance(weights, dict) or not weights:
-            raise ValueError("Stage 8O invalid weights")
+    expected = {
+        "bias", "turn", "life_diff", "hand_count", "own_board", "opp_board",
+        "own_graveyard", "opp_graveyard", "opp_unknown_hand_count",
+        "own_library_count", "opp_library_count", "candidate_count",
+        "target_count", "targeted", "target_player", "target_opponent",
+        "target_self", "modes", "choices", "x_announced",
+    } | {"phase_"+p.lower() for p in PHASES} | {"action_"+w for w in ACTION_WORDS}
+    if not isinstance(weights, dict) or set(weights) != expected:
+        raise ValueError("Stage 8O incomplete checkpoint weights")
     if not all(isinstance(k,str) and type(v) in (int,float) and math.isfinite(v)
                for k,v in weights.items()):
         raise ValueError("Stage 8O nonfinite weights")
