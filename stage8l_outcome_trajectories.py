@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from collections import Counter
 from pathlib import Path
 
@@ -274,6 +275,14 @@ def collect_log(path: Path) -> list[dict]:
     return rows
 
 
+def _corpus_seed_from_path(path: Path) -> int:
+    """Read the predeclared game seed from the source filename."""
+    match = re.search(r"(\\d{8})(?=\\.log$)", path.name)
+    if not match:
+        raise ValueError("Stage 8L source log filename lacks corpus seed")
+    return int(match.group(1))
+
+
 def collect_logs(paths: list[Path], exploration_seeds=EXPLORATION_SEEDS) -> tuple[list[dict], dict]:
     rows = []
     seen_ids = set()
@@ -284,14 +293,12 @@ def collect_logs(paths: list[Path], exploration_seeds=EXPLORATION_SEEDS) -> tupl
             raise ValueError("duplicate Stage 8L source log")
         seen_logs.add(path.name)
         log_rows = collect_log(path)
-        seeds = {row["audit"]["run_seed"] for row in log_rows}
-        if len(seeds) != 1:
-            raise ValueError("Stage 8L source log crosses seed families")
-        seed = next(iter(seeds))
-        if seed not in exploration_seeds:
-            raise ValueError(f"unexpected Stage 8L seed family: {seed}")
-        seed_games[seed] += 1
+        corpus_seed = _corpus_seed_from_path(path)
+        if corpus_seed not in exploration_seeds:
+            raise ValueError(f"unexpected Stage 8L seed family: {corpus_seed}")
+        seed_games[corpus_seed] += 1
         for row in log_rows:
+            row["audit"]["corpus_seed"] = corpus_seed
             if row["trajectory_id"] in seen_ids:
                 raise ValueError("duplicate Stage 8L trajectory ID")
             seen_ids.add(row["trajectory_id"])
