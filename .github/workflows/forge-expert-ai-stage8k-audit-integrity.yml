@@ -1,0 +1,85 @@
+name: Forge Expert AI Stage 8K — Audit Integrity Replay
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'stage8k_return_boundary_intervention.py'
+      - 'test_stage8k_return_boundary_intervention.py'
+      - '.github/workflows/forge-expert-ai-stage8k-audit-integrity.yml'
+  pull_request:
+    paths:
+      - 'stage8k_return_boundary_intervention.py'
+      - 'test_stage8k_return_boundary_intervention.py'
+      - '.github/workflows/forge-expert-ai-stage8k-audit-integrity.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  audited-replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run safety regressions
+        run: |
+          python -m unittest -v test_stage8k_return_boundary_intervention test_stage8j_single_intervention test_stage8i_control_replay test_stage8h_lifecycle_audit test_stage8f_acceptance_audit test_stage8e_returned_action_audit test_stage8d_shadow_policy test_stage8c_target_features test_stage8l_outcome_trajectories
+      - name: Retrieve pinned model and completed Stage 8K experiment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11405356263" --jq '.digest')" = "sha256:fdb467e0fffe365011186de647f99d38dff269281b0d2ed20748db41c9c0929d"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11456102553" --jq '.digest')" = "sha256:6bf32010b4e70169862f8b382fdfd6e5139a9c32a30adb214524ec144af08956"
+          gh run download 37449513507 -n stage8d-frozen-shadow-replay -D frozen-shadow
+          gh run download 37557979992 -n stage8k-return-boundary-control -D source
+      - name: Recheck every paired game using the strengthened audit
+        run: |
+          python - <<'PY'
+          import copy, hashlib, json
+          from pathlib import Path
+          from stage8d_shadow_policy import load_checkpoint
+          from stage8k_return_boundary_intervention import compare_pair, aggregate
+          policy=load_checkpoint(Path('frozen-shadow/shadow-model.json'))
+          assert policy.model_id == '6c4dd27f364aaa6c9e9100f88eb323eaa419dab0a49845ee0f748b9998746288'
+          root=Path('source')
+          hashes={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in root.iterdir() if p.is_file()}
+          pairs=[]
+          for seed in (20261024,20261025,20261026,20261027):
+              for orientation in ('st-first','red-first'):
+                  stem=f'{orientation}-{seed}'
+                  pairs.append(compare_pair(policy,
+                      root/f'stage8k-baseline-{stem}.log',
+                      root/f'stage8k-controlled-{stem}.log',
+                      root/f'stage8k-{stem}.plan.json',
+                      root/f'stage8k-{stem}.requests.tsv','Ai(1)-'))
+          report=aggregate(pairs,4,1)
+          assert report['safety_gate_passed'] is True
+          assert report['totals']['failed_dispatches'] == 0
+          assert report['totals']['interventions_applied'] == 8
+          assert report['totals']['targeted_interventions_applied'] == 2
+          assert report['promotion_allowed'] is False
+          assert report['broader_learned_control_allowed'] is False
+          old=json.loads((root/'stage8k-return-boundary-report.json').read_text())
+          comparable=copy.deepcopy(report)
+          comparable['totals'].pop('failed_dispatches')
+          for pair in comparable['pairs']:
+              pair.pop('failed_dispatches')
+          assert comparable == old
+          assert hashes == {p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in root.iterdir() if p.is_file()}
+          Path('stage8k-integrity-rechecked.json').write_text(json.dumps(report,sort_keys=True,indent=2)+'\n')
+          Path('stage8k-integrity-source-hashes.json').write_text(json.dumps(hashes,sort_keys=True,indent=2)+'\n')
+          print('All 16 recorded games and eight interventions pass; the original result is reproduced exactly.')
+          PY
+      - uses: actions/upload-artifact@v6
+        with:
+          name: stage8k-audit-integrity-replay
+          path: |
+            stage8k-integrity-rechecked.json
+            stage8k-integrity-source-hashes.json
