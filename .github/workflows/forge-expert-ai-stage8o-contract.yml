@@ -1,0 +1,52 @@
+name: Forge Expert AI Stage 8O — Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'stage8o_outcome_policy.py'
+      - 'test_stage8o_outcome_policy.py'
+      - 'STAGE8O_COMBINED_OUTCOME_POLICY.md'
+      - '.github/workflows/forge-expert-ai-stage8o-contract.yml'
+      - '.github/workflows/forge-expert-ai-stage8o-train.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  stage8o-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile Stage 8O
+        run: python -m py_compile stage8o_outcome_policy.py test_stage8o_outcome_policy.py
+      - name: Stage 8O and inherited public-data safety regressions
+        run: |
+          python -m unittest -v \
+            test_stage8o_outcome_policy \
+            test_stage8n_outcome_trajectories \
+            test_stage8n_exploration \
+            test_stage8m_outcome_policy \
+            test_stage8l_outcome_trajectories \
+            test_stage8d_shadow_policy \
+            test_stage8c_target_features
+      - name: Verify development protocol and reserved seed quarantine
+        run: |
+          python - <<'PY'
+          import stage8o_outcome_policy as m
+          from pathlib import Path
+          doc=Path('STAGE8O_COMBINED_OUTCOME_POLICY.md').read_text()
+          assert m.TRAIN_SEEDS==(*range(20261028,20261032),*range(20261034,20261042))
+          assert m.RESERVED_SEEDS==(20261032,20261033)
+          assert set(m.TRAIN_SEEDS).isdisjoint(m.RESERVED_SEEDS)
+          assert m.CONFIG['objective']=='observed-behavior-game-outcome-logistic'
+          assert m.CONFIG['validation']=='leave-one-entire-seed-family-out'
+          assert m.CONFIG['weighting']=='equal-total-weight-per-game'
+          for v in (20261032,20261033,115,216,331):
+              assert str(v) in doc
+          assert 'Forge remains the sole rules/referee and executor' in doc
+          PY
