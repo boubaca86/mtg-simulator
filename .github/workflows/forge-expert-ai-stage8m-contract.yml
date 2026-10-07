@@ -1,0 +1,73 @@
+name: Forge Expert AI Stage 8M — Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'stage8m_outcome_policy.py'
+      - 'test_stage8m_outcome_policy.py'
+      - 'STAGE8M_OUTCOME_POLICY.md'
+      - '.github/workflows/forge-expert-ai-stage8m-contract.yml'
+      - '.github/workflows/forge-expert-ai-stage8m-train.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  stage8m-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Compile Stage 8M learner
+        run: |
+          python -m py_compile \
+            stage8m_outcome_policy.py \
+            test_stage8m_outcome_policy.py
+
+      - name: Run Stage 8M and inherited safety tests
+        run: |
+          python -m unittest -v \
+            test_stage8m_outcome_policy \
+            test_stage8l_outcome_trajectories \
+            test_stage8k_return_boundary_intervention \
+            test_stage8j_single_intervention \
+            test_stage8i_control_replay \
+            test_stage8h_lifecycle_audit \
+            test_stage8f_acceptance_audit \
+            test_stage8e_returned_action_audit \
+            test_stage8d_shadow_policy \
+            test_stage8c_target_features
+
+      - name: Verify frozen Stage 8M protocol
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import stage8m_outcome_policy as m
+
+          text=Path('STAGE8M_OUTCOME_POLICY.md').read_text()
+          assert m.TRAINING_SEEDS==(20261028,20261029,20261030,20261031)
+          assert m.RESERVED_SEEDS==(20261032,20261033)
+          assert set(m.TRAINING_SEEDS).isdisjoint(m.RESERVED_SEEDS)
+          assert m.CONFIG=={
+              'objective':'game-outcome-logistic',
+              'representation':'stage8c-public-target-semantics',
+              'epochs':240,
+              'learning_rate':0.03,
+              'l2':0.001,
+              'game_weighting':'equal-total-weight-per-source-log',
+              'validation':'leave-one-corpus-seed-family-out',
+              'selection':'all-max-with-tolerance',
+          }
+          for seed in m.TRAINING_SEEDS + m.RESERVED_SEEDS:
+              assert str(seed) in text
+          assert '11491113213' in text
+          assert '4179dbe7bd26bcb745efd9d5da800342f13638a85dd6abd97f449bf3d29a1d7c' in text
+          assert 'must not run, inspect, tune against, or otherwise open' in text
+          assert 'promotion_allowed=false' in text
+          assert 'broader_learned_control_allowed=false' in text
+          PY
