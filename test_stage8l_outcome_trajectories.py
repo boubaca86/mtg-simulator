@@ -244,6 +244,39 @@ class Stage8LOutcomeTrajectoryTests(unittest.TestCase):
         self.assertNotIn("run_seed", rows[0]["model_input"]["public_state"])
         self.assertNotIn("aggregate_score", rows[0]["model_input"]["candidates"][0])
 
+    def test_corpus_seed_comes_from_filename_not_internal_replay_seed(self):
+        with tempfile.TemporaryDirectory() as td:
+            paths = [Path(td) / f"game-{seed}.log" for seed in EXPLORATION_SEEDS]
+            for path in paths:
+                path.write_text("fixture")
+
+            fake_rows = {}
+            for path, seed in zip(paths, EXPLORATION_SEEDS):
+                first = row(seed, learned=False)
+                second = row(seed + 1000, learned=False)
+                second["trajectory_id"] = f"fixture-{seed}:decision-5"
+                second["source_log"] = path.name
+                first["source_log"] = path.name
+                fake_rows[str(path)] = [first, second]
+
+            def fake_collect(path):
+                return fake_rows[str(path)]
+
+            with patch("stage8l_outcome_trajectories.collect_log", side_effect=fake_collect):
+                rows, manifest = collect_logs(paths)
+
+            self.assertEqual(len(rows), 2 * len(EXPLORATION_SEEDS))
+            self.assertEqual(
+                sorted({r["audit"]["corpus_seed"] for r in rows}),
+                list(EXPLORATION_SEEDS),
+            )
+            self.assertTrue(any(
+                r["audit"]["run_seed"] != r["audit"]["corpus_seed"] for r in rows
+            ))
+            self.assertEqual(
+                manifest["exploration_seed_families"], list(EXPLORATION_SEEDS)
+            )
+
     def test_seed_manifest_keeps_future_evaluation_families_out(self):
         with tempfile.TemporaryDirectory() as td:
             paths = [Path(td) / f"game-{seed}.log" for seed in EXPLORATION_SEEDS]
