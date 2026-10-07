@@ -13,8 +13,14 @@ from stage8l_outcome_trajectories import (
 )
 
 
-FORGE = "recipe=v2|ability=Forge Choice|targets=<none>|choices=<none>"
-LEARNED = "recipe=v2|ability=Learned Choice|targets=[Public Target]|choices=<none>"
+FORGE = (
+    "recipe=v2|ability=Forge Choice|candidate=0/2|x=<none>|modes=<none>"
+    "|targets=<none>|choices=<none>"
+)
+LEARNED = (
+    "recipe=v2|ability=Learned Choice|candidate=1/2|x=<none>|modes=<none>"
+    "|targets=[Public Target]|choices=<none>"
+)
 
 
 def safe_input():
@@ -124,7 +130,10 @@ class Stage8LOutcomeTrajectoryTests(unittest.TestCase):
 
     def test_behavior_must_be_in_forge_legal_candidate_set(self):
         value = row()
-        value["behavior_action"] = "recipe=v2|ability=Invented|targets=<none>|choices=<none>"
+        value["behavior_action"] = (
+            "recipe=v2|ability=Invented|candidate=9/9|x=<none>|modes=<none>"
+            "|targets=<none>|choices=<none>"
+        )
         with self.assertRaises(ValueError):
             validate_trajectory_row(value)
 
@@ -135,7 +144,10 @@ class Stage8LOutcomeTrajectoryTests(unittest.TestCase):
             validate_trajectory_row(value)
 
     def test_collect_log_binds_real_control_path_and_game_outcome(self):
-        learned = "recipe=v2|ability=Learned Untargeted|targets=<none>|choices=<none>"
+        learned = (
+            "recipe=v2|ability=Learned Untargeted|candidate=1/2|x=<none>"
+            "|modes=<none>|targets=<none>|choices=<none>"
+        )
         state = dict(safe_input()["public_state"])
         state.update({
             "schema_version": "stage7d-v1",
