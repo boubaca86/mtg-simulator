@@ -1,0 +1,65 @@
+name: Forge Expert AI Stage 8L — Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'stage8l_outcome_trajectories.py'
+      - 'test_stage8l_outcome_trajectories.py'
+      - 'STAGE8L_OUTCOME_TRAJECTORIES.md'
+      - '.github/workflows/forge-expert-ai-stage8l-contract.yml'
+      - '.github/workflows/forge-expert-ai-stage8l-outcome-trajectories.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  stage8l-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Compile Stage 8L collector
+        run: |
+          python -m py_compile \
+            stage8l_outcome_trajectories.py \
+            test_stage8l_outcome_trajectories.py
+
+      - name: Run Stage 8L and inherited Python safety tests
+        run: |
+          python -m unittest -v \
+            test_stage8l_outcome_trajectories \
+            test_stage8k_return_boundary_intervention \
+            test_stage8j_single_intervention \
+            test_stage8i_control_replay \
+            test_stage8h_lifecycle_audit \
+            test_stage8f_acceptance_audit \
+            test_stage8e_returned_action_audit \
+            test_stage8d_shadow_policy \
+            test_stage8c_target_features
+
+      - name: Verify reserved-seed and no-leakage protocol
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from stage8l_outcome_trajectories import (
+              EXPLORATION_SEEDS,
+              RESERVED_EVALUATION_SEEDS,
+              FORBIDDEN_MODEL_KEYS,
+          )
+
+          text=Path('STAGE8L_OUTCOME_TRAJECTORIES.md').read_text()
+          assert EXPLORATION_SEEDS==(20261028,20261029,20261030,20261031)
+          assert RESERVED_EVALUATION_SEEDS==(20261032,20261033)
+          assert set(EXPLORATION_SEEDS).isdisjoint(RESERVED_EVALUATION_SEEDS)
+          for seed in EXPLORATION_SEEDS + RESERVED_EVALUATION_SEEDS:
+              assert str(seed) in text
+          for key in ('aggregate_score','model_score','game_result','terminal_action_outcome'):
+              assert key in FORBIDDEN_MODEL_KEYS
+          assert 'must not be run during Stage 8L' in text
+          assert 'promotion_allowed=false' in text
+          PY
