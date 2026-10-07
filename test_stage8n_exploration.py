@@ -42,6 +42,7 @@ class Stage8NSelectionTests(unittest.TestCase):
     def fixture_capture(self):
         value = capture()
         value["decision_index"] = 0
+        value["matchup_id"] = "fixture"
         value["public_state"]["decision_index"] = 0
         value["selected_action"] = value["candidates"][0]["action_identity"]
         value["public_state"]["complete_action_identity"] = value["selected_action"]
