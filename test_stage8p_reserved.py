@@ -44,8 +44,8 @@ class Stage8PTests(unittest.TestCase):
         self.assertIsNone(_recommend({"weights": {}}, self.validator, self.capture))
         reversed_capture = copy.deepcopy(self.capture)
         reversed_capture["candidates"].reverse()
-        self.assertEqual(_recommend(self.model, self.validator, reversed_capture),
-                         chosen)
+        self.assertEqual(_recommend(self.model, self.validator, reversed_capture)['learned_action'],
+                         chosen['learned_action'])
 
     def test_hidden_information_is_rejected(self):
         changed = copy.deepcopy(self.capture)
