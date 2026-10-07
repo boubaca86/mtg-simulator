@@ -19,6 +19,7 @@ class Stage8PTests(unittest.TestCase):
         self.validator = policy()
         self.model = {"model_id": MODEL_ID, "weights": {"action_cast": 4.0}}
         self.capture = capture()
+        self.capture['matchup_id'] = 'fixture'
         first, second = self.capture["candidates"]
         second["action_identity"] = second["action_identity"].replace(
             "ability=Remove target creature", "ability=Cast creature")
