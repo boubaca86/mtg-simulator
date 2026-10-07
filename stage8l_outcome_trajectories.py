@@ -277,7 +277,7 @@ def collect_log(path: Path) -> list[dict]:
 
 def _corpus_seed_from_path(path: Path) -> int:
     """Read the predeclared game seed from the source filename."""
-    match = re.search(r"(\\d{8})(?=\\.log$)", path.name)
+    match = re.search(r"(\d{8})(?=\.log$)", path.name)
     if not match:
         raise ValueError("Stage 8L source log filename lacks corpus seed")
     return int(match.group(1))
