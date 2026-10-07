@@ -41,7 +41,15 @@ zero failed-dispatch counts. This is verification of already observed data.
 
 The dedicated audit-integrity workflow downloads both the original evidence and
 frozen model by pinned artifact digest, repeats the check, and verifies that
-source files remain unchanged. Its CI result is recorded after completion.
+source files remain unchanged. [Run 37616398223](https://github.com/boubaca86/mtg-simulator/actions/runs/37616398223)
+passed at commit `57adb2e0128c1d8dd3aa875405187ccf9654ac19`, including **78 tests**
+with the Stage 8L regressions. The downloaded report matches the local report
+byte for byte, and all 34 source-file hashes agree.
+
+Artifact `11480180860` has ZIP SHA-256
+`82786a6724aee93756cd50285e7748534c34180e46443a653a1dce38794269a2`.
+The compact evidence record is
+`results/forge_expert_ai_stage8/audit-integrity-replay-v1.json`.
 
 This change is confined to auditing and regression coverage. It changes no
 Forge code, request-generation rule, model weight, seed family, deck, gameplay
