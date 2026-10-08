@@ -35,10 +35,12 @@ contradictory resolution, missing terminals, identity drift, unplanned moves,
 pre-intervention drift, and altered plans/requests. The passing four-pair test
 was first run against the old implementation and reproduced the failure.
 
-Validation: **73 focused tests passed locally**, including all Stage 8P tests
-and the inherited Stage 8O/K/H/F/E/D contracts. The Stage 8P contract workflow
-now runs that full set on every change. All new game records are synthetic;
-the archived Stage 8K log is development evidence only.
+Validation: **73 focused tests passed locally and in
+[CI run 37706982998](https://github.com/boubaca86/mtg-simulator/actions/runs/37706982998)**
+at commit `bb9ba874e7f5d25e386589d9d0acf6d19ec8c7c2`, including all Stage 8P
+tests and the inherited Stage 8O/K/H/F/E/D contracts. The Stage 8P contract
+workflow now runs that full set on every change. All new game records are
+synthetic; the archived Stage 8K log is development evidence only.
 
 The reserved pilot remains manual-only. Its frozen model, two reserved seed
 families, selection rule and precommitted gates are unchanged. No reserved
