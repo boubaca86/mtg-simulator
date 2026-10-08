@@ -1,0 +1,234 @@
+name: Forge Expert AI Stage 8P — Reserved Pilot
+
+# This is intentionally manual-only. The two reserved seed families must never
+# be opened by push, pull_request, or scheduled events.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  reserved-pilot:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify frozen protocol and regressions
+        run: |
+          python -m unittest -v test_stage8p_reserved test_stage8o_outcome_policy test_stage8k_return_boundary_intervention test_stage8h_lifecycle_audit test_stage8d_shadow_policy
+          python -m py_compile stage8p_reserved_*.py
+          python - <<'PY'
+          from stage8p_reserved_planner import MODEL_ID, VALIDATOR_ID, SEEDS, ORIENTATIONS
+          from stage8p_reserved_gate import MIN_APPLIED, MIN_PAIRED_SCORE_GAIN
+          assert MODEL_ID == '90bbbd616e2509c3c85c318e5aded17cfe6e7592ad625bad2a1467136a596ba3'
+          assert VALIDATOR_ID == '6c4dd27f364aaa6c9e9100f88eb323eaa419dab0a49845ee0f748b9998746288'
+          assert SEEDS == (20261032, 20261033)
+          assert ORIENTATIONS == ('st-first', 'red-first')
+          assert MIN_APPLIED == 2 and MIN_PAIRED_SCORE_GAIN == 1.0
+          PY
+
+      - name: Retrieve digest-pinned Stage 8O outcome and Stage 8D validator
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11514257724" --jq '.digest')" = "sha256:69b9364b458a75087cf3c6fe76ca7c0ffb8e2590b6dca2851c02c0ce924cdc66"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11405356263" --jq '.digest')" = "sha256:fdb467e0fffe365011186de647f99d38dff269281b0d2ed20748db41c9c0929d"
+          gh run download 37693639263 -n stage8o-conservative-outcome-dev -D stage8o-model
+          gh run download 37449513507 -n stage8d-frozen-shadow-replay -D frozen-shadow
+          test -s stage8o-model/stage8o-checkpoint.json
+          test -s frozen-shadow/shadow-model.json
+          python - <<'PY'
+          from pathlib import Path
+          from stage8p_reserved_planner import load_models
+          model, validator = load_models(Path('stage8o-model/stage8o-checkpoint.json'), Path('frozen-shadow/shadow-model.json'))
+          assert model['promotion_allowed'] is False
+          assert model['broader_learned_control_allowed'] is False
+          print('Frozen model:', model['model_id'])
+          print('Frozen validator:', validator.model_id)
+          PY
+
+      - name: Export unmodified custom decks and record hashes
+        run: |
+          python forge_export.py --user-dir "$HOME/.forge"
+          sha256sum \
+            "$HOME/.forge/decks/constructed/ST Forge Full.dck" \
+            "$HOME/.forge/decks/constructed/Benchmark Red Forge.dck" \
+            | tee stage8p-deck-sha256.txt
+
+      - name: Clone pinned Forge 2.0.15
+        run: git clone --depth 1 --branch forge-2.0.15 https://github.com/Card-Forge/forge.git forge-src
+
+      - name: Apply existing audited Forge expert-AI patches through Stage 8K
+        run: |
+          set -euo pipefail
+          python patch_forge_expert_cli.py forge-src/forge-gui-desktop/src/main/java/forge/view/SimulateMatch.java
+          python patch_forge_information_set.py forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java
+          python patch_forge_infoset_ensemble.py \
+            --game-simulator forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java \
+            --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java \
+            --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python patch_forge_complete_action_identity.py forge-src/forge-ai/src/main/java/forge/ai/simulation/Plan.java
+          python patch_forge_strategy_fusion_audit.py \
+            --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java \
+            --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python patch_forge_stage7_legal_extractor.py forge-src/forge-ai/src/main/java
+          python patch_forge_stage7_dataset_capture.py forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python patch_forge_stage8_counterfactual_capture.py forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python patch_forge_stage8e_execution_binding.py \
+            --plan forge-src/forge-ai/src/main/java/forge/ai/simulation/Plan.java \
+            --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java \
+            --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python patch_forge_stage8f_acceptance_binding.py \
+            --forge-ai-java forge-src/forge-ai/src/main/java \
+            --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java \
+            --player-controller-ai forge-src/forge-ai/src/main/java/forge/ai/PlayerControllerAi.java
+          python patch_forge_stage8h_lifecycle.py \
+            --forge-game-java forge-src/forge-game/src/main/java \
+            --expert-bridge forge-src/forge-ai/src/main/java/forge/ai/simulation/ExpertActionAuditBridge.java \
+            --computer-util forge-src/forge-ai/src/main/java/forge/ai/ComputerUtil.java \
+            --player-controller-ai forge-src/forge-ai/src/main/java/forge/ai/PlayerControllerAi.java \
+            --magic-stack forge-src/forge-game/src/main/java/forge/game/zone/MagicStack.java
+          python patch_forge_stage8i_control_adapter.py \
+            --forge-ai-java forge-src/forge-ai/src/main/java \
+            --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python patch_forge_stage8j_sparse_control.py \
+            --adapter forge-src/forge-ai/src/main/java/forge/ai/simulation/ExpertPolicyControlAdapter.java \
+            --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python patch_forge_stage8k_return_boundary_control.py \
+            --adapter forge-src/forge-ai/src/main/java/forge/ai/simulation/ExpertPolicyControlAdapter.java \
+            --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+
+      - name: Build patched Forge
+        working-directory: forge-src
+        run: |
+          mvn -B -pl forge-gui-desktop -am -DskipTests -Dcheckstyle.skip=true package
+          FORGE_JAR="$(find forge-gui-desktop/target -type f -name '*-jar-with-dependencies.jar' -print -quit)"
+          test -n "$FORGE_JAR"
+          echo "FORGE_JAR=$(realpath "$FORGE_JAR")" >> "$GITHUB_ENV"
+          echo "FORGE_HOME=$(realpath forge-gui)" >> "$GITHUB_ENV"
+
+      - name: Run four fresh paired reserved games with one-shot public-only control
+        shell: bash
+        run: |
+          set -euo pipefail
+          for SEED in 20261032 20261033; do
+            for ORIENTATION in st-first red-first; do
+              if [ "$ORIENTATION" = st-first ]; then
+                DECK_A="ST Forge Full.dck"
+                DECK_B="Benchmark Red Forge.dck"
+                MATCHUP="st-vs-benchmark-red"
+              else
+                DECK_A="Benchmark Red Forge.dck"
+                DECK_B="ST Forge Full.dck"
+                MATCHUP="benchmark-red-vs-st"
+              fi
+              BASE="stage8p-baseline-$ORIENTATION-$SEED.log"
+              CONTROLLED="stage8p-controlled-$ORIENTATION-$SEED.log"
+              REQUEST="$GITHUB_WORKSPACE/stage8p-$ORIENTATION-$SEED.requests.tsv"
+              PLAN="stage8p-$ORIENTATION-$SEED.plan.json"
+
+              (
+                cd "$FORGE_HOME"
+                java -Xmx12g \
+                  -Dforge.expert.infoset=true -Dforge.expert.infoset.samples=3 \
+                  -Dforge.expert.stage7.dataset=true \
+                  -Dforge.expert.stage8.capture=true \
+                  -Dforge.expert.stage8.execution=true \
+                  -Dforge.expert.stage8.acceptance=true \
+                  -Dforge.expert.stage8.lifecycle=true \
+                  -Dforge.expert.stage7.matchup="$MATCHUP" \
+                  -jar "$FORGE_JAR" sim \
+                  -D "$HOME/.forge/decks/constructed" \
+                  -d "$DECK_A" "$DECK_B" \
+                  -x full default -n 1 -s "$SEED" -q -c 600
+              ) > "$BASE" 2>&1
+
+              python stage8p_reserved_cli.py plan \
+                stage8o-model/stage8o-checkpoint.json \
+                frozen-shadow/shadow-model.json "$BASE" \
+                --request "$REQUEST" --metadata "$PLAN"
+
+              (
+                cd "$FORGE_HOME"
+                FLAGS=()
+                if [ -s "$REQUEST" ]; then
+                  FLAGS=(
+                    -Dforge.expert.stage8.control=true
+                    -Dforge.expert.stage8.control.return_boundary=true
+                    -Dforge.expert.stage8.control.file="$REQUEST"
+                    -Dforge.expert.stage8.control.require_forge_match=false
+                    -Dforge.expert.stage8.control.allow_missing=true
+                    '-Dforge.expert.stage8.control.actor_prefix=Ai(1)-'
+                  )
+                fi
+                java -Xmx12g \
+                  -Dforge.expert.infoset=true -Dforge.expert.infoset.samples=3 \
+                  -Dforge.expert.stage7.dataset=true \
+                  -Dforge.expert.stage8.capture=true \
+                  -Dforge.expert.stage8.execution=true \
+                  -Dforge.expert.stage8.acceptance=true \
+                  -Dforge.expert.stage8.lifecycle=true \
+                  "${FLAGS[@]}" \
+                  -Dforge.expert.stage7.matchup="$MATCHUP" \
+                  -jar "$FORGE_JAR" sim \
+                  -D "$HOME/.forge/decks/constructed" \
+                  -d "$DECK_A" "$DECK_B" \
+                  -x full default -n 1 -s "$SEED" -q -c 600
+              ) > "$CONTROLLED" 2>&1
+            done
+          done
+
+      - name: Audit all four pairs against frozen selection and Forge lifecycle
+        run: |
+          set -euo pipefail
+          python stage8p_reserved_cli.py compare \
+            stage8o-model/stage8o-checkpoint.json \
+            frozen-shadow/shadow-model.json \
+            --baseline stage8p-baseline-*.log \
+            --controlled stage8p-controlled-*.log \
+            --plans stage8p-*.plan.json \
+            --requests stage8p-*.requests.tsv \
+            --report stage8p-reserved-report.json
+
+      - name: Preserve evidence even if audit or result gate fails
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: stage8p-reserved-pilot-evidence
+          if-no-files-found: warn
+          path: |
+            stage8p-reserved-report.json
+            stage8p-deck-sha256.txt
+            stage8p-*.plan.json
+            stage8p-*.requests.tsv
+            stage8p-baseline-*.log
+            stage8p-controlled-*.log
+
+      - name: Enforce precommitted safety and result gates
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r = json.loads(Path('stage8p-reserved-report.json').read_text())
+          assert r['promotion_allowed'] is False
+          assert r['broader_learned_control_allowed'] is False
+          assert r['strength_claim_allowed'] is False
+          assert r['forge_referee'] is True
+          assert r['safety_gate_passed'], 'Stage 8P safety gate failed'
+          assert r['primary_game_result_gate_passed'], 'Stage 8P game-result gate failed'
+          assert r['evaluation_gate_passed'], 'Stage 8P reserved pilot failed'
+          print('Stage 8P pilot PASSED (no broader control authorized):', r['totals'])
+          PY
