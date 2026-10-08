@@ -103,6 +103,7 @@ def choose(model, validator, baseline):
 
 
 def require_clean(baseline, validator):
+    """Validate a Forge-only baseline, whose returns must equal its proposals."""
     audit = audit_log(baseline, 1, validator)
     if (audit["lifecycle_anomalies"] or audit["pending_at_game_end"]
             or audit["failed_dispatches"] or audit["terminal_coverage_fraction"] != 1.0):

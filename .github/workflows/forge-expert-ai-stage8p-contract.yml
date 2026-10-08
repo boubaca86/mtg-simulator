@@ -14,4 +14,6 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m py_compile stage8p_reserved_*.py
-      - run: python -m unittest -v test_stage8p_reserved
+      - name: Verify reserved planner and full controlled-game audit contract
+        run: |
+          python -m unittest -v test_stage8p_reserved test_stage8o_outcome_policy test_stage8k_return_boundary_intervention test_stage8h_lifecycle_audit test_stage8f_acceptance_audit test_stage8e_returned_action_audit test_stage8d_shadow_policy

@@ -9,11 +9,13 @@ from stage8p_reserved_planner import ACTOR, _event, expected_plan, require_clean
 
 def compare_pair(model, validator, baseline, controlled, plan_path, request_path):
     require_clean(baseline, validator)
-    require_clean(controlled, validator)
     expected, raw = expected_plan(model, validator, baseline, request_path)
     if json.loads(plan_path.read_text()) != expected or request_path.read_bytes() != raw:
         raise ValueError("Stage 8P plan or request differs from frozen public rule")
     chosen = expected["intervention"]
+    # The baseline audit requires every return to equal Forge's proposal.
+    # Controlled play intentionally differs at exactly the frozen intervention.
+    # Stage 8K validates that exception plus the complete Stage 7/F/H lifecycle.
     ctrl = _audit_controlled(controlled, chosen, validator)
     _verify_unchanged_prefix(baseline, controlled, chosen)
     if (ctrl["failed_dispatches"] or ctrl["lifecycle_anomalies"]
