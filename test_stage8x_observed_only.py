@@ -4,7 +4,10 @@ from tempfile import TemporaryDirectory
 from patch_forge_stage8x_observed_only import patch_ai_controller, patch_game_simulator, patch_sources
 from stage8x_information_view import information_view, fingerprint
 
-AI_SOURCE = """    public boolean usesHybridSimulation() {
+AI_SOURCE = """        if (!ccvPlayerLibrary.isEmpty()) {
+            all.add(ccvPlayerLibrary.get(0));
+        }
+    public boolean usesHybridSimulation() {
         return simMode == AIOption.USE_HYBRID_SIMULATION;
     }
     public boolean usesFullSimulation() {
@@ -26,6 +29,10 @@ class ObservedOnlyTests(unittest.TestCase):
         self.assertIn("return !expertObservedOnly() && simMode == AIOption.USE_FULL_SIMULATION",s)
         self.assertIn("return !expertObservedOnly() && simMode == AIOption.USE_HYBRID_SIMULATION",s)
         self.assertIn('"true"', s)
+
+    def test_own_top_card_only_if_visible(self):
+        updated = patch_ai_controller(AI_SOURCE)
+        self.assertIn("canBeShownTo(player.getView())",updated)
 
     def test_guard_before_copy(self):
         s = patch_game_simulator(SIM_SOURCE)
