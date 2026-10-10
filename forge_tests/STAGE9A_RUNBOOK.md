@@ -56,3 +56,13 @@ For each paired game, assert equality of actor-visible state, game phase, public
 ### Build evidence gate
 
 Only accept a run when actual Surefire XML contains exactly six distinct named Stage9A methods with no skipped/error methods; invoke `python3 forge_tests/verify_stage9a_surefire.py --reports forge-gui-desktop/target/surefire-reports --mode baseline` and then `--mode patched` for the separate patched run. Keep separate report directories to avoid stale XML contamination.
+
+
+## GitHub Actions handoff (workflow-only registration)
+
+- Stage9A feature branch has `.github/workflows/stage9a-forge-information-firewall.yml`.
+- **Draft PR #22** (<https://github.com/boubaca86/mtg-simulator/pull/22>) contains ONLY that workflow file from a separate branch rooted at `main`, for independent review.
+- GitHub requires a `workflow_dispatch` workflow file on the default branch to register a manually runnable workflow. After reviewing and merging **only PR #22**, visit **Actions → Stage 9A — Forge Hidden-Information Tests → Run workflow** and choose **`expert-stage9a-forge-decision-pairs`**, **not `main`**.
+- This is a targeted Java test run, not an AI game simulation. Both Maven runs use `xvfb-run` for Forge desktop initialization.
+- The upstream patch is applied only to the temporary runner checkout, never committed to Forge or merged into the simulator. Baseline and patched reports are separate artifacts.
+- If the workflow fails, download its evidence artifact; retain the exact logs and method results before changing any patch or tests. **Do not merge Stage9A AI changes without independent review and passing proofs.**
