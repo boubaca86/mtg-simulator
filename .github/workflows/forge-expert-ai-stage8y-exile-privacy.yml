@@ -1,0 +1,45 @@
+name: Stage 8Y exile privacy — compile and tests only
+on:
+  push:
+    branches: [expert-stage8y-exile-visibility]
+  pull_request:
+    paths:
+      - 'patch_forge_stage8x_observed_only.py'
+      - 'test_stage8y_exile_visibility.py'
+      - '.github/workflows/forge-expert-ai-stage8y-exile-privacy.yml'
+permissions:
+  contents: read
+jobs:
+  privacy-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest -v test_stage8x_observed_only test_stage8y_exile_visibility
+  forge-compile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: git clone --depth 1 --branch forge-2.0.15 https://github.com/Card-Forge/forge.git forge-src
+      - name: Patch and assert privacy guards
+        run: |
+          set -euo pipefail
+          python patch_forge_information_set.py forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java
+          python patch_forge_infoset_ensemble.py \
+            --game-simulator forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java \
+            --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java \
+            --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python patch_forge_stage8x_observed_only.py \
+            --ai-controller forge-src/forge-ai/src/main/java/forge/ai/AiController.java \
+            --game-simulator forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java
+          test "$(grep -c 'exiled.getView().canBeShownTo(player.getView())' forge-src/forge-ai/src/main/java/forge/ai/AiController.java)" -eq 2
+      - name: Compile Forge, no gameplay
+        working-directory: forge-src
+        run: mvn -B -pl forge-gui-desktop -am -DskipTests -Dcheckstyle.skip=true package
