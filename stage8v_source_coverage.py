@@ -1,6 +1,7 @@
 """Validate non-exhaustive AI-filtered candidate counts from the Stage 8V Java helper."""
 from __future__ import annotations
 import json
+import re
 
 SCHEMA = "stage8v-ai-filtered-top-level-v2"
 SOURCE = "SpellAbilityPicker.getCandidateSpellsAndAbilities"
@@ -25,6 +26,12 @@ def validate_event(event: dict) -> dict:
         raise ValueError("Stage 8V does not enumerate priority passes")
     if event["selected_status"] != "proposed_before_execution":
         raise ValueError("Stage 8V cannot assert actual execution")
+    if not isinstance(event["session_id"], str) or not re.fullmatch(r"[0-9a-f]{32}", event["session_id"]) or event["session_id"] == "0" * 32:
+        raise ValueError("Invalid game session identifier")
+    if not isinstance(event["matchup_id"], str) or not re.fullmatch(r"[A-Za-z0-9._:/-]{1,96}", event["matchup_id"]) or event["matchup_id"] == "unspecified":
+        raise ValueError("Explicit matchup provenance required")
+    if not isinstance(event["orientation"], str) or not re.fullmatch(r"[a-z][a-z0-9-]{1,47}", event["orientation"]):
+        raise ValueError("Explicit orientation provenance required")
     for key in ("run_seed", "decision_index", "top_level_candidate_count",
                 "proposed_candidate_index"):
         if type(event[key]) is not int:
@@ -40,11 +47,17 @@ def parse_log(lines: list[str]) -> list[dict]:
     prefix = "EXPERT_STAGE8V_TOP_LEVEL: "
     events = []
     seen = set()
+    provenance = {}
     for line in lines:
         if not line.startswith(prefix):
             continue
         event = validate_event(json.loads(line[len(prefix):]))
-        key = (event["run_seed"], event["decision_index"])
+        session = event["session_id"]
+        identity = (event["run_seed"], event["matchup_id"], event["orientation"])
+        if session in provenance and provenance[session] != identity:
+            raise ValueError("Game session provenance changed")
+        provenance[session] = identity
+        key = (session, event["decision_index"])
         if key in seen:
             raise ValueError("Duplicate Stage 8V decision")
         seen.add(key)
@@ -57,16 +70,23 @@ def summarize(events: list[dict]) -> dict:
         raise ValueError("No Stage 8V events")
     seen = set()
     counts = []
+    provenance = {}
     for event in events:
         validate_event(event)
         key = (event["run_seed"], event["decision_index"])
         if key in seen:
             raise ValueError("Duplicate Stage 8V decision")
         seen.add(key)
+        session = event["session_id"]
+        identity = (event["run_seed"], event["matchup_id"], event["orientation"])
+        if session in provenance and provenance[session] != identity:
+            raise ValueError("Game session provenance changed")
+        provenance[session] = identity
         counts.append(event["top_level_candidate_count"])
     return {
         "schema_version": SCHEMA,
         "decisions": len(counts),
+        "sessions": len(provenance),
         "candidate_count_min": min(counts),
         "candidate_count_max": max(counts),
         "candidate_count_mean": sum(counts) / len(counts),
