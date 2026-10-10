@@ -1,0 +1,45 @@
+diff --git a/forge-ai/src/main/java/forge/ai/ComputerUtilAbility.java b/forge-ai/src/main/java/forge/ai/ComputerUtilAbility.java
+--- a/forge-ai/src/main/java/forge/ai/ComputerUtilAbility.java
++++ b/forge-ai/src/main/java/forge/ai/ComputerUtilAbility.java
+@@ -51,9 +51,15 @@
+         });
+ 
+         final CardCollection landsNotInHand = new CardCollection(player.getCardsIn(ZoneType.Graveyard));
+-        landsNotInHand.addAll(game.getCardsIn(ZoneType.Exile));
++        // Stage 9A candidate boundary: never inspect an unreadable card's
++        // original type or abilities in pursuit of a land drop.
++        landsNotInHand.addAll(IterableUtil.filter(game.getCardsIn(ZoneType.Exile),
++                c -> c.getView().canBeShownTo(player.getView())));
+         if (!player.getCardsIn(ZoneType.Library).isEmpty()) {
+-            landsNotInHand.add(player.getCardsIn(ZoneType.Library).get(0));
++            final Card top = player.getCardsIn(ZoneType.Library).get(0);
++            if (top.getView().canBeShownTo(player.getView())) {
++                landsNotInHand.add(top);
++            }
+         }
+         for (final Card crd : landsNotInHand) {
+             if (!(crd.hasPlayableLandFace() || (crd.isFaceDown() && crd.getState(CardStateName.Original).getType().isLand()))) {
+@@ -70,13 +76,21 @@
+         CardCollection all = new CardCollection(player.getCardsIn(ZoneType.Hand));
+ 
+         all.addAll(player.getCardsIn(ZoneType.Graveyard));
++        // Stage 9A candidate boundary: being in the real Game model is not
++        // sufficient authority for the AI to inspect a hidden identity.
++        // Blind legal plays must later be exposed as opaque referee-validated
++        // actions, rather than granting access to the underlying Card.
+         for (Player p : game.getPlayers()) {
+             if (!p.getCardsIn(ZoneType.Library).isEmpty()) {
+-                all.add(p.getCardsIn(ZoneType.Library).get(0));
++                final Card top = p.getCardsIn(ZoneType.Library).get(0);
++                if (top.getView().canBeShownTo(player.getView())) {
++                    all.add(top);
++                }
+             }
+         }
+         all.addAll(IterableUtil.filter(player.getCardsIn(ZoneType.Command), c -> !c.isImmutable() || c.isEmblem()));
+-        all.addAll(game.getCardsIn(ZoneType.Exile));
++        all.addAll(IterableUtil.filter(game.getCardsIn(ZoneType.Exile),
++                c -> c.getView().canBeShownTo(player.getView())));
+         all.addAll(game.getCardsIn(ZoneType.Battlefield));
+         return all;
+     }
