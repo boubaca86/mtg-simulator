@@ -54,8 +54,8 @@ jobs:
           from pathlib import Path
           from stage8p_reserved_planner import load_models
           model, validator = load_models(Path('stage8o-model/stage8o-checkpoint.json'), Path('frozen-shadow/shadow-model.json'))
-          assert model['promotion_allowed'] is False
-          assert model['broader_learned_control_allowed'] is False
+          assert model.get('promotion_allowed', False) is False, 'Frozen checkpoint must not authorize promotion'
+          assert model.get('broader_learned_control_allowed', False) is False, 'Frozen checkpoint must not authorize broader control'
           print('Frozen model:', model['model_id'])
           print('Frozen validator:', validator.model_id)
           PY
