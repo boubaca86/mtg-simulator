@@ -29,3 +29,16 @@ The confidence intervals are **exploratory retrospective descriptions on only 12
 - A future gameplay study requires a separately reviewed and frozen Forge/deck/model/seed/paired-outcome protocol and robust one-shot seed guard. No current stage approves it.
 
 **Review gate:** This Stage 8S branch is based on pending Stage 8R PR #15. Review and passing CI are prerequisites; do not merge into main or dispatch games without independent review.
+
+
+## Observed Stage 8S diagnostic outcome — **2026-10-10**
+
+- [Completed no-gameplay Stage 8S workflow run 38060578904](https://github.com/boubaca86/mtg-simulator/actions/runs/38060578904) passed synthetic regressions, pinned-source validation, report integrity and exact byte-for-byte reproduction under distinct Python hash seeds.
+- Archived report: artifact **11672474137**, ZIP digest **sha256:7fe18f7d5527b2df1ffd6e5193c45ac9e0821f854751017077896e7f32977211**.
+- Of the **42** additional `q_` public target/effect features, **27 were never activated** by any observed chosen action across the 24 prior development games. Exactly **27** were active in fewer than three seed families. This is sparse *observed behavior* coverage, not proof of why Stage 8R underperformed or of what would happen if alternative actions were selected.
+- Whole-family percentile bootstrap of **8R minus 8O** grouped development log loss: mean **+0.0004622696027007378**, retrospective 95% interval **[-0.00008185062967110597, +0.0010748415310355512]**.
+- Whole-family bootstrap Brier: mean **+0.00021910442823236861**, retrospective 95% interval **[-0.000043895110288606765, +0.0005106111053598308]**.
+- Both intervals include zero; these small retrospective differences are uncertain. The precommitted Stage 8R point-estimate advancement gate still **FAILED**. These intervals were computed *after* that known result, and are not a fresh confirmatory test.
+- **No gameplay or new candidate-model tuning occurred.** Do not claim strength improvement, promote a controller, or unfreeze any held-out seed from this diagnostic.
+
+**Next candidate action (requires its own review):** design a model-independent, Forge-refereed development exploration protocol with broader legal-action diversity. First audit candidate seed usage across all prior runs and fix hash-pinned opponent/decks/referee, legal-action telemetry, both orientations, exclusions, sample size, failure rules, uncertainty and immutable acceptance gates. Do not dispatch new games from this document.
