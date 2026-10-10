@@ -4,9 +4,12 @@ from tempfile import TemporaryDirectory
 from patch_forge_stage8x_observed_only import patch_ai_controller, patch_game_simulator, patch_sources
 from stage8x_information_view import information_view, fingerprint
 
-AI_SOURCE = """        if (!ccvPlayerLibrary.isEmpty()) {
+AI_SOURCE = """        all.addAll(player.getCardsIn(ZoneType.Exile));
+        all.addAll(player.getCardsIn(ZoneType.Graveyard));
+        if (!ccvPlayerLibrary.isEmpty()) {
             all.add(ccvPlayerLibrary.get(0));
         }
+        all.addAll(player.getOpponents().getCardsIn(ZoneType.Exile));
     public boolean usesHybridSimulation() {
         return simMode == AIOption.USE_HYBRID_SIMULATION;
     }
