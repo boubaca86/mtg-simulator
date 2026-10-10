@@ -15,7 +15,7 @@ def replace_once(text: str, old: str, new: str, label: str) -> str:
     return text.replace(old,new,1)
 
 def patch_ai_controller(source: str) -> str:
-    return replace_once(source,
+    source = replace_once(source,
         """    public boolean usesHybridSimulation() {
         return simMode == AIOption.USE_HYBRID_SIMULATION;
     }
@@ -37,6 +37,20 @@ def patch_ai_controller(source: str) -> str:
         return !expertObservedOnly() && simMode == AIOption.USE_FULL_SIMULATION;
     }
 """, "AiController mode gate")
+
+
+    return replace_once(source,
+        """        if (!ccvPlayerLibrary.isEmpty()) {
+            all.add(ccvPlayerLibrary.get(0));
+        }
+""",
+        """        // Stage 8X: deck composition is known, secret draw order is not.
+        // Only look at the library top when this player can legally view it.
+        if (!ccvPlayerLibrary.isEmpty()
+                && ccvPlayerLibrary.get(0).getView().canBeShownTo(player.getView())) {
+            all.add(ccvPlayerLibrary.get(0));
+        }
+""", "AiController own-library-top visibility gate")
 
 def patch_game_simulator(source: str) -> str:
     return replace_once(source,
