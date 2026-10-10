@@ -38,6 +38,16 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+      - name: Prepare virtual display for Forge desktop initialization
+        run: |
+          set -euo pipefail
+          if ! command -v xvfb-run >/dev/null || ! command -v xauth >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y xvfb xauth
+          fi
+          command -v xvfb-run
+          command -v xauth
+
       - name: Verify checkout and install isolated test fixture
         run: |
           set -euo pipefail
@@ -57,7 +67,7 @@ jobs:
           cd forge-src
           rm -rf forge-gui-desktop/target/surefire-reports
           set +e
-          mvn -B -ntp -pl forge-gui-desktop -am test \
+          xvfb-run -a mvn -B -ntp -pl forge-gui-desktop -am test \
             -Dtest=ObservedOnlyNoninterferenceTest \
             -Dsurefire.failIfNoSpecifiedTests=false \
             > "$GITHUB_WORKSPACE/stage9a-evidence/baseline/maven.log" 2>&1
@@ -97,7 +107,7 @@ jobs:
           cd forge-src
           rm -rf forge-gui-desktop/target/surefire-reports
           set +e
-          mvn -B -ntp -pl forge-gui-desktop -am test \
+          xvfb-run -a mvn -B -ntp -pl forge-gui-desktop -am test \
             -Dtest=ObservedOnlyNoninterferenceTest \
             -Dsurefire.failIfNoSpecifiedTests=false \
             > "$GITHUB_WORKSPACE/stage9a-evidence/patched/maven.log" 2>&1
