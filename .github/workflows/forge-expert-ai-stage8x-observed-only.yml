@@ -1,0 +1,49 @@
+name: Stage 8X observed-only safety (NO GAMEPLAY)
+on:
+  push:
+    branches: [expert-stage8x-observed-only-boundary]
+  pull_request:
+    paths:
+      - 'patch_forge_stage8x_observed_only.py'
+      - 'stage8x_information_view.py'
+      - 'test_stage8x_observed_only.py'
+      - '.github/workflows/forge-expert-ai-stage8x-observed-only.yml'
+permissions:
+  contents: read
+jobs:
+  observation-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest -v test_stage8x_observed_only
+      - run: python -m py_compile patch_forge_stage8x_observed_only.py stage8x_information_view.py
+  forge-compile-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Clone pinned Forge
+        run: git clone --depth 1 --branch forge-2.0.15 https://github.com/Card-Forge/forge.git forge-src
+      - name: Apply old patch sequence and new observed-only guard
+        run: |
+          set -euo pipefail
+          python patch_forge_information_set.py forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java
+          python patch_forge_infoset_ensemble.py \
+            --game-simulator forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java \
+            --simulation-controller forge-src/forge-ai/src/main/java/forge/ai/simulation/SimulationController.java \
+            --spell-picker forge-src/forge-ai/src/main/java/forge/ai/simulation/SpellAbilityPicker.java
+          python patch_forge_stage8x_observed_only.py \
+            --ai-controller forge-src/forge-ai/src/main/java/forge/ai/AiController.java \
+            --game-simulator forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java
+          grep -q 'return !expertObservedOnly()' forge-src/forge-ai/src/main/java/forge/ai/AiController.java
+          grep -q 'hidden-card simulations are forbidden' forge-src/forge-ai/src/main/java/forge/ai/simulation/GameSimulator.java
+      - name: Compile only; no games or seeds
+        working-directory: forge-src
+        run: mvn -B -pl forge-gui-desktop -am -DskipTests -Dcheckstyle.skip=true package
