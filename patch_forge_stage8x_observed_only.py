@@ -39,6 +39,28 @@ def patch_ai_controller(source: str) -> str:
 """, "AiController mode gate")
 
 
+    source = replace_once(source,
+        """        all.addAll(player.getCardsIn(ZoneType.Exile));
+        all.addAll(player.getCardsIn(ZoneType.Graveyard));
+""",
+        """        // Stage 8Y: face-down exiled cards are not automatically visible.
+        for (final Card exiled : player.getCardsIn(ZoneType.Exile)) {
+            if (exiled.getView().canBeShownTo(player.getView())) {
+                all.add(exiled);
+            }
+        }
+        all.addAll(player.getCardsIn(ZoneType.Graveyard));
+""", "own exile visibility gate")
+    source = replace_once(source,
+        """        all.addAll(player.getOpponents().getCardsIn(ZoneType.Exile));
+""",
+        """        // Stage 8Y: opponent face-down exile is also private unless revealed.
+        for (final Card exiled : player.getOpponents().getCardsIn(ZoneType.Exile)) {
+            if (exiled.getView().canBeShownTo(player.getView())) {
+                all.add(exiled);
+            }
+        }
+""", "opponent exile visibility gate")
     return replace_once(source,
         """        if (!ccvPlayerLibrary.isEmpty()) {
             all.add(ccvPlayerLibrary.get(0));
