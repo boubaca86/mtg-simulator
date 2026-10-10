@@ -64,7 +64,8 @@ def started_gameplay(job, *, current=False):
         if current:
             raise ValueError("Cannot verify reserved seed history: current gameplay already skipped")
         return False
-    if status == "queued" and conclusion is None and current:
+    if status in ("queued", "pending") and conclusion is None and current:
+        # GitHub may report a not-yet-started future step as pending.
         return False
     if status in ("in_progress", "completed") and conclusion != "skipped":
         # A failed, cancelled or timed-out gameplay step still spends the seeds.
