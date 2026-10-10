@@ -1,0 +1,20 @@
+name: Forge Expert AI Stage 8Q — Public Target Effects
+on:
+  pull_request:
+  push:
+    branches: [main, expert-stage8q-target-effect-interactions]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile Stage 8Q public-only feature code
+        run: python -m py_compile stage8q_target_effect_features.py test_stage8q_target_effect_features.py
+      - name: Stage 8Q and inherited public information boundaries
+        run: |
+          python -m unittest -v test_stage8q_target_effect_features test_stage8o_outcome_policy test_stage8d_shadow_policy test_stage8c_target_features
