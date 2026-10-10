@@ -46,12 +46,17 @@ class Stage8POneShotGuardTests(unittest.TestCase):
     def test_in_progress_gameplay_locks_seeds(self):
         self.assertTrue(started_gameplay(job(status="in_progress", conclusion=None)))
 
-    def test_queued_gameplay_is_only_allowed_for_current_attempt(self):
-        j = job(status="queued", conclusion=None)
-        j["status"] = "in_progress"
-        self.assertFalse(started_gameplay(j, current=True))
-        with self.assertRaises(ValueError):
-            started_gameplay(j)
+    def test_queued_or_pending_gameplay_is_only_allowed_for_current_attempt(self):
+        for state in ("queued", "pending"):
+            with self.subTest(state=state):
+                j = job(status=state, conclusion=None)
+                j["status"] = "in_progress"
+                self.assertFalse(started_gameplay(j, current=True))
+                with self.assertRaises(ValueError):
+                    started_gameplay(j)
+                j["steps"][0]["conclusion"] = "skipped"
+                with self.assertRaises(ValueError):
+                    started_gameplay(j, current=True)
 
     def test_missing_gameplay_step_fails_closed(self):
         for status in ("completed", "queued", "in_progress"):
@@ -156,8 +161,9 @@ class Stage8POneShotGuardTests(unittest.TestCase):
         current = job()
         current.update(status="in_progress", steps=[])
         history([run(status="in_progress")], {11: [current]}, current_run_id=11, current_attempt=1)
-        current["steps"] = job(status="queued", conclusion=None)["steps"]
-        history([run(status="in_progress")], {11: [current]}, current_run_id=11, current_attempt=1)
+        for future_state in ("queued", "pending"):
+            current["steps"] = job(status=future_state, conclusion=None)["steps"]
+            history([run(status="in_progress")], {11: [current]}, current_run_id=11, current_attempt=1)
 
     def test_current_attempt_does_not_hide_prior_gameplay_on_rerun(self):
         current = job(attempt=2, job_id=2)
