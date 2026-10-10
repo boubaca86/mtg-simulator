@@ -9,9 +9,14 @@ permissions:
   contents: read
   actions: read
 
+# All refs and reruns share one lock; a second dispatch must not cancel a game.
+concurrency:
+  group: stage8p-reserved-seeds-20261032-20261033
+  cancel-in-progress: false
+
 jobs:
   reserved-pilot:
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     steps:
@@ -26,8 +31,8 @@ jobs:
 
       - name: Verify frozen protocol and regressions
         run: |
-          python -m unittest -v test_stage8p_reserved test_stage8o_outcome_policy test_stage8k_return_boundary_intervention test_stage8h_lifecycle_audit test_stage8d_shadow_policy
-          python -m py_compile stage8p_reserved_*.py
+          python -m unittest -v test_stage8p_one_shot_guard test_stage8p_reserved test_stage8o_outcome_policy test_stage8k_return_boundary_intervention test_stage8h_lifecycle_audit test_stage8f_acceptance_audit test_stage8e_returned_action_audit test_stage8d_shadow_policy
+          python -m py_compile stage8p_*.py
           python - <<'PY'
           from stage8p_reserved_planner import MODEL_ID, VALIDATOR_ID, SEEDS, ORIENTATIONS
           from stage8p_reserved_gate import MIN_APPLIED, MIN_PAIRED_SCORE_GAIN
@@ -120,6 +125,16 @@ jobs:
           echo "FORGE_JAR=$(realpath "$FORGE_JAR")" >> "$GITHUB_ENV"
           echo "FORGE_HOME=$(realpath forge-gui)" >> "$GITHUB_ENV"
 
+      # Keep this separate from gameplay: the API must still show gameplay as
+      # queued/absent for this exact current attempt while the guard runs.
+      - name: Verify reserved seeds have never entered gameplay
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python stage8p_one_shot_guard.py 2>&1 | tee stage8p-one-shot-guard.log
+
       - name: Run four fresh paired reserved games with one-shot public-only control
         shell: bash
         run: |
@@ -210,6 +225,7 @@ jobs:
           name: stage8p-reserved-pilot-evidence
           if-no-files-found: warn
           path: |
+            stage8p-one-shot-guard.log
             stage8p-reserved-report.json
             stage8p-deck-sha256.txt
             stage8p-*.plan.json
