@@ -2,6 +2,7 @@ package forge.ai;
 
 import forge.game.Game;
 import forge.game.card.Card;
+import forge.game.card.CardCollection;
 import forge.game.phase.PhaseType;
 import forge.game.player.Player;
 import forge.game.spellability.SpellAbility;
@@ -158,4 +159,73 @@ public class ObservedOnlyNoninterferenceTest extends AITest {
         AssertJUnit.assertEquals("Private face-down exile must not change Forge decision",
                 first.selectedAction, second.selectedAction);
     }
+
+    /**
+     * Security-negative regression: stock Forge 2.0.15 currently returns the
+     * opponent's unobserved library top from getAvailableCards(). This MUST
+     * FAIL until the source is fixed; a red test is not a working firewall.
+     *
+     * No external permission, public reveal, or playable-from-library effect
+     * is installed in this fixture.
+     */
+    @Test(timeOut = 120000)
+    public void opponentUnseenTopLibraryNotEnumerated() {
+        Game game = initAndCreateGame();
+        Player actor = game.getPlayers().get(1);
+        Player opponent = game.getPlayers().get(0);
+        Card secret = addCardToZone("Counterspell", opponent, ZoneType.Library);
+        AssertJUnit.assertFalse("The card must really be private in this scenario",
+                secret.getView().canBeShownTo(actor.getView()));
+        CardCollection candidates = ComputerUtilAbility.getAvailableCards(game, actor);
+        AssertJUnit.assertFalse("Cannot offer an opponent's private library-top card to the AI",
+                candidates.contains(secret));
+    }
+
+    /**
+     * No top-of-library look/play effect: the AI cannot consult the identity
+     * or abilities of its own future draw merely because it owns the deck.
+     */
+    @Test(timeOut = 120000)
+    public void ownUnseenTopLibraryNotEnumerated() {
+        Game game = initAndCreateGame();
+        Player actor = game.getPlayers().get(1);
+        Card secret = addCardToZone("Lightning Bolt", actor, ZoneType.Library);
+        AssertJUnit.assertFalse("Unobserved top of own library must remain private",
+                secret.getView().canBeShownTo(actor.getView()));
+        AssertJUnit.assertFalse("Own decklist does not reveal draw order",
+                ComputerUtilAbility.getAvailableCards(game, actor).contains(secret));
+    }
+
+    /**
+     * Security-negative regression for face-down exile. This fixture grants
+     * no look or play permission, so card identity cannot be a candidate.
+     */
+    @Test(timeOut = 120000)
+    public void opponentUnseenFaceDownExileNotEnumerated() {
+        Game game = initAndCreateGame();
+        Player actor = game.getPlayers().get(1);
+        Player opponent = game.getPlayers().get(0);
+        Card secret = addCardToZone("Giant Growth", opponent, ZoneType.Exile);
+        AssertJUnit.assertTrue("Fixture requires a face-down exile card", secret.turnFaceDown(true));
+        AssertJUnit.assertFalse("The actor must not be able to examine the secret",
+                secret.getView().canBeShownTo(actor.getView()));
+        AssertJUnit.assertFalse("Unexaminable face-down exile card cannot reach ability enumeration",
+                ComputerUtilAbility.getAvailableCards(game, actor).contains(secret));
+    }
+
+    /**
+     * Sanity control: ordinary known cards remain available to the AI.
+     */
+    @Test(timeOut = 120000)
+    public void publicBattlefieldAndOwnHandRemainCandidates() {
+        Game game = initAndCreateGame();
+        Player actor = game.getPlayers().get(1);
+        Player opponent = game.getPlayers().get(0);
+        Card hand = addCardToZone("Shock", actor, ZoneType.Hand);
+        Card battlefield = addCard("Runeclaw Bear", opponent);
+        CardCollection candidates = ComputerUtilAbility.getAvailableCards(game, actor);
+        AssertJUnit.assertTrue("Own hand stays available", candidates.contains(hand));
+        AssertJUnit.assertTrue("Opponent public battlefield stays available", candidates.contains(battlefield));
+    }
+
 }
