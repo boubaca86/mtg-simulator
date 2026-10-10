@@ -2,12 +2,12 @@
 from __future__ import annotations
 import json
 
-SCHEMA = "stage8v-ai-filtered-top-level-v1"
+SCHEMA = "stage8v-ai-filtered-top-level-v2"
 SOURCE = "SpellAbilityPicker.getCandidateSpellsAndAbilities"
 KEYS = {
     "schema_version", "source", "complete_legal_enumeration",
     "target_combinations_enumerated", "priority_pass_enumerated",
-    "selected_status", "run_seed", "decision_index",
+    "selected_status", "session_id", "matchup_id", "orientation", "run_seed", "decision_index",
     "top_level_candidate_count", "proposed_candidate_index",
 }
 
