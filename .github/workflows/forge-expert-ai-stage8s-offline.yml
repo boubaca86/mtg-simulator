@@ -1,0 +1,79 @@
+name: Forge Expert AI Stage 8S — Feature Support and Uncertainty
+on:
+  push:
+    branches: [expert-stage8s-feature-support-uncertainty]
+    paths:
+      - 'stage8s_feature_support.py'
+      - 'test_stage8s_feature_support.py'
+      - 'STAGE8S_FEATURE_SUPPORT.md'
+      - '.github/workflows/forge-expert-ai-stage8s-offline.yml'
+  pull_request:
+    paths:
+      - 'stage8s_feature_support.py'
+      - 'test_stage8s_feature_support.py'
+      - 'STAGE8S_FEATURE_SUPPORT.md'
+      - '.github/workflows/forge-expert-ai-stage8s-offline.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  diagnostic:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile and run safety and paired-family regressions (no Forge gameplay)
+        run: |
+          set -euo pipefail
+          python -m py_compile stage8s_feature_support.py test_stage8s_feature_support.py
+          python -m unittest -v test_stage8s_feature_support
+      - name: Recover pinned old public development data only
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11491113213" --jq '.digest')" = "sha256:4179dbe7bd26bcb745efd9d5da800342f13638a85dd6abd97f449bf3d29a1d7c"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11495733848" --jq '.digest')" = "sha256:36037df0152a57fc6117f5cf91dcaa4cb3fd26288e4b07d6ce2028cffe93062e"
+          gh run download 37637623265 -n stage8l-public-outcome-trajectories -D input-8l
+          gh run download 37646582768 -n stage8n-public-exploration-corpus -D input-8n
+          test -s input-8l/stage8l-outcome-trajectories.jsonl
+          test -s input-8n/stage8n-outcome-trajectories.jsonl
+      - name: Produce twice and verify immutable diagnostic report
+        shell: bash
+        run: |
+          set -euo pipefail
+          python stage8s_feature_support.py input-8l/stage8l-outcome-trajectories.jsonl input-8n/stage8n-outcome-trajectories.jsonl --report stage8s-report.json
+          PYTHONHASHSEED=237 python stage8s_feature_support.py input-8l/stage8l-outcome-trajectories.jsonl input-8n/stage8n-outcome-trajectories.jsonl --report stage8s-report-repeat.json
+          cmp stage8s-report.json stage8s-report-repeat.json
+          python - <<'PY'
+          import json
+          from stage8s_feature_support import SCHEMA
+          d = json.load(open('stage8s-report.json'))
+          assert d['schema'] == SCHEMA
+          assert d['training_games'] == 24 and d['observed_action_rows'] == 331
+          assert d['consumed_reserved_seed_families_not_used'] == [20261032, 20261033]
+          assert d['new_gameplay_executed'] is False
+          assert d['new_training_or_model_selection'] is False
+          assert d['promotion_allowed'] is False and d['strength_claim_allowed'] is False
+          assert d['future_proposed_seeds_unverified_and_not_used'] is True
+          assert d['family_bootstrap']['resamples'] == 10000
+          assert len(d['paired_seed_family_differences']) == 12
+          assert d['feature_support']['beneficial_self_target_options_always_remain_legal']
+          print('Stage 8S feature support:', json.dumps({
+              'features': d['feature_support']['number_of_q_features'],
+              'zero_support': d['feature_support']['number_never_activated'],
+              'fewer_than_three_families': d['feature_support']['number_with_fewer_than_three_seed_families'],
+          }, sort_keys=True))
+          print('Paired bootstrap:', json.dumps(d['family_bootstrap']['metrics'], sort_keys=True))
+          print('Observational diagnostic only; absolutely no learned-controller promotion.')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stage8s-feature-support-uncertainty
+          path: stage8s-report.json
+          if-no-files-found: warn
