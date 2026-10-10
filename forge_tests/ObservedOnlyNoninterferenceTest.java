@@ -39,7 +39,14 @@ public class ObservedOnlyNoninterferenceTest extends AITest {
         for (Card card : owner.getCardsIn(zone)) {
             AssertJUnit.assertTrue("Only visible zones may enter public trace",
                     card.getView().canBeShownTo(viewer.getView()));
-            names.add(card.getName());
+            // A face-down battlefield card has a public shell, not a public identity.
+            // CardView.canBeShownTo() alone is NOT an identity permission.
+            if (card.getView().isFaceDown()
+                    && !card.getView().canFaceDownBeShownTo(viewer.getView())) {
+                names.add("<face-down>");
+            } else {
+                names.add(card.getName());
+            }
         }
         Collections.sort(names);
         return names.toString();
@@ -223,9 +230,23 @@ public class ObservedOnlyNoninterferenceTest extends AITest {
         Player opponent = game.getPlayers().get(0);
         Card hand = addCardToZone("Shock", actor, ZoneType.Hand);
         Card battlefield = addCard("Runeclaw Bear", opponent);
+        Card concealed = addCard("Llanowar Elves", opponent);
+        AssertJUnit.assertTrue("Fixture must have a face-down battlefield permanent",
+                concealed.turnFaceDown(true));
+        AssertJUnit.assertTrue("Public face-down shell remains visible",
+                concealed.getView().canBeShownTo(actor.getView()));
+        AssertJUnit.assertFalse("Public shell is not permission to examine hidden identity",
+                concealed.getView().canFaceDownBeShownTo(actor.getView()));
+        String visibleBattlefield = visibleNames(opponent, ZoneType.Battlefield, actor);
+        AssertJUnit.assertTrue("Trace must represent the public face-down shell",
+                visibleBattlefield.contains("<face-down>"));
+        AssertJUnit.assertFalse("Trace must not contain concealed card's original identity",
+                visibleBattlefield.contains("Llanowar Elves"));
         CardCollection candidates = ComputerUtilAbility.getAvailableCards(game, actor);
         AssertJUnit.assertTrue("Own hand stays available", candidates.contains(hand));
         AssertJUnit.assertTrue("Opponent public battlefield stays available", candidates.contains(battlefield));
+        AssertJUnit.assertTrue("Face-down battlefield shell stays targetable",
+                candidates.contains(concealed));
     }
 
 }
