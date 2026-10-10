@@ -115,8 +115,7 @@ def family_bootstrap(paired, resamples=RESAMPLES, seed=BOOTSTRAP_SEED):
             "percentile_95_low": _percentile(draws, .025),
             "percentile_95_high": _percentile(draws, .975),
             "direction": "lower is better for 8R minus frozen 8O",
-            "interval_crosses_zero": min(draws) <= 0 <= max(draws)
-                if False else _percentile(draws, .025) <= 0 <= _percentile(draws, .975),
+            "interval_crosses_zero": _percentile(draws, .025) <= 0 <= _percentile(draws, .975),
         }
         for metric, draws in estimates.items()
     }
