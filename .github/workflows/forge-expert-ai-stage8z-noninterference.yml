@@ -1,0 +1,21 @@
+name: Stage 8Z synthetic noninterference (NO GAMEPLAY)
+on:
+  push:
+    branches: [expert-stage8z-noninterference-contract]
+  pull_request:
+    paths:
+      - 'stage8z_noninterference_contract.py'
+      - 'test_stage8z_noninterference_contract.py'
+      - '.github/workflows/forge-expert-ai-stage8z-noninterference.yml'
+permissions:
+  contents: read
+jobs:
+  synthetic-information-boundary:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest -v test_stage8x_observed_only test_stage8y_exile_visibility test_stage8z_noninterference_contract
+      - run: python -m py_compile stage8z_noninterference_contract.py
