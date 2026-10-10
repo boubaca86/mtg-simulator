@@ -1,0 +1,22 @@
+name: Stage 8W provenance contract
+on:
+  push:
+    branches: [expert-stage8w-provenance-audit]
+  pull_request:
+    paths:
+      - 'stage8w_*.py'
+      - 'test_stage8w_provenance.py'
+      - '.github/workflows/forge-expert-ai-stage8w-contract.yml'
+permissions:
+  contents: read
+jobs:
+  offline-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest -v test_stage8w_provenance
