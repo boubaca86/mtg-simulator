@@ -27,10 +27,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 75
     env:
-      STAGE10H_WORKER: ${{ github.workspace }}/stage9w/opening_hand_actor.py
-      STAGE10H_LEGACY_PLAN_WORKER: ${{ github.workspace }}/stage10b/action_plan_actor.py
-      STAGE10H_DEFENSE_WORKER: ${{ github.workspace }}/stage10d/multi_block_actor.py
-      STAGE10H_MENACE_WORKER: ${{ github.workspace }}/stage10e/menace_defense_actor.py
+      STAGE10G_WORKER: ${{ github.workspace }}/stage9w/opening_hand_actor.py
+      STAGE10G_LEGACY_PLAN_WORKER: ${{ github.workspace }}/stage10b/action_plan_actor.py
+      STAGE10G_DEFENSE_WORKER: ${{ github.workspace }}/stage10d/multi_block_actor.py
+      STAGE10G_MENACE_WORKER: ${{ github.workspace }}/stage10e/menace_defense_actor.py
     steps:
       - name: Checkout feature branch without credentials
         uses: actions/checkout@v4
@@ -68,10 +68,10 @@ jobs:
           git rev-parse HEAD > stage10h-evidence/feature-sha.txt
           sha256sum stage9w/opening_hand_actor.py stage10b/action_plan_actor.py stage10d/multi_block_actor.py stage10d/test_protocol.py stage10e/menace_defense_actor.py stage10e/test_protocol.py forge_tests/Stage10GRefereeDamageTest.java stage10h/test_protocol.py forge_tests/verify_stage10g_surefire.py \
             > stage10h-evidence/source-hashes.txt
-          test -r "$STAGE10H_WORKER"
-          test -r "$STAGE10H_LEGACY_PLAN_WORKER"
-          test -r "$STAGE10H_DEFENSE_WORKER"
-          test -r "$STAGE10H_MENACE_WORKER"
+          test -r "$STAGE10G_WORKER"
+          test -r "$STAGE10G_LEGACY_PLAN_WORKER"
+          test -r "$STAGE10G_DEFENSE_WORKER"
+          test -r "$STAGE10G_MENACE_WORKER"
           install -m 0644 forge_tests/Stage10GRefereeDamageTest.java \
             forge-src/forge-gui-desktop/src/test/java/forge/ai/Stage10GRefereeDamageTest.java
       - name: Verify two-process Stage 10D and Stage 10E actor information contracts
