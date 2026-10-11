@@ -8,8 +8,13 @@ One process can simulate either a completely silent or unterminated reply.
 import sys
 import time
 
-if len(sys.argv) != 2 or sys.argv[1] not in ("silent", "partial"):
+if len(sys.argv) != 2 or sys.argv[1] not in ("silent", "partial", "noread"):
     raise SystemExit("invalid adversarial actor mode")
+
+if sys.argv[1] == "noread":
+    # Real child process deliberately keeps stdin open but never drains it.
+    while True:
+        time.sleep(60)
 
 for raw in sys.stdin.buffer:
     if len(raw) > 16384:
