@@ -205,7 +205,7 @@ public final class IsolatedForgeCombatAttackTest extends AITest {
            game.getPhaseHandler().getPhase()!=PhaseType.COMBAT_DECLARE_ATTACKERS ||
            combat.getAttackingPlayer()!=self || !combat.getDefenders().contains(defender)) return;
         JsonArray indices=reply.getAsJsonArray("table_indices");
-        List<Card> table=self.getCardsIn(ZoneType.Battlefield);
+        var table=self.getCardsIn(ZoneType.Battlefield);
         List<Card> approved=new ArrayList<>();
         for(int i=0;i<indices.size();i++) {
             int n=indices.get(i).getAsInt();
