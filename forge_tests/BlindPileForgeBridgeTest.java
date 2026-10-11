@@ -126,7 +126,7 @@ public class BlindPileForgeBridgeTest extends AITest {
         Player opponent = game.getPlayers().get(0);
         Card secret = hiddenExile(game, actor, "Shock").get(0);
         Card host = addCard("Runeclaw Bear", actor);
-        StaticAbility ability = new StaticAbility("Mode$ MayPlay", host, host.getCurrentState());
+        StaticAbility ability = new StaticAbility("Mode$ Continuous | Affected$ Card.Self | Description$ Stage9D fixture", host, host.getCurrentState());
         // A fixture-issued play permission; no real spell authorization implied.
         secret.setMayPlay(actor, false, null, false, true, ability);
         AssertJUnit.assertFalse(secret.getView().canBeShownTo(actor.getView()));
