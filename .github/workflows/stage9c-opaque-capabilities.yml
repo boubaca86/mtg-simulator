@@ -1,0 +1,52 @@
+name: Stage 9C — Opaque Blind-Pile Capability Contract
+
+# Synthetic policy/referee boundary only: no Forge build, game matches,
+# training, evaluator seeds, external secrets or production integration.
+on:
+  push:
+    branches:
+      - expert-stage9a-forge-decision-pairs
+    paths:
+      - stage9c_opaque_capabilities.py
+      - test_stage9c_opaque_capabilities.py
+      - stage8z_noninterference_contract.py
+      - stage8x_information_view.py
+      - .github/workflows/stage9c-opaque-capabilities.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stage9c-opaque-contract-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact candidate revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify all Stage9C unittest cases executed
+        run: |
+          set -euo pipefail
+          mkdir -p stage9c-evidence
+          python -m unittest -v test_stage9c_opaque_capabilities \
+            2>&1 | tee stage9c-evidence/unittest.log
+          grep -Eq '^Ran 23 tests in ' stage9c-evidence/unittest.log
+          grep -q '^OK$' stage9c-evidence/unittest.log
+          git rev-parse HEAD > stage9c-evidence/candidate-head.txt
+      - name: Preserve exact Python test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage9c-python-evidence-${{ github.run_id }}
+          path: stage9c-evidence/
+          if-no-files-found: warn
+          retention-days: 14
