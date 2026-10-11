@@ -199,27 +199,17 @@ public class Stage9TGuardedConfirmTest extends AITest {
     }
 
     /** Reject any actor command outside the strictly bounded action schema. */
-    protected static void validateReply(JsonObject reply) {
+    private static void validateReply(JsonObject reply) {
         Assert.assertNotNull(reply);
         Assert.assertTrue(reply.has("intent") && reply.get("intent").isJsonPrimitive(),
                 "actor reply must have an intent");
         String intent=reply.get("intent").getAsString();
-        // Stage9V: an actor may independently advertise a one-bit life-gain
-        // preference based ONLY on its existing allowlisted observation.
-        // This is NOT a request for stack/phase/priority information.
-        int preferenceFields=0;
-        if (reply.has("optional_life_gain")) {
-            Assert.assertTrue(reply.get("optional_life_gain").isJsonPrimitive()
-                    && reply.get("optional_life_gain").getAsJsonPrimitive().isBoolean(),
-                    "optional life preference must be an actual JSON boolean");
-            preferenceFields=1;
-        }
         if ("pass".equals(intent)) {
-            Assert.assertEquals(reply.size(),1+preferenceFields,"pass cannot carry extra data");
+            Assert.assertEquals(reply.size(),1,"pass cannot carry extra data");
             return;
         }
         if ("attack".equals(intent)) {
-            Assert.assertEquals(reply.size(),2+preferenceFields,"attack may contain only indices");
+            Assert.assertEquals(reply.size(),2,"attack may contain only indices");
             Assert.assertTrue(reply.has("table_indices") && reply.get("table_indices").isJsonArray());
             JsonArray indices=reply.getAsJsonArray("table_indices");
             Assert.assertTrue(indices.size()>0 && indices.size()<=8,"bounded attackers");
@@ -235,7 +225,7 @@ public class Stage9TGuardedConfirmTest extends AITest {
         }
         Assert.assertTrue("play_land".equals(intent) || "cast_creature".equals(intent),
                 "only basic land, restricted creature or pass is permitted");
-        Assert.assertEquals(reply.size(),2+preferenceFields,"land request cannot carry extra data");
+        Assert.assertEquals(reply.size(),2,"land request cannot carry extra data");
         Assert.assertTrue(reply.has("hand_index") &&
                 reply.get("hand_index").isJsonPrimitive() &&
                 reply.get("hand_index").getAsJsonPrimitive().isNumber(),
