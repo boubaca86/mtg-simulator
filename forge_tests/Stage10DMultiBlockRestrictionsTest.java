@@ -618,12 +618,15 @@ public final class Stage10DMultiBlockRestrictionsTest extends AITest {
         }
         int blockerCallbacks=0;
         int blocksAuthorized=0;
+        int maxBlocksInSingleDeclare=0;
         @Override
         public void declareBlockers(Player defender,Combat combat) {
             try {
                 blockerCallbacks++;
                 JsonObject proposed=subprocess.ask(observation(controlled,opponent));
-                blocksAuthorized+=refereeDeclareBlockers(controlled,opponent,combat,proposed);
+                int accepted=refereeDeclareBlockers(controlled,opponent,combat,proposed);
+                blocksAuthorized+=accepted;
+                maxBlocksInSingleDeclare=Math.max(maxBlocksInSingleDeclare,accepted);
             } catch(Exception ex) {
                 throw new IllegalStateException("Actor blocker preference IPC failed",ex);
             }
@@ -2666,13 +2669,15 @@ public final class Stage10DMultiBlockRestrictionsTest extends AITest {
             boolean bothBlocks=false,bothPairsDestroyed=false;
             while(!game.isGameOver() && steps++<900) {
                 game.getPhaseHandler().mainLoopStep();
-                if(dc.blocksAuthorized>=2) bothBlocks=true;
+                if(dc.maxBlocksInSingleDeclare>=2) bothBlocks=true;
                 if(bothBlocks && countDeadBears(defender)>=2 &&
                         countDeadBears(attacker)>=2) {
                     bothPairsDestroyed=true;break;
                 }
             }
-            Assert.assertTrue(bothBlocks,"two distinct legal Forge block assignments required");
+            Assert.assertTrue(bothBlocks,"two distinct legal Forge blocks must occur in the SAME native declaration");
+            Assert.assertTrue(dc.maxBlocksInSingleDeclare>=2,
+                    "cumulative blocks across separate combat rounds are insufficient");
             Assert.assertTrue(bothPairsDestroyed,"real Forge combat damage destroys all four 2/2 Bears");
             Assert.assertTrue(steps<900,"bounded natural Forge turn progression");
             Assert.assertEquals(defender.getLife(),defenderStartingLife,
