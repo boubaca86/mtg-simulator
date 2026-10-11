@@ -1,0 +1,103 @@
+name: Stage 9E - Forge State Integrity Gate
+
+# Test-only, pinned, read-only CI: no gameplay, training, evaluation seeds,
+# production Forge patches, deployments, or main-branch merges.
+on:
+  push:
+    branches:
+      - expert-stage9a-forge-decision-pairs
+    paths:
+      - .github/workflows/stage9e-forge-state-integrity.yml
+      - forge_tests/BlindPileStateIntegrityTest.java
+      - forge_tests/verify_stage9e_surefire.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stage9e-state-integrity-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  stage9e-forge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout candidate branch without retained credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Checkout pinned upstream Forge 2.0.15
+        uses: actions/checkout@v4
+        with:
+          repository: Card-Forge/forge
+          ref: forge-2.0.15
+          path: forge-src
+          persist-credentials: false
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Prepare virtual display for Forge tests
+        run: |
+          set -euo pipefail
+          if ! command -v xvfb-run >/dev/null || ! command -v xauth >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y xvfb xauth
+          fi
+
+      - name: Verify pinned source and install nine TestNG methods
+        run: |
+          set -euo pipefail
+          mkdir -p stage9e-evidence
+          test "$(git -C forge-src describe --tags --exact-match)" = 'forge-2.0.15'
+          test "$(git -C forge-src rev-parse HEAD)" = '4ec5f1a2c32fa90ecb983a72b9eb47aa5c5d7676'
+          git -C forge-src rev-parse HEAD > stage9e-evidence/forge-commit.txt
+          git rev-parse HEAD > stage9e-evidence/simulator-commit.txt
+          test "$(grep -c '@Test(timeOut = 120000)' forge_tests/BlindPileStateIntegrityTest.java)" -eq 9
+          install -m 0644 forge_tests/BlindPileStateIntegrityTest.java \
+            forge-src/forge-gui-desktop/src/test/java/forge/ai/BlindPileStateIntegrityTest.java
+
+      - name: Execute real Forge Java tests and preserve exit status
+        run: |
+          set -euo pipefail
+          cd forge-src
+          rm -rf forge-gui-desktop/target/surefire-reports
+          set +e
+          xvfb-run -a mvn -B -ntp -pl forge-gui-desktop -am test \
+            -Dtest=BlindPileStateIntegrityTest \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            > "$GITHUB_WORKSPACE/stage9e-evidence/maven.log" 2>&1
+          status=$?
+          set -e
+          echo "$status" > "$GITHUB_WORKSPACE/stage9e-evidence/maven-exit.txt"
+          if [ -d forge-gui-desktop/target/surefire-reports ]; then
+            cp -R forge-gui-desktop/target/surefire-reports \
+              "$GITHUB_WORKSPACE/stage9e-evidence/"
+          fi
+          echo "Maven exit status: $status"
+          tail -n 55 "$GITHUB_WORKSPACE/stage9e-evidence/maven.log"
+
+      - name: Require Maven success and exactly nine passing XML results
+        run: |
+          set -euo pipefail
+          test "$(cat stage9e-evidence/maven-exit.txt)" -eq 0
+          python3 forge_tests/verify_stage9e_surefire.py \
+            --reports stage9e-evidence/surefire-reports \
+            | tee stage9e-evidence/gate.json
+
+      - name: Preserve source hashes, logs and test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage9e-forge-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: stage9e-evidence/
+          if-no-files-found: warn
+          retention-days: 14
