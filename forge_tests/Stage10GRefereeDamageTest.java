@@ -3013,6 +3013,7 @@ public final class Stage10GRefereeDamageTest extends AITest {
             Assert.assertNotEquals(workerD.process.pid(),workerA.process.pid());
             ExternalCreatureController dc=attach(game,defender,attacker,workerD);
             ExternalCreatureController ac=attach(game,attacker,defender,workerA);
+            doRealNativeStartForMultiTurn(game,dc,ac);
             fixturePlaceRegisteredBear(game,defender);
             fixturePlaceRegisteredBear(game,attacker);
             Card source=attacker.getCardsIn(ZoneType.Battlefield).stream()
@@ -3046,6 +3047,7 @@ public final class Stage10GRefereeDamageTest extends AITest {
             Assert.assertNotEquals(workerD.process.pid(),workerA.process.pid());
             ExternalCreatureController dc=attach(game,defender,attacker,workerD);
             ExternalCreatureController ac=attach(game,attacker,defender,workerA);
+            doRealNativeStartForMultiTurn(game,dc,ac);
             fixturePlaceRegisteredBear(game,defender);
             fixturePlaceRegisteredBear(game,defender);
             fixturePlaceRegisteredBear(game,defender);
