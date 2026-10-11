@@ -189,10 +189,10 @@ public final class Stage10GRefereeDamageTest extends AITest {
             this(usePlan ? 1 : 0);
         }
         Actor(int mode) throws Exception {
-            String script=System.getenv(mode==3 ? "STAGE10F_MENACE_WORKER" :
-                    mode==2 ? "STAGE10F_DEFENSE_WORKER" :
-                    mode==1 ? "STAGE10F_LEGACY_PLAN_WORKER" : "STAGE10F_WORKER");
-            Assert.assertNotNull(script, "CI must define STAGE10F_WORKER");
+            String script=System.getenv(mode==3 ? "STAGE10G_MENACE_WORKER" :
+                    mode==2 ? "STAGE10G_DEFENSE_WORKER" :
+                    mode==1 ? "STAGE10G_LEGACY_PLAN_WORKER" : "STAGE10G_WORKER");
+            Assert.assertNotNull(script, "CI must define STAGE10G_WORKER");
             ProcessBuilder builder = new ProcessBuilder("python3","-I","-S","-u",script);
             builder.environment().clear();
             builder.environment().put("PYTHONIOENCODING","utf-8");
