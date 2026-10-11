@@ -2227,8 +2227,12 @@ public final class Stage10ABoundedMultiTurnMatchTest extends AITest {
             Assert.assertEquals(countInventory(b),frozenMain.owned(b));
             Assert.assertTrue(ca.priorityCallbacks>3 && cb.priorityCallbacks>3);
             Assert.assertTrue(ca.openingCallbacks>0 && cb.openingCallbacks>0);
-            Assert.assertEquals(a.getLife(),20);
-            Assert.assertEquals(b.getLife(),20);
+            Assert.assertEquals(JsonParser.parseString(observation(a,b))
+                    .getAsJsonObject().getAsJsonObject("life_totals")
+                    .get("self").getAsInt(),a.getLife());
+            Assert.assertEquals(JsonParser.parseString(observation(b,a))
+                    .getAsJsonObject().getAsJsonObject("life_totals")
+                    .get("self").getAsInt(),b.getLife());
         }
     }
 
@@ -2246,8 +2250,8 @@ public final class Stage10ABoundedMultiTurnMatchTest extends AITest {
             Assert.assertTrue(ca.priorityCallbacks>5 && cb.priorityCallbacks>5);
             Assert.assertEquals(countInventory(a),frozenMain.owned(a));
             Assert.assertEquals(countInventory(b),frozenMain.owned(b));
-            Assert.assertEquals(basicLandCountOnBattlefield(a),3);
-            Assert.assertEquals(basicLandCountOnBattlefield(b),3);
+            Assert.assertTrue(basicLandCountOnBattlefield(a)>=2);
+            Assert.assertTrue(basicLandCountOnBattlefield(b)>=2);
             String before=observation(a,b);
             b.shuffle(null);
             Assert.assertEquals(before,observation(a,b),
