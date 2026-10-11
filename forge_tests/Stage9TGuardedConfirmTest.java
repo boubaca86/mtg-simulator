@@ -235,6 +235,17 @@ public final class Stage9TGuardedConfirmTest extends AITest {
         Assert.assertTrue(raw.length()<=8,"index value bound");
     }
 
+    /** Fail outside the catch: a missing validator rejection must fail the test. */
+    private static void assertReplyRejected(String payload) {
+        JsonObject reply=JsonParser.parseString(payload).getAsJsonObject();
+        try {
+            validateReply(reply);
+        } catch(AssertionError expected) {
+            return;
+        }
+        Assert.fail("FORGED_PAYLOAD_ACCEPTED: "+payload);
+    }
+
     /** Select only a current-hand legal LandAbility in the referee process. */
     private static SpellAbility refereeAuthorizeLand(Player self,JsonObject reply) {
         if (!"play_land".equals(reply.get("intent").getAsString())) return null;
@@ -652,12 +663,7 @@ public final class Stage9TGuardedConfirmTest extends AITest {
             "{\"intent\":\"play_land\",\"hand_index\":0.5}",
             "{\"intent\":\"play_land\",\"hand_index\":-1}",
             "{\"intent\":\"pass\",\"opponent_hand\":[]}")) {
-            try {
-                validateReply(JsonParser.parseString(candidate).getAsJsonObject());
-                Assert.fail("referee must reject forged payload "+candidate);
-            } catch(AssertionError expected) {
-                Assert.assertNotNull(expected.getMessage());
-            }
+            assertReplyRejected(candidate);
         }
         Assert.assertEquals(active.getCardsIn(ZoneType.Hand).size(),initial);
         Assert.assertEquals(active.getLandsPlayedThisTurn(),0);
@@ -777,12 +783,7 @@ public final class Stage9TGuardedConfirmTest extends AITest {
             "{\"intent\":\"cast_creature\",\"hand_index\":\"0\"}",
             "{\"intent\":\"cast_spell\",\"hand_index\":0}",
             "{\"intent\":\"pass\",\"hand_index\":0}")) {
-            try {
-                validateReply(JsonParser.parseString(candidate).getAsJsonObject());
-                Assert.fail("forged creature payload accepted "+candidate);
-            } catch(AssertionError expected) {
-                Assert.assertNotNull(expected.getMessage());
-            }
+            assertReplyRejected(candidate);
         }
         JsonObject unsupported=JsonParser.parseString(
             "{\"intent\":\"cast_creature\",\"hand_index\":0}").getAsJsonObject();
@@ -903,12 +904,7 @@ public final class Stage9TGuardedConfirmTest extends AITest {
             "{\"intent\":\"attack\",\"table_indices\":[\"0\"]}",
             "{\"intent\":\"attack\",\"table_indices\":[]}",
             "{\"intent\":\"attack\",\"table_indices\":[0,1,2,3,4,5,6,7,8]}")) {
-            try {
-                validateReply(JsonParser.parseString(payload).getAsJsonObject());
-                Assert.fail("forged attack accepted: "+payload);
-            } catch(AssertionError expected) {
-                Assert.assertNotNull(expected.getMessage());
-            }
+            assertReplyRejected(payload);
         }
         JsonObject reply=JsonParser.parseString(
             "{\"intent\":\"attack\",\"table_indices\":[0]}").getAsJsonObject();

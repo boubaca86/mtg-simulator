@@ -6,11 +6,22 @@ on:
   push:
     branches:
       - expert-stage9a-forge-decision-pairs
+      - expert-stage9t-rejection-test-integrity
     paths:
       - .github/workflows/stage9t-guarded-confirmations.yml
       - stage9o/combat_actor.py
       - forge_tests/Stage9TGuardedConfirmTest.java
       - forge_tests/verify_stage9t_surefire.py
+      - forge_tests/stage9t_rejection_integrity.py
+      - forge_tests/test_stage9t_rejection_integrity.py
+  pull_request:
+    paths:
+      - .github/workflows/stage9t-guarded-confirmations.yml
+      - stage9o/combat_actor.py
+      - forge_tests/Stage9TGuardedConfirmTest.java
+      - forge_tests/verify_stage9t_surefire.py
+      - forge_tests/stage9t_rejection_integrity.py
+      - forge_tests/test_stage9t_rejection_integrity.py
 
 permissions:
   contents: read
@@ -26,6 +37,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0 # Pinned historical negative control for rejection tests.
       - name: Checkout exact Forge 2.0.15
         uses: actions/checkout@v4
         with:
@@ -56,7 +68,10 @@ jobs:
           test "$(git -C forge-src rev-parse HEAD)" = 4ec5f1a2c32fa90ecb983a72b9eb47aa5c5d7676
           git -C forge-src rev-parse HEAD > stage9t-evidence/forge-sha.txt
           git rev-parse HEAD > stage9t-evidence/feature-sha.txt
+          python3 -m unittest -v forge_tests.test_stage9t_rejection_integrity
           sha256sum stage9o/combat_actor.py forge_tests/Stage9TGuardedConfirmTest.java \
+            forge_tests/stage9t_rejection_integrity.py forge_tests/verify_stage9t_surefire.py \
+            forge_tests/test_stage9t_rejection_integrity.py \
             > stage9t-evidence/source-hashes.txt
           test -r "$STAGE9T_WORKER"
           install -m 0644 forge_tests/Stage9TGuardedConfirmTest.java \
@@ -88,6 +103,14 @@ jobs:
           python3 forge_tests/verify_stage9t_surefire.py \
             --reports stage9t-evidence/surefire \
             | tee stage9t-evidence/gate.json
+      - name: Prove rejection tests detect a deliberately disabled validator
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m forge_tests.stage9t_rejection_integrity \
+            --forge-root forge-src \
+            --baseline-reports stage9t-evidence/surefire \
+            --evidence stage9t-evidence/rejection-integrity
       - name: Save build, per-method XML, source hashes and gate result
         if: always()
         uses: actions/upload-artifact@v4
