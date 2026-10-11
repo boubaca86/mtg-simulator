@@ -462,9 +462,22 @@ public final class Stage10BPriorityCombatPolicyTest extends AITest {
         if("action_plan".equals(reply.get("intent").getAsString())) {
             JsonArray candidates=reply.getAsJsonArray("attack_table_indices");
             if(candidates.size()==0) return;
+            JsonArray authorized=new JsonArray();
+            for(int i=0;i<candidates.size();i++) {
+                int n=candidates.get(i).getAsInt();
+                if(n<0 || n>=self.getCardsIn(ZoneType.Battlefield).size()) continue;
+                Card card=self.getCardsIn(ZoneType.Battlefield).get(n);
+                if(card.getController()==self && !card.isFaceDown() &&
+                        "Grizzly Bears".equals(card.getName()) &&
+                        CombatUtil.canAttack(card,defender) &&
+                        CombatUtil.getAttackCost(self.getGame(),card,defender)==null) {
+                    authorized.add(n);
+                }
+            }
+            if(authorized.size()==0) return;
             JsonObject onlyAttack=new JsonObject();
             onlyAttack.addProperty("intent","attack");
-            onlyAttack.add("table_indices",candidates);
+            onlyAttack.add("table_indices",authorized);
             reply=onlyAttack;
         }
         if(!"attack".equals(reply.get("intent").getAsString())) return;
