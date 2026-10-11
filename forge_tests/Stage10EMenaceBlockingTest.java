@@ -50,7 +50,7 @@ import java.util.concurrent.TimeUnit;
  * Actors request a basic-land play, a named vanilla/mana creature cast, or pass.
  * The referee alone decides legality, mana payment, priority and stack resolution.
  */
-public final class Stage10EMenaceBlockingTest extends AITest {
+public class Stage10EMenaceBlockingTest extends AITest {
     /** Referee-owned immutable starting deck counts: never derived from live zones. */
     private FrozenMain frozenMain;
 
@@ -177,7 +177,7 @@ public final class Stage10EMenaceBlockingTest extends AITest {
         return firstController.openingCallbacks+secondController.openingCallbacks;
     }
 
-    private static final class Actor implements AutoCloseable {
+    protected static final class Actor implements AutoCloseable {
         final Process process;
         final BufferedReader reader;
         final BufferedWriter writer;
@@ -292,7 +292,7 @@ public final class Stage10EMenaceBlockingTest extends AITest {
     }
 
     /** Allowlist is built on REFEREE side directly from authentic Forge state. */
-    private String observation(Player self, Player other) {
+    protected String observation(Player self, Player other) {
         JsonObject result = new JsonObject();
         result.addProperty("objective","Win the game under referee-enforced Magic rules");
         JsonObject own = new JsonObject();
@@ -379,6 +379,16 @@ public final class Stage10EMenaceBlockingTest extends AITest {
         String raw=reply.get("hand_index").getAsString();
         Assert.assertTrue(raw.matches("0|[1-9][0-9]*"),"index must be canonical unsigned integer");
         Assert.assertTrue(raw.length()<=8,"index value bound");
+    }
+
+    private static void assertReplyRejected(String payload) {
+        JsonObject reply = JsonParser.parseString(payload).getAsJsonObject();
+        try {
+            validateReply(reply);
+        } catch (AssertionError expected) {
+            return;
+        }
+        Assert.fail("FORGED_PAYLOAD_ACCEPTED: " + payload);
     }
 
     private static void validatePlanIndices(JsonObject reply,String field,int limit) {
@@ -576,7 +586,7 @@ public final class Stage10EMenaceBlockingTest extends AITest {
      * callbacks; when Forge asks for priority, this override MUST consult
      * the independent process, NEVER AiController's full-information policy.
      */
-    private final class ExternalCreatureController extends PlayerControllerAi {
+    protected class ExternalCreatureController extends PlayerControllerAi {
         final Actor subprocess;
         final Player controlled;
         final Player opponent;
@@ -890,13 +900,13 @@ public final class Stage10EMenaceBlockingTest extends AITest {
         }
     }
 
-    private ExternalCreatureController attach(Game game,Player self,Player opponent,Actor actor) {
+    protected ExternalCreatureController attach(Game game,Player self,Player opponent,Actor actor) {
         ExternalCreatureController controller=new ExternalCreatureController(game,self,opponent,actor);
         self.dangerouslySetController(controller);
         return controller;
     }
 
-    private static void seedPrivateLibraries(Player a,Player b) {
+    protected static void seedPrivateLibraries(Player a,Player b) {
         for(int i=0;i<12;i++) {
             Card ca=Card.fromPaperCard(
                 forge.model.FModel.getMagicDb().getCommonCards().getCard("Forest"),a);
@@ -1083,12 +1093,7 @@ public final class Stage10EMenaceBlockingTest extends AITest {
             "{\"intent\":\"play_land\",\"hand_index\":0.5}",
             "{\"intent\":\"play_land\",\"hand_index\":-1}",
             "{\"intent\":\"pass\",\"opponent_hand\":[]}")) {
-            try {
-                validateReply(JsonParser.parseString(candidate).getAsJsonObject());
-                Assert.fail("referee must reject forged payload "+candidate);
-            } catch(AssertionError expected) {
-                Assert.assertNotNull(expected.getMessage());
-            }
+            assertReplyRejected(candidate);
         }
         Assert.assertEquals(active.getCardsIn(ZoneType.Hand).size(),initial);
         Assert.assertEquals(active.getLandsPlayedThisTurn(),0);
@@ -1208,12 +1213,7 @@ public final class Stage10EMenaceBlockingTest extends AITest {
             "{\"intent\":\"cast_creature\",\"hand_index\":\"0\"}",
             "{\"intent\":\"cast_spell\",\"hand_index\":0}",
             "{\"intent\":\"pass\",\"hand_index\":0}")) {
-            try {
-                validateReply(JsonParser.parseString(candidate).getAsJsonObject());
-                Assert.fail("forged creature payload accepted "+candidate);
-            } catch(AssertionError expected) {
-                Assert.assertNotNull(expected.getMessage());
-            }
+            assertReplyRejected(candidate);
         }
         JsonObject unsupported=JsonParser.parseString(
             "{\"intent\":\"cast_creature\",\"hand_index\":0}").getAsJsonObject();
@@ -1334,12 +1334,7 @@ public final class Stage10EMenaceBlockingTest extends AITest {
             "{\"intent\":\"attack\",\"table_indices\":[\"0\"]}",
             "{\"intent\":\"attack\",\"table_indices\":[]}",
             "{\"intent\":\"attack\",\"table_indices\":[0,1,2,3,4,5,6,7,8]}")) {
-            try {
-                validateReply(JsonParser.parseString(payload).getAsJsonObject());
-                Assert.fail("forged attack accepted: "+payload);
-            } catch(AssertionError expected) {
-                Assert.assertNotNull(expected.getMessage());
-            }
+            assertReplyRejected(payload);
         }
         JsonObject reply=JsonParser.parseString(
             "{\"intent\":\"attack\",\"table_indices\":[0]}").getAsJsonObject();
