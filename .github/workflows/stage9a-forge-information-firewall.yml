@@ -129,6 +129,38 @@ jobs:
             --reports stage9a-evidence/patched/surefire-reports \
             --mode patched | tee stage9a-evidence/patched/gate.json
 
+      - name: Stage 9B face-down battlefield probes (two separate TestNG methods)
+        run: |
+          set -euo pipefail
+          mkdir -p stage9a-evidence/face-down-battlefield
+          test "$(grep -c '@Test(timeOut = 120000)' forge_tests/FaceDownBattlefieldPrivacyTest.java)" -eq 2
+          install -m 0644 forge_tests/FaceDownBattlefieldPrivacyTest.java \
+            forge-src/forge-gui-desktop/src/test/java/forge/ai/FaceDownBattlefieldPrivacyTest.java
+          cd forge-src
+          rm -rf forge-gui-desktop/target/surefire-reports
+          set +e
+          xvfb-run -a mvn -B -ntp -pl forge-gui-desktop -am test \
+            -Dtest=FaceDownBattlefieldPrivacyTest \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            > "$GITHUB_WORKSPACE/stage9a-evidence/face-down-battlefield/maven.log" 2>&1
+          result=$?
+          set -e
+          echo "$result" > "$GITHUB_WORKSPACE/stage9a-evidence/face-down-battlefield/maven-exit.txt"
+          if [ -d forge-gui-desktop/target/surefire-reports ]; then
+            cp -R forge-gui-desktop/target/surefire-reports \
+              "$GITHUB_WORKSPACE/stage9a-evidence/face-down-battlefield/"
+          fi
+          echo "Stage9B diagnostic Maven status: $result"
+          tail -n 40 "$GITHUB_WORKSPACE/stage9a-evidence/face-down-battlefield/maven.log"
+
+      - name: Require two executed, passing Stage 9B privacy probes
+        run: |
+          set -euo pipefail
+          python3 forge_tests/verify_stage9b_surefire.py \
+            --reports stage9a-evidence/face-down-battlefield/surefire-reports \
+            | tee stage9a-evidence/face-down-battlefield/gate.json
+          test "$(cat stage9a-evidence/face-down-battlefield/maven-exit.txt)" -eq 0
+
       - name: Preserve reports, logs, source hashes and applied diff
         if: always()
         uses: actions/upload-artifact@v4
