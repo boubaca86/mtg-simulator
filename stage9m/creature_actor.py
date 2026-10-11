@@ -3,6 +3,8 @@ import json
 import sys
 
 for raw in sys.stdin.buffer:
+    if len(raw) > 16384:
+        raise SystemExit('oversized message')
     view = json.loads(raw)
     hand = view['own_cards']['hand']
     intent = {'intent': 'pass'}
