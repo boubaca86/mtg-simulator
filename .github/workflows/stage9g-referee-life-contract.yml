@@ -1,0 +1,63 @@
+name: Stage 9G - Isolated Referee Life-Total Contract
+
+# Test-only Python protocol CI. Forge 2.0.15 is pinned as adapter
+# provenance; this does NOT execute Forge gameplay or prove OS sandboxing.
+on:
+  push:
+    branches:
+      - expert-stage9a-forge-decision-pairs
+    paths:
+      - .github/workflows/stage9g-referee-life-contract.yml
+      - stage9g/referee_life_protocol.py
+      - stage9g/test_referee_life_protocol.py
+
+permissions:
+  contents: read
+
+jobs:
+  stage9g-life-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout candidate branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Checkout pinned Forge source
+        uses: actions/checkout@v4
+        with:
+          repository: Card-Forge/forge
+          ref: forge-2.0.15
+          path: forge-src
+          persist-credentials: false
+      - name: Verify pinned provenance and hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p stage9g-evidence
+          test "$(git -C forge-src describe --tags --exact-match)" = forge-2.0.15
+          test "$(git -C forge-src rev-parse HEAD)" = 4ec5f1a2c32fa90ecb983a72b9eb47aa5c5d7676
+          git -C forge-src rev-parse HEAD > stage9g-evidence/forge-sha.txt
+          git rev-parse HEAD > stage9g-evidence/simulator-sha.txt
+          sha256sum stage9g/referee_life_protocol.py stage9g/test_referee_life_protocol.py \
+            > stage9g-evidence/protocol-sha256.txt
+      - name: Require fifteen executed Python contract cases
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd stage9g
+          python3 -Werror::ResourceWarning -m unittest -v test_referee_life_protocol.py \
+            2>&1 | tee ../stage9g-evidence/unittest.log
+          grep -E '^Ran 15 tests in ' ../stage9g-evidence/unittest.log
+          grep -x OK ../stage9g-evidence/unittest.log
+          test "$(grep -c '^test_.*\\.\\.\\. ok$' ../stage9g-evidence/unittest.log)" -eq 15
+          printf '{"gate":"PASS","synthetic_executed":15,"forge_gameplay":false}\n' \
+            > ../stage9g-evidence/gate.json
+      - name: Preserve test-only evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage9g-life-contract-\${{ github.run_id }}-\${{ github.run_attempt }}
+          path: stage9g-evidence/
+          retention-days: 14
+          if-no-files-found: warn
