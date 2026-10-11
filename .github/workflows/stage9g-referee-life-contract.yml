@@ -1,7 +1,6 @@
 name: Stage 9G - Isolated Referee Life-Total Contract
 
-# Test-only Python protocol CI. Forge 2.0.15 is pinned as adapter
-# provenance; this does NOT execute Forge gameplay or prove OS sandboxing.
+# Synthetic-only contract CI; pinned Forge source for provenance, not gameplay.
 on:
   push:
     branches:
@@ -50,18 +49,7 @@ jobs:
             2>&1 | tee ../stage9g-evidence/unittest.log
           grep -E '^Ran 15 tests in ' ../stage9g-evidence/unittest.log
           grep -x OK ../stage9g-evidence/unittest.log
-          test "$(grep -cE '^test_.*[.][.][.] ok
-          printf '{"gate":"PASS","synthetic_executed":15,"forge_gameplay":false}\n' \
-            > ../stage9g-evidence/gate.json
-      - name: Preserve test-only evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: stage9g-life-contract-${{ github.run_id }}-${{ github.run_attempt }}
-          path: stage9g-evidence/
-          retention-days: 14
-          if-no-files-found: warn
- ../stage9g-evidence/unittest.log)" -eq 15
+          test "$(grep -cE '^test_.*[.][.][.] ok$' ../stage9g-evidence/unittest.log)" -eq 15
           printf '{"gate":"PASS","synthetic_executed":15,"forge_gameplay":false}\n' \
             > ../stage9g-evidence/gate.json
       - name: Preserve test-only evidence
