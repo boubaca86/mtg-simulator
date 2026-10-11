@@ -42,7 +42,7 @@ import java.util.concurrent.TimeUnit;
  * Actors request a basic-land play, a named vanilla/mana creature cast, or pass.
  * The referee alone decides legality, mana payment, priority and stack resolution.
  */
-public final class Stage9TGuardedConfirmTest extends AITest {
+public class Stage9TGuardedConfirmTest extends AITest {
     /** Referee-owned immutable starting deck counts: never derived from live zones. */
     private FrozenMain frozenMain;
 
@@ -113,7 +113,7 @@ public final class Stage9TGuardedConfirmTest extends AITest {
     }
 
 
-    private static final class Actor implements AutoCloseable {
+    protected static final class Actor implements AutoCloseable {
         final Process process;
         final BufferedReader reader;
         final BufferedWriter writer;
@@ -155,7 +155,7 @@ public final class Stage9TGuardedConfirmTest extends AITest {
     }
 
     /** Allowlist is built on REFEREE side directly from authentic Forge state. */
-    private String observation(Player self, Player other) {
+    protected String observation(Player self, Player other) {
         JsonObject result = new JsonObject();
         result.addProperty("objective","Win the game under referee-enforced Magic rules");
         JsonObject own = new JsonObject();
@@ -320,7 +320,7 @@ public final class Stage9TGuardedConfirmTest extends AITest {
      * callbacks; when Forge asks for priority, this override MUST consult
      * the independent process, NEVER AiController's full-information policy.
      */
-    private final class ExternalCreatureController extends PlayerControllerAi {
+    protected class ExternalCreatureController extends PlayerControllerAi {
         final Actor subprocess;
         final Player controlled;
         final Player opponent;
@@ -470,13 +470,13 @@ public final class Stage9TGuardedConfirmTest extends AITest {
         }
     }
 
-    private ExternalCreatureController attach(Game game,Player self,Player opponent,Actor actor) {
+    protected ExternalCreatureController attach(Game game,Player self,Player opponent,Actor actor) {
         ExternalCreatureController controller=new ExternalCreatureController(game,self,opponent,actor);
         self.dangerouslySetController(controller);
         return controller;
     }
 
-    private static void seedPrivateLibraries(Player a,Player b) {
+    protected static void seedPrivateLibraries(Player a,Player b) {
         for(int i=0;i<12;i++) {
             Card ca=Card.fromPaperCard(
                 forge.model.FModel.getMagicDb().getCommonCards().getCard("Forest"),a);
