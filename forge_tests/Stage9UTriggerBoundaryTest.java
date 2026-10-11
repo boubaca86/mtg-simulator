@@ -27,14 +27,14 @@ import java.util.Map;
  * preparation. Mandatory gain resolves through Forge; an optional choice stops
  * the disposable game explicitly. This is not a general trigger interpreter.
  */
-public final class Stage9UTriggerBoundaryTest extends Stage9TGuardedConfirmTest {
+public class Stage9UTriggerBoundaryTest extends Stage9TGuardedConfirmTest {
     private static final String OPTIONAL = "stage9u: optional trigger choice unsupported";
     private static final String SHAPE = "stage9u: unaudited trigger shape";
     private static final String SETUP = "stage9u: trigger target setup unsupported";
     private static final String ORDER = "stage9u: simultaneous trigger ordering unsupported";
     private static final String STATIC = "stage9u: static trigger execution unsupported";
 
-    private final class TriggerController extends ExternalCreatureController {
+    protected class TriggerController extends ExternalCreatureController {
         int confirmations;
         int stackedTriggers;
         int resolvedMandatoryEffects;
@@ -57,7 +57,7 @@ public final class Stage9UTriggerBoundaryTest extends Stage9TGuardedConfirmTest 
         /** Validate trusted referee objects before taking any automatic action.
          * Names alone are insufficient: costs, targets, chains, parameters and
          * optional status must also match the two pinned card scripts exactly. */
-        private SpellAbility checkedEffect(SpellAbility effect) {
+        protected SpellAbility checkedEffect(SpellAbility effect) {
             if (!(effect instanceof AbilitySub) || effect.isWrapper()
                     || effect.getActivatingPlayer() != controlled
                     || effect.getHostCard().getGame() != getGame()
@@ -94,7 +94,7 @@ public final class Stage9UTriggerBoundaryTest extends Stage9TGuardedConfirmTest 
             return effect;
         }
 
-        private WrappedAbility checkedWrapper(SpellAbility ability) {
+        protected WrappedAbility checkedWrapper(SpellAbility ability) {
             if (!(ability instanceof WrappedAbility)) throw new SecurityException(SHAPE);
             WrappedAbility wrapper = (WrappedAbility) ability;
             SpellAbility effect = checkedEffect(wrapper.getWrappedAbility());
@@ -160,7 +160,7 @@ public final class Stage9UTriggerBoundaryTest extends Stage9TGuardedConfirmTest 
     }
 
     /** Direct-callback fixtures use the real, unmodified pinned card SVar. */
-    private WrappedAbility lifeTrigger(Card source, Player self) {
+    protected WrappedAbility lifeTrigger(Card source, Player self) {
         Assert.assertEquals(source.getTriggers().size(), 1);
         Trigger trigger = source.getTriggers().get(0);
         SpellAbility effect = AbilityFactory.getAbility(source.getSVar("TrigGainLife"), source);
@@ -170,7 +170,7 @@ public final class Stage9UTriggerBoundaryTest extends Stage9TGuardedConfirmTest 
         return new WrappedAbility(trigger, effect, optional ? self : null);
     }
 
-    private static void denied(String message, Runnable action) {
+    protected static void denied(String message, Runnable action) {
         try {
             action.run();
         } catch (SecurityException expected) {
@@ -181,7 +181,7 @@ public final class Stage9UTriggerBoundaryTest extends Stage9TGuardedConfirmTest 
         Assert.fail("TRIGGER_GUARD_MISSING: " + message);
     }
 
-    private WrappedAbility advanceToTrigger(Game game, TriggerController controller) {
+    protected WrappedAbility advanceToTrigger(Game game, TriggerController controller) {
         for (int steps = 0; steps < 40 && !game.isGameOver(); steps++) {
             game.getPhaseHandler().mainLoopStep();
             if (!game.getStack().isEmpty()
