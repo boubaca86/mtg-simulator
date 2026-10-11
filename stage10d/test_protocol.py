@@ -55,6 +55,8 @@ def valid_plan(result):
     assert len({p[0] for p in result["block_pairs"]}) == 2
     assert len({p[1] for p in result["block_pairs"]}) == 2
     assert result["attack_table_indices"] == [0, 2]
+    assert result["creature_hand_indices"] == [], (
+        "actor must not cast extra creatures with a visible existing Bear", result)
     assert all(isinstance(i, int) and not isinstance(i, bool)
                for pair in result["block_pairs"] for i in pair)
 
