@@ -1,0 +1,98 @@
+name: Stage 9X - Registered Opening Game, Draw and Mulligan
+
+# Read-only test-only two Python processes + actual Forge Java spell and mana canary.
+# This does not promote a full Magic game, production actor, or a sandbox.
+on:
+  push:
+    branches:
+      - expert-stage9a-forge-decision-pairs
+    paths:
+      - .github/workflows/stage9x-opening-game.yml
+      - stage9w/opening_hand_actor.py
+      - forge_tests/Stage9XOpeningGameSequenceTest.java
+      - forge_tests/verify_stage9x_surefire.py
+
+permissions:
+  contents: read
+
+jobs:
+  real-forge-opening-game:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      STAGE9X_WORKER: ${{ github.workspace }}/stage9w/opening_hand_actor.py
+    steps:
+      - name: Checkout feature branch without credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Checkout exact Forge 2.0.15
+        uses: actions/checkout@v4
+        with:
+          repository: Card-Forge/forge
+          ref: forge-2.0.15
+          path: forge-src
+          persist-credentials: false
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install virtual display and Python runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 --version
+          if ! command -v xvfb-run >/dev/null || ! command -v xauth >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y xvfb xauth
+          fi
+      - name: Verify pinned SHA and stage test into disposable Forge
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p stage9x-evidence
+          test "$(git -C forge-src describe --tags --exact-match)" = forge-2.0.15
+          test "$(git -C forge-src rev-parse HEAD)" = 4ec5f1a2c32fa90ecb983a72b9eb47aa5c5d7676
+          git -C forge-src rev-parse HEAD > stage9x-evidence/forge-sha.txt
+          git rev-parse HEAD > stage9x-evidence/feature-sha.txt
+          sha256sum stage9w/opening_hand_actor.py forge_tests/Stage9XOpeningGameSequenceTest.java \
+            > stage9x-evidence/source-hashes.txt
+          test -r "$STAGE9X_WORKER"
+          install -m 0644 forge_tests/Stage9XOpeningGameSequenceTest.java \
+            forge-src/forge-gui-desktop/src/test/java/forge/ai/Stage9XOpeningGameSequenceTest.java
+      - name: Run actual Forge mana-paid creature spells and combat via two isolated process-backed actors
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd forge-src
+          rm -rf forge-gui-desktop/target/surefire-reports
+          set +e
+          xvfb-run -a mvn -B -ntp -pl forge-gui-desktop -am test \
+            -Dtest=Stage9XOpeningGameSequenceTest \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            > "$GITHUB_WORKSPACE/stage9x-evidence/maven.log" 2>&1
+          code=$?
+          set -e
+          echo "$code" > "$GITHUB_WORKSPACE/stage9x-evidence/maven-exit.txt"
+          if [ -d forge-gui-desktop/target/surefire-reports ]; then
+            cp -R forge-gui-desktop/target/surefire-reports "$GITHUB_WORKSPACE/stage9x-evidence/surefire"
+          fi
+          echo "Forge Maven exit: $code"
+          tail -n 75 "$GITHUB_WORKSPACE/stage9x-evidence/maven.log"
+          test "$code" -eq 0
+      - name: Verify thirty-five Forge private shuffle, London mulligans and priority XML cases
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 forge_tests/verify_stage9x_surefire.py \
+            --reports stage9x-evidence/surefire \
+            | tee stage9x-evidence/gate.json
+      - name: Save build, per-method XML, source hashes and gate result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage9x-opening-game-${{ github.run_id }}-${{ github.run_attempt }}
+          path: stage9x-evidence/
+          if-no-files-found: warn
+          retention-days: 14
