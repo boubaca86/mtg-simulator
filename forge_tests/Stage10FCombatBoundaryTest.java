@@ -161,10 +161,15 @@ public final class Stage10FCombatBoundaryTest extends Stage10EMenaceBlockingTest
     private Combat arrangeCombat(Game game, Player self, Player other, Card source,
             Card... blockers) {
         Combat combat = new Combat(self);
-        game.getPhaseHandler().setCombat(combat);
         game.getPhaseHandler().devModeSet(PhaseType.COMBAT_DAMAGE, self);
+        // devModeSet ends the previous combat; attach this fixture afterwards.
+        game.getPhaseHandler().setCombat(combat);
         combat.addAttacker(source, other);
         for (Card blocker : blockers) combat.addBlocker(source, blocker);
+        Assert.assertSame(game.getCombat(), combat);
+        Assert.assertEquals(game.getPhaseHandler().getPhase(), PhaseType.COMBAT_DAMAGE);
+        Assert.assertTrue(combat.isAttacking(source));
+        Assert.assertEquals(combat.getBlockers(source).size(), blockers.length);
         return combat;
     }
 
@@ -229,6 +234,9 @@ public final class Stage10FCombatBoundaryTest extends Stage10EMenaceBlockingTest
         try (Actor a = new Actor(); Actor b = new Actor()) {
             CombatController ca = attach(game, self, other, a);
             attach(game, other, self, b);
+            Assert.assertEquals(ca.assignCombatDamage(source, new CardCollection(blocker),
+                    null, 2, other, true), Collections.singletonMap(blocker, 2),
+                    "positive control: this fixture admits its genuine combat assignment");
             for (Card wrong : List.of(noncombat, secret, source)) {
                 denied(DAMAGE, () -> ca.assignCombatDamage(source, new CardCollection(wrong),
                         null, 2, other, true));
@@ -247,14 +255,14 @@ public final class Stage10FCombatBoundaryTest extends Stage10EMenaceBlockingTest
             denied(DAMAGE, () -> ca.assignCombatDamage(source, new CardCollection(blocker),
                     null, 2, other, false));
             game.getRules().setOrderCombatants(false);
-            game.getPhaseHandler().devModeSet(PhaseType.MAIN1, self);
+            game.getPhaseHandler().devModeSet(PhaseType.MAIN1, self, false);
             denied(DAMAGE, () -> ca.assignCombatDamage(source, new CardCollection(blocker),
                     null, 2, other, true));
-            game.getPhaseHandler().devModeSet(PhaseType.COMBAT_DAMAGE, self);
+            game.getPhaseHandler().devModeSet(PhaseType.COMBAT_DAMAGE, self, false);
             Assert.assertTrue(blocker.turnFaceDown(true));
             denied(DAMAGE, () -> ca.assignCombatDamage(source, new CardCollection(blocker),
                     null, 2, other, true));
-            Assert.assertEquals(ca.damageAssignments, 0);
+            Assert.assertEquals(ca.damageAssignments, 1, "only the positive control was accepted");
             Assert.assertEquals(source.getDamage(), 0);
             Assert.assertEquals(self.getLife(), 20);
             Assert.assertEquals(other.getLife(), 20);
