@@ -1,0 +1,139 @@
+name: Stage 9A — Forge Hidden-Information Tests
+
+# Manual and read-only. NEVER dispatch gameplay, training, or evaluation.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stage9a-forge-information-firewall-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  stage9a-regressions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout Stage 9A test and patch files
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Checkout exact upstream Forge 2.0.15 source
+        uses: actions/checkout@v4
+        with:
+          repository: Card-Forge/forge
+          ref: forge-2.0.15
+          path: forge-src
+          persist-credentials: false
+
+      - name: Set up Java 21 and Maven
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Prepare virtual display for Forge desktop initialization
+        run: |
+          set -euo pipefail
+          if ! command -v xvfb-run >/dev/null || ! command -v xauth >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y xvfb xauth
+          fi
+          command -v xvfb-run
+          command -v xauth
+
+      - name: Verify checkout and install isolated test fixture
+        run: |
+          set -euo pipefail
+          test "$(git -C forge-src describe --tags --exact-match)" = forge-2.0.15
+          git -C forge-src rev-parse HEAD | tee forge-source-commit.txt
+          git rev-parse HEAD | tee simulator-source-commit.txt
+          mvn -version
+          test "$(grep -c '@Test(timeOut = 120000)' forge_tests/ObservedOnlyNoninterferenceTest.java)" -eq 6
+          install -m 0644 forge_tests/ObservedOnlyNoninterferenceTest.java \
+            forge-src/forge-gui-desktop/src/test/java/forge/ai/ObservedOnlyNoninterferenceTest.java
+          mkdir -p stage9a-evidence/baseline stage9a-evidence/patched
+          cp forge-source-commit.txt simulator-source-commit.txt stage9a-evidence/
+
+      - name: Run baseline Forge tests (three security regressions MUST fail)
+        run: |
+          set -euo pipefail
+          cd forge-src
+          rm -rf forge-gui-desktop/target/surefire-reports
+          set +e
+          xvfb-run -a mvn -B -ntp -pl forge-gui-desktop -am test \
+            -Dtest=ObservedOnlyNoninterferenceTest \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            > "$GITHUB_WORKSPACE/stage9a-evidence/baseline/maven.log" 2>&1
+          result=$?
+          set -e
+          echo "$result" > "$GITHUB_WORKSPACE/stage9a-evidence/baseline/maven-exit.txt"
+          if [ -d forge-gui-desktop/target/surefire-reports ]; then
+            cp -R forge-gui-desktop/target/surefire-reports \
+              "$GITHUB_WORKSPACE/stage9a-evidence/baseline/"
+          fi
+          echo "Baseline Maven status: $result (failure is expected only for the three documented regressions)"
+          tail -n 35 "$GITHUB_WORKSPACE/stage9a-evidence/baseline/maven.log"
+
+      - name: Verify six baseline test outcomes rather than Maven success
+        run: |
+          set -euo pipefail
+          python3 forge_tests/verify_stage9a_surefire.py \
+            --reports stage9a-evidence/baseline/surefire-reports \
+            --mode baseline | tee stage9a-evidence/baseline/gate.json
+          test "$(cat stage9a-evidence/baseline/maven-exit.txt)" -ne 0
+
+      - name: Source-check and apply proposed patch to disposable Forge checkout
+        run: |
+          set -euo pipefail
+          git -C forge-src apply --check \
+            "$GITHUB_WORKSPACE/forge_patches/stage9a_computer_util_ability_visibility.patch"
+          git -C forge-src apply \
+            "$GITHUB_WORKSPACE/forge_patches/stage9a_computer_util_ability_visibility.patch"
+          git -C forge-src diff --check
+          git -C forge-src diff -- \
+            forge-ai/src/main/java/forge/ai/ComputerUtilAbility.java \
+            > stage9a-evidence/patch-applied.diff
+
+      - name: Run patched Forge tests (all six MUST pass)
+        run: |
+          set -euo pipefail
+          cd forge-src
+          rm -rf forge-gui-desktop/target/surefire-reports
+          set +e
+          xvfb-run -a mvn -B -ntp -pl forge-gui-desktop -am test \
+            -Dtest=ObservedOnlyNoninterferenceTest \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            > "$GITHUB_WORKSPACE/stage9a-evidence/patched/maven.log" 2>&1
+          result=$?
+          set -e
+          echo "$result" > "$GITHUB_WORKSPACE/stage9a-evidence/patched/maven-exit.txt"
+          if [ -d forge-gui-desktop/target/surefire-reports ]; then
+            cp -R forge-gui-desktop/target/surefire-reports \
+              "$GITHUB_WORKSPACE/stage9a-evidence/patched/"
+          fi
+          echo "Patched Maven status: $result"
+          tail -n 35 "$GITHUB_WORKSPACE/stage9a-evidence/patched/maven.log"
+
+      - name: Require patched Maven success and six passing tests
+        run: |
+          set -euo pipefail
+          test "$(cat stage9a-evidence/patched/maven-exit.txt)" -eq 0
+          python3 forge_tests/verify_stage9a_surefire.py \
+            --reports stage9a-evidence/patched/surefire-reports \
+            --mode patched | tee stage9a-evidence/patched/gate.json
+
+      - name: Preserve reports, logs, source hashes and applied diff
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage9a-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: stage9a-evidence/
+          if-no-files-found: warn
+          retention-days: 14
