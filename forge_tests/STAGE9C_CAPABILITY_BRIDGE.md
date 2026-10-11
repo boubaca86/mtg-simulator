@@ -102,3 +102,31 @@ into any public field.
 **Merge gate:** independent reviewer, new Forge legality tests, 100% expected
 named methods executed, patched build green, no hidden-identity telemetry,
 and explicit approval. No AI games, training or reserved evaluation seeds.
+
+## Update: six Forge 9C permission methods LIVE verified (2026-10-11)
+
+- [GitHub Actions run 38107635273](https://github.com/boubaca86/mtg-simulator/actions/runs/38107635273), head commit `ee3deeabc734b430ad89716558203c758fc71622`:
+  pinned Forge tag `forge-2.0.15`, Java 21, Xvfb, disposable checkout.
+- The proposed Stage9A visibility patch was applied **only within that disposable checkout**.
+  No production Forge change, deployment, gameplay, reserved seeds, or merge.
+- Real TestNG class `forge.ai.FaceDownExilePermissionBoundaryTest`:
+  **6 executed, 6 passed, 0 failures, 0 errors, 0 skipped**; Maven exit 0,
+  BUILD SUCCESS; strict Surefire XML method-name verifier PASS.
+- Files: `forge_tests/FaceDownExilePermissionBoundaryTest.java`,
+  `forge_tests/verify_stage9c_forge_exile_surefire.py`,
+  `.github/workflows/stage9c-forge-exile-permissions.yml`.
+- Evidence artifact `stage9c-forge-evidence-38107635273-1`, ID `11690219059`,
+  includes Maven logs, XML, gate JSON, exact source hashes and proposed patch diff.
+- These tests distinguish opponent/own concealed exile, explicit and persistent
+  viewing permission, face-up exile, and **look permission versus play permission**.
+  They do **not** test a legal blind pile transaction, spell-specific 406.3b
+  authorization, costs/rollback or the production Forge policy interface.
+- [Stage9D separate actual-Forge bridge canary run 38105075249](https://github.com/boubaca86/mtg-simulator/actions/runs/38105075249)
+  passed six more Forge tests on unmodified pinned source, but its referee
+  remains **test-only** and its authorization/cost confirmations are fixtures.
+
+**Remaining merge gate:** independently verify referee-issued public pile IDs,
+actual Forge effect legality and pile membership, costs and rollback,
+noninterference of the production policy/telemetry, and downstream
+face-down battlefield/foretell/adventure paths. Do not merge Stage9A or
+promote this bridge based on synthetic or isolated canary tests alone.
