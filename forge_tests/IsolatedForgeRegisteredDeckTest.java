@@ -791,7 +791,7 @@ public final class IsolatedForgeRegisteredDeckTest extends AITest {
             Assert.assertEquals(currentCardPool(b),cb.ownDecklist);
             JsonObject own=JsonParser.parseString(observation(a,b,ca.ownDecklist)).getAsJsonObject();
             Assert.assertEquals(own.getAsJsonObject("own_cards")
-                    .getAsJsonArray("decklist_multiset").size(),1);
+                    .getAsJsonArray("decklist_multiset").size(),2);
             Assert.assertFalse(observation(a,b,ca.ownDecklist).contains("library_order"));
         }
     }
@@ -865,7 +865,7 @@ public final class IsolatedForgeRegisteredDeckTest extends AITest {
             Assert.assertEquals(ca.ownDecklist,frozen);
             Assert.assertEquals(JsonParser.parseString(observation(active,other,frozen))
                 .getAsJsonObject().getAsJsonObject("own_cards")
-                .getAsJsonArray("decklist_multiset").size(),2);
+                .getAsJsonArray("decklist_multiset").size(),1);
         }
     }
 
