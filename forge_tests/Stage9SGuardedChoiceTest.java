@@ -5,7 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import forge.game.Game;
 import forge.game.GameEntity;
-import forge.game.DelayedReveal;
+import forge.game.player.DelayedReveal;
 import forge.game.GameRules;
 import forge.game.GameStage;
 import forge.game.GameType;
