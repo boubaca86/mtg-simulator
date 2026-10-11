@@ -36,8 +36,8 @@ public final class IsolatedForgeCombatAttackTest extends AITest {
         final BufferedWriter writer;
 
         Actor() throws Exception {
-            String script = System.getenv("STAGE9N_WORKER");
-            Assert.assertNotNull(script, "CI must define STAGE9N_WORKER");
+            String script = System.getenv("STAGE9O_WORKER");
+            Assert.assertNotNull(script, "CI must define STAGE9O_WORKER");
             ProcessBuilder builder = new ProcessBuilder("python3","-I","-S","-u",script);
             builder.environment().clear();
             builder.environment().put("PYTHONIOENCODING","utf-8");
