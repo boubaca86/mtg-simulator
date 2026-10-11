@@ -89,7 +89,7 @@ def invalid_messages():
         ("duplicate life self", base.replace('"life_totals":{"self":20', '"life_totals":{"self":19,"self":20', 1), "duplicate JSON field"),
         ("duplicate card name", base.replace('"card":"Grizzly Bears"', '"card":"secret","card":"Grizzly Bears"', 1), "duplicate JSON field"),
         ("duplicate face-down appearance", base.replace('"appearance":"face_down"', '"appearance":"face_up","appearance":"face_down"', 1), "duplicate JSON field"),
-        ("escaped duplicate top key", base.replace('"objective":', r'"\\u006fbjective":"bait","objective":', 1), "duplicate JSON field"),
+        ("escaped duplicate top key", base.replace('"objective":', r'"\u006fbjective":"bait","objective":', 1), "duplicate JSON field"),
         ("duplicate opening request", '{"request":"own_opening_hand","request":"own_opening_hand","observation":' + base + '}', "duplicate JSON field"),
         ("duplicate nested opening", '{"request":"own_opening_hand","observation":' + base.replace('"hand":', '"hand":[],"hand":', 1) + '}', "duplicate JSON field"),
         ("NaN literal", base.replace('"self":20', '"self":NaN', 1), "nonfinite JSON literal"),
