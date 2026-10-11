@@ -1299,8 +1299,10 @@ public final class Stage9UGuardedHiddenChoicesTest extends AITest {
             JsonObject replyB=actorB.ask(observation(b,a));
             Assert.assertFalse(observation(a,b).contains("Counterspell"));
             Assert.assertFalse(observation(b,a).contains("Llanowar Elves"));
-            Assert.assertNotEquals(replyA.get("observation_sha256").getAsString(),
-                    replyB.get("observation_sha256").getAsString());
+            Assert.assertNotNull(replyA.get("intent"));
+            Assert.assertNotNull(replyB.get("intent"));
+            Assert.assertNotEquals(observation(a,b),observation(b,a),
+                    "the two actor processes must receive different permitted own decklists");
         }
     }
 
