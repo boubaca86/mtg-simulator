@@ -51,26 +51,22 @@ public class FaceDownBattlefieldPrivacyTest extends AITest {
         return descriptors.toString();
     }
 
-    private static String publicChoice(List<SpellAbility> choices) {
+    private static String publicChoice(List<SpellAbility> choices, Player actor) {
         AssertJUnit.assertNotNull("Forge must return a concrete decision", choices);
         AssertJUnit.assertFalse("Cannot assert privacy from a vacuous pass", choices.isEmpty());
         List<String> descriptors = new ArrayList<>();
         for (SpellAbility sa : choices) {
             Card host = sa.getHostCard();
             AssertJUnit.assertNotNull(host);
-            String hostName = host.getName();
-            if (host.getView().isFaceDown()
-                    && !host.getView().canFaceDownBeShownTo(sa.getActivatingPlayer().getView())) {
-                hostName = "<face-down>";
-            }
+            String hostName = host.getView().isFaceDown()
+                    && !host.getView().canFaceDownBeShownTo(actor.getView())
+                    ? "<face-down>" : host.getName();
             Card target = sa.getTargetCard();
             String targetName = "none";
             if (target != null) {
-                targetName = target.getName();
-                if (target.getView().isFaceDown()
-                        && !target.getView().canFaceDownBeShownTo(sa.getActivatingPlayer().getView())) {
-                    targetName = "<face-down>";
-                }
+                targetName = target.getView().isFaceDown()
+                        && !target.getView().canFaceDownBeShownTo(actor.getView())
+                        ? "<face-down>" : target.getName();
             }
             descriptors.add(hostName + "|api=" + sa.getApi() + "|target=" + targetName);
         }
@@ -106,7 +102,7 @@ public class FaceDownBattlefieldPrivacyTest extends AITest {
             // A local unit-test fixture RNG, not a gameplay-evaluation seed.
             MyRandom.setRandom(new Random(0));
             List<SpellAbility> choices = actor.getController().chooseSpellAbilityToPlay();
-            return new Observation(visible, publicChoice(choices));
+            return new Observation(visible, publicChoice(choices, actor));
         } finally {
             MyRandom.setRandom(saved);
         }
@@ -120,7 +116,7 @@ public class FaceDownBattlefieldPrivacyTest extends AITest {
     @Test(timeOut = 120000)
     public void opponentFaceDownBattlefieldIdentityDoesNotChangeLiveDecision() {
         Observation one = runWithConcealedCreature("Llanowar Elves");
-        Observation two = runWithConcealedCreature("Giant Growth");
+        Observation two = runWithConcealedCreature("Runeclaw Bear");
         AssertJUnit.assertEquals("Public observations must be identical",
                 one.visible, two.visible);
         AssertJUnit.assertEquals("Hidden original identity cannot affect decision",
