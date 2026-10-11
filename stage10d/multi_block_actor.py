@@ -84,6 +84,13 @@ for raw in sys.stdin.buffer:
         if record.get('appearance') == 'face_up'
         and record.get('card') == 'Grizzly Bears'
     ]
+    # A visible on-board Bear is already our bounded creature commitment.
+    # Avoid casting an extra Bear before combat: that would change the
+    # opponent's visible table and invalidate the limited defender's
+    # phase-independent one-to-one or menace-block preference. This is an
+    # own-visible-table strategic policy, not referee phase information.
+    if bears:
+        creatures = []
     # A deck specializing in Llanowar Elves is the active attacking profile;
     # the opponent's distinct registered list uses its own creatures defensively.
     # These are test-only strategic preferences based solely on OUR decklist.
