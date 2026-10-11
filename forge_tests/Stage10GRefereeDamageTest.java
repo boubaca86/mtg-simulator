@@ -2578,11 +2578,18 @@ public final class Stage10GRefereeDamageTest extends AITest {
     }
 
     private void fixturePlaceRegisteredBear(Game game,Player player) {
+        // A real native opening draw may put a registered Bear in OWN hand.
+        // This trusted referee-only fixture may move either physical card;
+        // actor IPC never receives a hand identity from another player.
         Card found=null;
-        for(Card card:player.getCardsIn(ZoneType.Library)) {
-            if("Grizzly Bears".equals(card.getName())) {found=card;break;}
+        for(ZoneType zone:Arrays.asList(ZoneType.Library,ZoneType.Hand)) {
+            for(Card card:player.getCardsIn(zone)) {
+                if("Grizzly Bears".equals(card.getName())) {found=card;break;}
+            }
+            if(found!=null) break;
         }
-        Assert.assertNotNull(found,"must exist in registered 60-card library");
+        Assert.assertNotNull(found,
+                "must exist in registered 60-card library or owner's hand");
         Assert.assertNotNull(game.getAction().moveToPlay(found,null,
                 forge.game.ability.AbilityKey.newMap()));
     }
