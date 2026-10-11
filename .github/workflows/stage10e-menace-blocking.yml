@@ -9,6 +9,11 @@ on:
     paths:
       - .github/workflows/stage10e-menace-blocking.yml
       - stage9w/opening_hand_actor.py
+      - stage10b/action_plan_actor.py
+      - stage10d/multi_block_actor.py
+      - stage10d/test_protocol.py
+      - stage10e/menace_defense_actor.py
+      - stage10e/test_protocol.py
       - forge_tests/Stage10EMenaceBlockingTest.java
       - forge_tests/verify_stage10e_surefire.py
 
@@ -59,7 +64,7 @@ jobs:
           test "$(git -C forge-src rev-parse HEAD)" = 4ec5f1a2c32fa90ecb983a72b9eb47aa5c5d7676
           git -C forge-src rev-parse HEAD > stage10e-evidence/forge-sha.txt
           git rev-parse HEAD > stage10e-evidence/feature-sha.txt
-          sha256sum stage9w/opening_hand_actor.py stage10b/action_plan_actor.py stage10d/multi_block_actor.py stage10e/menace_defense_actor.py forge_tests/Stage10EMenaceBlockingTest.java \
+          sha256sum stage9w/opening_hand_actor.py stage10b/action_plan_actor.py stage10d/multi_block_actor.py stage10d/test_protocol.py stage10e/menace_defense_actor.py stage10e/test_protocol.py forge_tests/Stage10EMenaceBlockingTest.java \
             > stage10e-evidence/source-hashes.txt
           test -r "$STAGE10E_WORKER"
           test -r "$STAGE10E_LEGACY_PLAN_WORKER"
@@ -67,6 +72,12 @@ jobs:
           test -r "$STAGE10E_MENACE_WORKER"
           install -m 0644 forge_tests/Stage10EMenaceBlockingTest.java \
             forge-src/forge-gui-desktop/src/test/java/forge/ai/Stage10EMenaceBlockingTest.java
+      - name: Verify two-process Stage 10D and Stage 10E actor information contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 stage10d/test_protocol.py | tee stage10e-evidence/stage10d-protocol.log
+          python3 stage10e/test_protocol.py | tee stage10e-evidence/stage10e-protocol.log
       - name: Run actual Forge mana-paid creature spells and combat via two isolated process-backed actors
         shell: bash
         run: |
