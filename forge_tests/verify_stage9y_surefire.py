@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
-CLASS = "forge.ai.Stage9YOpeningGameSequenceTest"
+CLASS = "forge.ai.Stage9YNativeMulliganFirstTurnTest"
 EXPECTED = {
     "realPriorityRequiresTwoExternalActorPassesToAdvance",
     "realForgeTurnLoopAutomaticallyDrawsWithoutDevTurnSwitch",
