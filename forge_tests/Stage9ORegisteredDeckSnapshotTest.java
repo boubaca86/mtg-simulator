@@ -173,7 +173,7 @@ public final class Stage9ORegisteredDeckSnapshotTest extends AITest {
         final BufferedReader input;
         final BufferedWriter output;
         Worker() throws Exception {
-            String script = System.getenv("STAGE9O_WORKER");
+            String script = System.getenv("STAGE9P_WORKER");
             Assert.assertNotNull(script, "Worker path required");
             ProcessBuilder builder = new ProcessBuilder("python3", "-I", "-S", "-u", script);
             builder.environment().clear();
