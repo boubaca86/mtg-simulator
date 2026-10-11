@@ -11,6 +11,7 @@ import forge.game.keyword.Keyword;
 import forge.game.keyword.KeywordInterface;
 import forge.game.phase.PhaseType;
 import forge.game.player.Player;
+import forge.game.player.PlayerView;
 import forge.game.zone.ZoneType;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -127,7 +128,7 @@ public final class Stage10FCombatBoundaryTest extends Stage10EMenaceBlockingTest
         }
 
         @Override
-        public void reveal(List<CardView> cards, ZoneType zone, Player owner,
+        public void reveal(List<CardView> cards, ZoneType zone, PlayerView owner,
                 String messagePrefix, boolean addSuffix) {
             throw new SecurityException(REVEAL);
         }
@@ -292,12 +293,16 @@ public final class Stage10FCombatBoundaryTest extends Stage10EMenaceBlockingTest
             CombatController ca = attach(game, self, other, a);
             attach(game, other, self, b);
             String before = observation(self, other);
+            Assert.assertFalse(AiCardMemory.isRememberedCard(self, secret,
+                    AiCardMemory.MemorySet.REVEALED_CARDS));
             denied(ORDER, () -> ca.orderBlockers(source, new CardCollection()));
             denied(ORDER, () -> ca.orderBlocker(source, secret, new CardCollection()));
             denied(ORDER, () -> ca.orderAttackers(source, new CardCollection()));
             denied(REVEAL, () -> ca.reveal(new CardCollection(secret), ZoneType.Hand, other, null, true));
             denied(REVEAL, () -> ca.reveal(Collections.singletonList(secret.getView()),
-                    ZoneType.Hand, other, null, true));
+                    ZoneType.Hand, other.getView(), null, true));
+            Assert.assertFalse(AiCardMemory.isRememberedCard(self, secret,
+                    AiCardMemory.MemorySet.REVEALED_CARDS), "neither overload may record referee cards");
             Assert.assertEquals(observation(self, other), before);
             Assert.assertEquals(other.getCardsIn(ZoneType.Hand).size(), 1);
             Assert.assertEquals(self.getLife(), 20);
