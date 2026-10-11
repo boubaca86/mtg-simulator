@@ -1,0 +1,113 @@
+name: Stage 9F - Forge Wall of Mourning Named Effect Canary
+
+# Isolated test-only Forge checkout. The pinned baseline must fail only
+# the expected omission; an unapplied candidate is tested in disposable Forge.
+on:
+  push:
+    branches:
+      - expert-stage9a-forge-decision-pairs
+    paths:
+      - .github/workflows/stage9f-forge-wall-of-mourning.yml
+      - forge_tests/WallOfMourningForgeEffectTest.java
+      - forge_tests/verify_stage9f_surefire.py
+      - forge_patches/stage9f_wall_of_mourning_random_choice.patch
+
+permissions:
+  contents: read
+
+jobs:
+  stage9f-forge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Card-Forge/forge
+          ref: forge-2.0.15
+          path: forge-src
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Set up headless Forge runtime
+        run: |
+          set -euo pipefail
+          if ! command -v xvfb-run >/dev/null || ! command -v xauth >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y xvfb xauth
+          fi
+      - name: Pin source and install test-only fixture
+        run: |
+          set -euo pipefail
+          mkdir -p stage9f-evidence
+          test "$(git -C forge-src describe --tags --exact-match)" = 'forge-2.0.15'
+          test "$(git -C forge-src rev-parse HEAD)" = '4ec5f1a2c32fa90ecb983a72b9eb47aa5c5d7676'
+          git rev-parse HEAD > stage9f-evidence/simulator-commit.txt
+          git -C forge-src rev-parse HEAD > stage9f-evidence/forge-commit.txt
+          install -m 0644 forge_tests/WallOfMourningForgeEffectTest.java \
+            forge-src/forge-gui-desktop/src/test/java/forge/ai/WallOfMourningForgeEffectTest.java
+      - name: Run pinned baseline and require specific negative test
+        run: |
+          set -euo pipefail
+          cd forge-src
+          rm -rf forge-gui-desktop/target/surefire-reports
+          set +e
+          xvfb-run -a mvn -B -ntp -pl forge-gui-desktop -am test \
+            -Dtest=WallOfMourningForgeEffectTest#returnAbilityRequiresBlindRandomSelection \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            > "$GITHUB_WORKSPACE/stage9f-evidence/baseline-maven.log" 2>&1
+          result=$?
+          set -e
+          echo "$result" > "$GITHUB_WORKSPACE/stage9f-evidence/baseline-maven-exit.txt"
+          if [ -d forge-gui-desktop/target/surefire-reports ]; then
+            cp -R forge-gui-desktop/target/surefire-reports \
+              "$GITHUB_WORKSPACE/stage9f-evidence/baseline-surefire"
+          fi
+          test "$result" -ne 0
+          python3 "$GITHUB_WORKSPACE/forge_tests/verify_stage9f_surefire.py" \
+            --mode baseline --reports "$GITHUB_WORKSPACE/stage9f-evidence/baseline-surefire" \
+            | tee "$GITHUB_WORKSPACE/stage9f-evidence/baseline-gate.json"
+      - name: Apply candidate only to disposable pinned Forge checkout
+        run: |
+          set -euo pipefail
+          git -C forge-src apply --check \
+            "$GITHUB_WORKSPACE/forge_patches/stage9f_wall_of_mourning_random_choice.patch"
+          git -C forge-src apply \
+            "$GITHUB_WORKSPACE/forge_patches/stage9f_wall_of_mourning_random_choice.patch"
+          git -C forge-src diff -- forge-gui/res/cardsfolder/w/wall_of_mourning.txt \
+            > stage9f-evidence/candidate-diff.patch
+      - name: Run actual named Forge card-effect resolution
+        run: |
+          set -euo pipefail
+          cd forge-src
+          rm -rf forge-gui-desktop/target/surefire-reports
+          set +e
+          xvfb-run -a mvn -B -ntp -pl forge-gui-desktop -am test \
+            -Dtest=WallOfMourningForgeEffectTest \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            > "$GITHUB_WORKSPACE/stage9f-evidence/patched-maven.log" 2>&1
+          result=$?
+          set -e
+          echo "$result" > "$GITHUB_WORKSPACE/stage9f-evidence/patched-maven-exit.txt"
+          if [ -d forge-gui-desktop/target/surefire-reports ]; then
+            cp -R forge-gui-desktop/target/surefire-reports \
+              "$GITHUB_WORKSPACE/stage9f-evidence/patched-surefire"
+          fi
+          echo "Candidate Maven exit: $result"
+          tail -n 65 "$GITHUB_WORKSPACE/stage9f-evidence/patched-maven.log"
+          test "$result" -eq 0
+          python3 "$GITHUB_WORKSPACE/forge_tests/verify_stage9f_surefire.py" \
+            --mode patched --reports "$GITHUB_WORKSPACE/stage9f-evidence/patched-surefire" \
+            | tee "$GITHUB_WORKSPACE/stage9f-evidence/patched-gate.json"
+      - name: Save immutable execution evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage9f-forge-wall-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: stage9f-evidence/
+          retention-days: 14
+          if-no-files-found: warn
