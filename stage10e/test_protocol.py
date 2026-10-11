@@ -104,7 +104,7 @@ def run():
     visible_two["opponent_table"].insert(1, {"appearance":"face_up","card":"Grizzly Bears"})
     pair_result=subprocess.run(
         [sys.executable,"-I","-S","-u",str(WORKER.resolve())],
-        input=json.dumps(visible_two)+"\\n",text=True,capture_output=True,timeout=5
+        input=json.dumps(visible_two)+"\n",text=True,capture_output=True,timeout=5
     )
     assert pair_result.returncode==0, pair_result.stderr
     assert json.loads(pair_result.stdout)["block_pairs"]==[[0,0],[2,1]]
@@ -120,7 +120,7 @@ def run():
     x=observation();x["own_cards"]["hand"]=[{"card":"Forest"}];malformed.append(x)
     for i,invalid in enumerate(malformed):
         proc=subprocess.run([sys.executable,"-I","-S","-u",str(WORKER.resolve())],
-            input=json.dumps(invalid)+"\\n",text=True,capture_output=True,timeout=5)
+            input=json.dumps(invalid)+"\n",text=True,capture_output=True,timeout=5)
         assert proc.returncode!=0, (i,proc.stdout)
         assert not proc.stdout.strip(), (i,proc.stdout)
     print("Stage10E menace actor IPC PASS: two independent persistent workers,"
