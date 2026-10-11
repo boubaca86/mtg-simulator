@@ -1,4 +1,4 @@
-# Stage 10D — Research-first bounded multi-block implementation (UNVERIFIED)
+# Stage 10D — Research-first bounded multi-block implementation (VERIFIED 49/49)
 
 Research basis:
 - Wizards of the Coast, Magic Comprehensive Rules effective 2026-09-25:
@@ -42,23 +42,33 @@ Safety refinement: `twoIndependentAttackersAreBlockedOneToOneAndAllFourBearsDie`
 now requires **two blocks accepted in the same native declaration callback**.
 A cumulative count spanning two combats is not proof of the intended behavior.
 
-## Verification truth boundary
+## Verification evidence
 
-The last independently confirmed pinned Forge milestone is Stage10C
-46/46 TestNG, zero failures/errors/skips, XML gate PASS:
+**Stage10D independently verified for the stated narrow feature set.**
+
+- GitHub Actions run: https://github.com/boubaca86/mtg-simulator/actions/runs/38168658860
+- Feature commit: `b0c4c68c209530c656af958edb55725309b24088`
+- Pinned Forge: `forge-2.0.15` peeled SHA
+  `4ec5f1a2c32fa90ecb983a72b9eb47aa5c5d7676`
+- Maven exit `0`, `BUILD SUCCESS`
+- Genuine Forge TestNG: **49 run, 49 passed, 0 failures, 0 errors,
+  0 skipped**
+- Independent exact-method Surefire XML verifier:
+  `{"executed_methods":49,"full_magic_game":false,"gate":"PASS"}`
+- Both-process Python observation/IPC canary: PASS
+- Immutable CI artifact:
+  `stage10d-multi-block-restrictions-38168658860-1`
+  (artifact ID `11713390226`), containing source SHA evidence,
+  Maven log and exit, per-method XML and gate JSON.
+
+This is a **bounded pinned Forge gameplay regression**, not an end-to-end
+full Magic engine, trained AI or OS-level security proof. The original
+Stage10C 46/46 milestone also remains verified:
 https://github.com/boubaca86/mtg-simulator/actions/runs/38159095903
-
-Stage10D GitHub source and workflow have been committed, but as of this
-status document **the Stage10D 49/49 Maven run, independent Surefire
-XML gate, source hashes, and artifact have NOT been inspected and
-verified**. Do NOT claim Stage10D complete or `full_magic_game:true`.
-GitHub connector's `fetch_commit_workflow_runs` returned no runs even for
-the known-successful Stage10C push commit, so a zero result there is not
-evidence that Stage10D CI failed to start.
 
 Boundaries still open: no hardened OS sandbox; inherited PlayerControllerAi
 callback audit incomplete; conditional block costs/mandatory/evasion cases
-beyond these tests, multiple blockers per attacker and damage splits,
+beyond this fixture, multiple blockers per attacker and damage splits,
 Stage9E stale exile capabilities/object identity/cost rollback/hidden top,
 and user's nonstandard Ultimatus negative-life/library-exhaustion scoring.
 No merge, deployment, training, protected evaluation seeds or promotion.
