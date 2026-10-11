@@ -124,8 +124,9 @@ public final class IsolatedForgeLifeSpellPriorityTest extends AITest {
             Assert.assertEquals(reply.size(),1,"pass cannot carry extra data");
             return;
         }
-        Assert.assertTrue("play_land".equals(intent) || "cast_creature".equals(intent),
-                "only basic land, restricted creature or pass is permitted");
+        Assert.assertTrue("play_land".equals(intent) || "cast_creature".equals(intent) ||
+                "cast_sorcery".equals(intent),
+                "only basic land, restricted creature, Flame Rift or pass is permitted");
         Assert.assertEquals(reply.size(),2,"land request cannot carry extra data");
         Assert.assertTrue(reply.has("hand_index") &&
                 reply.get("hand_index").isJsonPrimitive() &&
