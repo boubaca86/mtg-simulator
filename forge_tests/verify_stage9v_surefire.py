@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
-CLASS = "forge.ai.Stage9VGuardedHiddenChoicesTest"
+CLASS = "forge.ai.Stage9VGuardedMulliganTargetsTest"
 EXPECTED = {
     "realPriorityRequiresTwoExternalActorPassesToAdvance",
     "realForgeTurnLoopAutomaticallyDrawsWithoutDevTurnSwitch",
