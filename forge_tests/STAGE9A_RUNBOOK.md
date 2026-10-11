@@ -66,3 +66,16 @@ Only accept a run when actual Surefire XML contains exactly six distinct named S
 - This is a targeted Java test run, not an AI game simulation. Both Maven runs use `xvfb-run` for Forge desktop initialization.
 - The upstream patch is applied only to the temporary runner checkout, never committed to Forge or merged into the simulator. Baseline and patched reports are separate artifacts.
 - If the workflow fails, download its evidence artifact; retain the exact logs and method results before changing any patch or tests. **Do not merge Stage9A AI changes without independent review and passing proofs.**
+
+
+## Stage 9B: independent face-down battlefield canary (unverified)
+
+Stage 9A's six previously passing TestNG regressions remain unchanged and are still gated by `verify_stage9a_surefire.py`. The Stage9A feature branch adds a **separate** Java class, `forge_tests/FaceDownBattlefieldPrivacyTest.java`, with exactly two TestNG methods, followed by `verify_stage9b_surefire.py`. It runs **after** the patched Stage 9A six-test gate in the same manual workflow. New failure results in a red workflow; Maven XML and logs are saved under `stage9a-evidence/face-down-battlefield/`.
+
+The new probes (i) swap the secret identity beneath an identical opponent-controlled face-down battlefield shell and require an unchanged actual Forge AI decision, and (ii) verify the opponent's hidden card does not give the actor a usable original-face turn-up action from `ComputerUtilAbility.getSpellAbilities`. The canary does **not** establish that other heuristic evaluators never consult hidden original attributes; it tests two specific observable consequences only.
+
+**Known scope gap:** Magic Comprehensive Rules 406.3a, 406.3b and 406.4 distinguish playable face-down exile cards, quality-restricted casting with look permissions, and random pile selection. Before integrating the Stage9A visibility filter into production, create referee-validated opaque legal-action capabilities that preserve authorized blind pile actions without disclosing private cards. Audit `PlayerZone.getCardsPlayerCanActivate` and `Card.getAllPossibleAbilities`, including owner face-down turn-up permissions and legality of look-only/play-only library effects.
+
+**Current evidence:** the previously recorded GitHub run #3 proved Stage9A six-test red/green (baseline 3 failures, patched 0 failures). Stage9B tests were committed **after** that run and must be compiled and executed separately before making any Stage9B success claim.
+
+References: [official MTG Comprehensive Rules](https://magic.wizards.com/en/rules), [pinned Forge `Card.java`](https://github.com/Card-Forge/forge/blob/forge-2.0.15/forge-game/src/main/java/forge/game/card/Card.java), [pinned Forge `CardView.java`](https://github.com/Card-Forge/forge/blob/forge-2.0.15/forge-game/src/main/java/forge/game/card/CardView.java), [Information Set MCTS research](https://eprints.whiterose.ac.uk/id/eprint/75048/).
