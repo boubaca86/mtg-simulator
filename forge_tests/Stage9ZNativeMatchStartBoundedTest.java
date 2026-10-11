@@ -636,10 +636,6 @@ public final class Stage9ZNativeMatchStartBoundedTest extends AITest {
             return Collections.emptyMap();
         }
         @Override
-        public PlayerZone chooseStartingHand(List<PlayerZone> zones) {
-            throw new SecurityException("unapproved multiple-starting-hand selection");
-        }
-        @Override
         public List<SpellAbility> chooseSaToActivateFromOpeningHand(
                 List<SpellAbility> usableFromOpeningHand) {
             if(!usableFromOpeningHand.isEmpty()) {
