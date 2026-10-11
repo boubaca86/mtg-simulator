@@ -38,6 +38,17 @@ public final class Stage9UTriggerBoundaryTest extends Stage9TGuardedConfirmTest 
         int confirmations;
         int stackedTriggers;
         int resolvedMandatoryEffects;
+        int triggerPriorityCallbacks;
+
+        @Override
+        public List<SpellAbility> chooseSpellAbilityToPlay() {
+            // Referee-only diagnostic: actor itself never receives the stack.
+            if (!getGame().getStack().isEmpty()
+                    && getGame().getStack().peekAbility() instanceof WrappedAbility) {
+                triggerPriorityCallbacks++;
+            }
+            return super.chooseSpellAbilityToPlay();
+        }
 
         TriggerController(Game game, Player self, Player other, Actor worker) {
             super(game, self, other, worker);
@@ -210,10 +221,11 @@ public final class Stage9UTriggerBoundaryTest extends Stage9TGuardedConfirmTest 
             Assert.assertEquals(self.getLife(), 20, "ETB does not resolve its trigger immediately");
             Assert.assertTrue(forest.isTapped(), "creature was genuinely paid for");
             Assert.assertEquals(countCardsWithName(game, "Llanowar Elves"), 1);
-            int aBefore = ca.priorityCallbacks, bBefore = cb.priorityCallbacks;
             finishMandatory(game, self, ca);
-            Assert.assertTrue(ca.priorityCallbacks > aBefore && cb.priorityCallbacks > bBefore,
-                    "both independent actors must pass priority on the triggered ability");
+            Assert.assertTrue(ca.triggerPriorityCallbacks > 0 && cb.triggerPriorityCallbacks > 0,
+                    "both external actors must each receive real priority with trigger on stack"
+                    + " actorA=" + ca.triggerPriorityCallbacks + " actorB=" + cb.triggerPriorityCallbacks
+                    + " totalA=" + ca.priorityCallbacks + " totalB=" + cb.priorityCallbacks);
             Assert.assertEquals(other.getLife(), 20);
         }
     }
@@ -234,11 +246,12 @@ public final class Stage9UTriggerBoundaryTest extends Stage9TGuardedConfirmTest 
             Assert.assertSame(wrapper.getDecider(), self);
             Assert.assertEquals(ca.confirmations, 0, "no optional decision while stacking");
             Assert.assertEquals(self.getLife(), 20);
-            int aBefore = ca.priorityCallbacks, bBefore = cb.priorityCallbacks;
             denied(OPTIONAL, () -> {
                 for (int steps = 0; steps < 40; steps++) game.getPhaseHandler().mainLoopStep();
             });
-            Assert.assertTrue(ca.priorityCallbacks > aBefore && cb.priorityCallbacks > bBefore);
+            Assert.assertTrue(ca.triggerPriorityCallbacks > 0 && cb.triggerPriorityCallbacks > 0,
+                    "optional trigger must reach both actors before its resolution choice"
+                    + " actorA=" + ca.triggerPriorityCallbacks + " actorB=" + cb.triggerPriorityCallbacks);
             Assert.assertEquals(ca.confirmations, 1);
             Assert.assertEquals(ca.resolvedMandatoryEffects, 0);
             Assert.assertEquals(self.getLife(), 20);
