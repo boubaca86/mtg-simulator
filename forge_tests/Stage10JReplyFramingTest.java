@@ -3258,8 +3258,10 @@ public final class Stage10JReplyFramingTest extends AITest {
                 valid.getBytes(StandardCharsets.UTF_8)))) {
             JsonObject decoded=parseStrictActorReply(readBoundedActorReply(input));
             Assert.assertEquals(decoded.get("note").getAsString(),"€🔥");
-            try {validateReply(decoded);Assert.fail("extra field must be rejected");}
-            catch(AssertionError expected) { /* existing exact schema */ }
+            int denied=0;
+            try {validateReply(decoded);}
+            catch(AssertionError expected) {denied++;}
+            Assert.assertEquals(denied,1,"unapproved Unicode note must not affect actor schema");
         }
     }
 
