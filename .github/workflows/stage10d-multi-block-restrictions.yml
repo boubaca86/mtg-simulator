@@ -9,6 +9,7 @@ on:
     paths:
       - .github/workflows/stage10d-multi-block-restrictions.yml
       - stage10d/multi_block_actor.py
+      - stage10d/test_protocol.py
       - stage9w/opening_hand_actor.py
       - forge_tests/Stage10DMultiBlockRestrictionsTest.java
       - forge_tests/verify_stage10d_surefire.py
@@ -59,13 +60,18 @@ jobs:
           test "$(git -C forge-src rev-parse HEAD)" = 4ec5f1a2c32fa90ecb983a72b9eb47aa5c5d7676
           git -C forge-src rev-parse HEAD > stage10d-evidence/forge-sha.txt
           git rev-parse HEAD > stage10d-evidence/feature-sha.txt
-          sha256sum stage9w/opening_hand_actor.py stage10b/action_plan_actor.py stage10d/multi_block_actor.py forge_tests/Stage10DMultiBlockRestrictionsTest.java \
+          sha256sum stage9w/opening_hand_actor.py stage10b/action_plan_actor.py stage10d/multi_block_actor.py stage10d/test_protocol.py forge_tests/Stage10DMultiBlockRestrictionsTest.java \
             > stage10d-evidence/source-hashes.txt
           test -r "$STAGE10D_WORKER"
           test -r "$STAGE10D_LEGACY_PLAN_WORKER"
           test -r "$STAGE10D_DEFENSE_WORKER"
           install -m 0644 forge_tests/Stage10DMultiBlockRestrictionsTest.java \
             forge-src/forge-gui-desktop/src/test/java/forge/ai/Stage10DMultiBlockRestrictionsTest.java
+      - name: Check independent worker IPC privacy and one-to-one blocking
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 stage10d/test_protocol.py | tee stage10d-evidence/actor-protocol.log
       - name: Run actual Forge mana-paid creature spells and combat via two isolated process-backed actors
         shell: bash
         run: |
