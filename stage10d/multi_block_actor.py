@@ -22,6 +22,32 @@ for raw in sys.stdin.buffer:
         raise SystemExit('observation contract violation')
     if set(view['own_cards']) != {'hand', 'decklist_multiset', 'table'}:
         raise SystemExit('own card projection violation')
+    if not isinstance(view['objective'], str):
+        raise SystemExit('invalid objective')
+    if not isinstance(view['life_totals'], dict) or set(view['life_totals']) != {'self', 'opponent'}:
+        raise SystemExit('invalid life projection')
+    if any(type(value) is not int for value in view['life_totals'].values()):
+        raise SystemExit('invalid life totals')
+    for key in ('table',):
+        if not isinstance(view['own_cards'][key], list):
+            raise SystemExit('invalid own table')
+    if not isinstance(view['opponent_table'], list):
+        raise SystemExit('invalid opponent table')
+    for record in view['own_cards']['table'] + view['opponent_table']:
+        if not isinstance(record, dict) or record.get('appearance') not in ('face_up', 'face_down'):
+            raise SystemExit('invalid card appearance')
+        if record['appearance'] == 'face_down':
+            if set(record) != {'appearance'}:
+                raise SystemExit('face-down identity forbidden')
+        elif set(record) != {'appearance', 'card'} or not isinstance(record['card'], str):
+            raise SystemExit('invalid face-up card')
+    if not isinstance(view['own_cards']['hand'], list) or any(not isinstance(x, str) for x in view['own_cards']['hand']):
+        raise SystemExit('invalid own hand')
+    if not isinstance(view['own_cards']['decklist_multiset'], list):
+        raise SystemExit('invalid own deck multiset')
+    for entry in view['own_cards']['decklist_multiset']:
+        if not isinstance(entry, list) or len(entry) != 2 or not isinstance(entry[0], str) or type(entry[1]) is not int or entry[1] < 0:
+            raise SystemExit('invalid own deck entry')
     hand = view['own_cards']['hand']
     if opening:
         # Derive everything from OWN hand; no deck order, opponent hand, or
