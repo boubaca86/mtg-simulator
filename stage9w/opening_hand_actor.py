@@ -2,6 +2,28 @@
 """Stage9O deliberately simple external actor: no referee, phase, turn or stack input."""
 import json
 import sys
+import math
+
+
+def _strict_object_pairs(pairs):
+    """Reject duplicate decoded JSON member names at every nesting level."""
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise SystemExit('duplicate JSON field')
+        result[key] = value
+    return result
+
+
+def _reject_nonfinite_constant(value):
+    raise SystemExit('nonfinite JSON literal')
+
+
+def _strict_json_float(token):
+    result = float(token)
+    if not math.isfinite(result):
+        raise SystemExit('nonfinite JSON number')
+    return result
 
 LANDS = frozenset(('Forest', 'Island', 'Plains', 'Swamp', 'Mountain', 'Wastes'))
 CREATURES = frozenset(('Llanowar Elves', 'Grizzly Bears'))
@@ -9,7 +31,9 @@ CREATURES = frozenset(('Llanowar Elves', 'Grizzly Bears'))
 for raw in sys.stdin.buffer:
     if len(raw) > 16384:
         raise SystemExit('oversized observation')
-    message = json.loads(raw)
+    message = json.loads(raw, object_pairs_hook=_strict_object_pairs,
+                         parse_constant=_reject_nonfinite_constant,
+                         parse_float=_strict_json_float)
     opening = isinstance(message, dict) and set(message) == {'request', 'observation'}
     if opening:
         if message['request'] != 'own_opening_hand':
