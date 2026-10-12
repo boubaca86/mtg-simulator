@@ -855,23 +855,24 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 int damageDealt,GameEntity defender,boolean overrideOrder) {
             if(source==null || source.getController()!=controlled ||
                     !controlled.getCardsIn(ZoneType.Battlefield).contains(source) ||
-                    !"Grizzly Bears".equals(source.getName()) ||
+                    !supportedVanillaBear(source.getName()) ||
                     damageDealt!=2 || source.getNetCombatDamage()!=2 ||
                     source.hasKeyword("Trample") ||
-                    targets==null || targets.isEmpty() || targets.size()>2) {
+                    targets==null || targets.isEmpty() || targets.size()>8) {
                 throw new SecurityException("unsupported referee combat-damage allocation");
             }
             Set<Card> unique=Collections.newSetFromMap(new IdentityHashMap<Card,Boolean>());
             for(Card target:targets) {
                 if(target==null || !unique.add(target) ||
-                        !"Grizzly Bears".equals(target.getName()) ||
+                        !supportedVanillaBear(target.getName()) ||
                         target.getController()!=opponent ||
                         !opponent.getCardsIn(ZoneType.Battlefield).contains(target)) {
                     throw new SecurityException("unregistered or unsupported combat target");
                 }
             }
             // Under CR 510.1c-d (2026-09-25) a 2/2 may assign all
-            // damage to one of two blockers. The passed-in combat list
+            // damage to one of up to eight supported vanilla blockers.
+            // The passed-in combat list
             // is referee-authoritative, never chosen by an inherited AI.
             Map<Card,Integer> split=new LinkedHashMap<>();
             split.put(targets.get(0),2);
