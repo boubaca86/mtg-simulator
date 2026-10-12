@@ -154,26 +154,34 @@ for raw in sys.stdin.buffer:
         reserve_count = min(len(fighters), 1)
     else:
         reserve_count = 0
-    # Stage11Q: preserve Stage11P's 2/2+2/2 emergency trade, and
-    # additionally coordinate a 3/3+2/2 (or two 3/3s) against one
-    # public ordinary vanilla 4/4 at life <=4. Their combined
-    # visible power is lethal to 4/4, while each individual blocker
-    # is weaker. A 3/3+2/2 pair will normally lose only ONE blocker:
-    # Forge's attacker chooses the legal damage division, so never
-    # presume WHICH one dies. The two Python actors receive NO
-    # secret status, phase, actual attacker or other referee state.
-    # Known Forest lands do not threaten; any unknown/facedown
-    # permanent conservatively disables this exclusive-threat rule.
+    # Stage11R: extend the emergency double-block decision to the
+    # smaller *known vanilla 3/3* attacker as well as Stage11P/Q's
+    # 4/4. Two distinct public 2/2 defenders at <=3 own life can
+    # kill one 3/3 threat together; a single sacrificial 2/2 would
+    # prevent this combat's damage but leave the 3/3 alive.
+    # CR 510.1a/c/d and 510.2: simultaneous damage. The attacker
+    # chooses how its 3 damage is divided between two legal blockers;
+    # it can kill one 2/2 but not both. No readiness, priority or
+    # actual attacking identity is inferred by either Python agent.
+    # Only an exactly recognized public 3/3 or 4/4 enemy and
+    # visible basic Forest lands may coexist; all unknown/facedown
+    # permanents disable this narrow numerical decision.
+    single_threat_name = (
+        view['opponent_table'][targets[0]]['card']
+        if len(targets) == 1 else None)
+    single_threat_power = (
+        public_power(single_threat_name)
+        if single_threat_name in ('Centaur Courser', 'Rumbling Baloth')
+        else 0)
     emergency_joint = (
-        0 < life <= 4 and len(fighters) == 2 and
-        all(2 <= public_power(view['own_cards']['table'][i]['card']) < 4
-            for i in fighters) and
+        0 < life <= single_threat_power and
+        len(fighters) == 2 and
+        all(2 <= public_power(view['own_cards']['table'][i]['card'])
+            < single_threat_power for i in fighters) and
         sum(public_power(view['own_cards']['table'][i]['card'])
-            for i in fighters) >= 4 and
-        len(targets) == 1 and
-        view['opponent_table'][targets[0]]['card'] == 'Rumbling Baloth' and
+            for i in fighters) >= single_threat_power and
         all(record.get('appearance') == 'face_up' and
-            record.get('card') in ('Rumbling Baloth', 'Forest')
+            record.get('card') in (single_threat_name, 'Forest')
             for record in view['opponent_table']))
     if emergency_joint:
         reserve_count = 2

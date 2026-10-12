@@ -7591,4 +7591,170 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     public void nativeMixedEmergencyJointBlockRightRegisteredFirst() throws Exception {
         verifyMixedStrengthEmergencyJointDefense(false);
     }
+
+    /**
+     * Stage11R GAMEPLAY: defend at three public life with TWO registered
+     * vanilla 2/2 creatures against a single attacking 3/3 Centaur Courser.
+     * At four life the old no-suicidal-solo policy is unchanged; at three,
+     * new public-only policy reserves and proposes BOTH blockers to destroy
+     * the 3/3, instead of a single chump that leaves the threat intact.
+     * Forge alone enforces the actual attackers, blocks, damage and graves.
+     * The explicit physical-card combat fixture is separate from a fresh
+     * set of naturally shuffled real twenty-life sixty-card matches.
+     */
+    private void verifyThreePowerEmergencyJointBlock(boolean leftRegisteredFirst)
+            throws Exception {
+        Game fixture=nativeFourStrengthVanillaGame(leftRegisteredFirst);
+        Player seatA=fixture.getPlayers().get(0);
+        Player seatB=fixture.getPlayers().get(1);
+        try(Actor workerA=new Actor(5);Actor workerB=new Actor(5)) {
+            Assert.assertNotEquals(workerA.process.pid(),workerB.process.pid(),
+                    "two independent persistent Python actors");
+            ExternalCreatureController ca=attach(fixture,seatA,seatB,workerA);
+            ExternalCreatureController cb=attach(fixture,seatB,seatA,workerB);
+            doRealNativeStartForMultiTurn(fixture,ca,cb);
+            Assert.assertEquals(seatA.getLife(),20);
+            Assert.assertEquals(seatB.getLife(),20);
+            Player offense=fixture.getPhaseHandler().getPlayerTurn();
+            Assert.assertNotNull(offense,"Forge owns actual first player");
+            Player defense=offense==seatA?seatB:seatA;
+            Actor defenseWorker=offense==seatA?workerB:workerA;
+            ExternalCreatureController oc=offense==seatA?ca:cb;
+            ExternalCreatureController dc=offense==seatA?cb:ca;
+
+            fixturePlaceRegisteredVanilla(fixture,offense,"Centaur Courser");
+            fixturePlaceRegisteredVanilla(fixture,defense,"Grizzly Bears");
+            fixturePlaceRegisteredVanilla(fixture,defense,"Runeclaw Bear");
+            Card attacker=offense.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->"Centaur Courser".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Card grizzly=defense.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->"Grizzly Bears".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Card runeclaw=defense.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->"Runeclaw Bear".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            final long attackerId=attacker.getId();
+            final long firstId=grizzly.getId(),secondId=runeclaw.getId();
+            attacker.setSickness(false); // EXPLICIT control only
+            Assert.assertEquals(fullPhysicalInventory(offense),
+                    frozenMain.owned(offense));
+            Assert.assertEquals(fullPhysicalInventory(defense),
+                    frozenMain.owned(defense));
+
+            Assert.assertTrue(defense.setLife(4,null),
+                    "explicit four-life baseline, not a natural-game state");
+            JsonObject control=defenseWorker.ask(observation(defense,offense));
+            Assert.assertEquals(control.getAsJsonArray("block_pairs").size(),0,
+                    "at four life, retain old no-suicidal-solo policy");
+            Assert.assertTrue(defense.setLife(3,null),
+                    "explicit three-life emergency threshold only");
+            JsonObject urgent=defenseWorker.ask(observation(defense,offense));
+            JsonArray pairs=urgent.getAsJsonArray("block_pairs");
+            Assert.assertEquals(urgent.get("intent").getAsString(),"action_plan");
+            Assert.assertEquals(pairs.size(),2,
+                    "at three life, propose BOTH 2/2 blocks against one 3/3");
+            Assert.assertNotEquals(
+                    pairs.get(0).getAsJsonArray().get(0).getAsInt(),
+                    pairs.get(1).getAsJsonArray().get(0).getAsInt(),
+                    "different public own physical defender indices");
+            Assert.assertEquals(
+                    pairs.get(0).getAsJsonArray().get(1).getAsInt(),
+                    pairs.get(1).getAsJsonArray().get(1).getAsInt(),
+                    "both offer the SAME public target index");
+            JsonObject normalForest=JsonParser.parseString(
+                    observation(defense,offense)).getAsJsonObject();
+            JsonObject forest=new JsonObject();
+            forest.addProperty("appearance","face_up");
+            forest.addProperty("card","Forest");
+            normalForest.getAsJsonArray("opponent_table").add(forest);
+            Assert.assertEquals(defenseWorker.ask(normalForest.toString())
+                    .getAsJsonArray("block_pairs").size(),2,
+                    "a visible ordinary Forest is not a second threat");
+            JsonObject unknown=JsonParser.parseString(
+                    observation(defense,offense)).getAsJsonObject();
+            JsonObject faceDown=new JsonObject();
+            faceDown.addProperty("appearance","face_down");
+            unknown.getAsJsonArray("opponent_table").add(faceDown);
+            Assert.assertEquals(defenseWorker.ask(unknown.toString())
+                    .getAsJsonArray("block_pairs").size(),1,
+                    "additional unknown permanent forbids exclusive-threat assumption");
+            Assert.assertFalse(observation(defense,offense).contains(
+                    "\\\"phase\\\""));
+            Assert.assertFalse(observation(offense,defense).contains(
+                    "\\\"stack\\\""));
+            Assert.assertEquals(defense.getLife(),3,
+                    "hypothetical player plans cannot change native life");
+
+            boolean nativeTrade=false;
+            int steps=0;
+            while(!fixture.isGameOver() && steps++<2500) {
+                fixture.getPhaseHandler().mainLoopStep();
+                boolean attackerDead=offense.getCardsIn(ZoneType.Graveyard).stream()
+                        .anyMatch(c->c.getId()==attackerId);
+                boolean firstDead=defense.getCardsIn(ZoneType.Graveyard).stream()
+                        .anyMatch(c->c.getId()==firstId);
+                boolean secondDead=defense.getCardsIn(ZoneType.Graveyard).stream()
+                        .anyMatch(c->c.getId()==secondId);
+                boolean firstAlive=defense.getCardsIn(ZoneType.Battlefield).stream()
+                        .anyMatch(c->c.getId()==firstId);
+                boolean secondAlive=defense.getCardsIn(ZoneType.Battlefield).stream()
+                        .anyMatch(c->c.getId()==secondId);
+                if(oc.attacksAuthorized>0 && dc.coordinatedNativeBlocks>0
+                        && attackerDead && (firstDead != secondDead)
+                        && (firstAlive != secondAlive)
+                        && firstDead == secondAlive
+                        && secondDead == firstAlive) {
+                    nativeTrade=true;
+                    break;
+                }
+            }
+            Assert.assertTrue(steps<2500,"bounded native combat runner");
+            Assert.assertTrue(nativeTrade,
+                    "real Forge 3/3 death plus exactly one dead blocker;"+
+                    " steps="+steps+" attacks="+oc.attacksAuthorized+
+                    " blocks="+dc.blocksAuthorized+
+                    " coordination="+dc.coordinatedNativeBlocks+
+                    " damage_splits="+oc.refereeSplitDamageAssignments+
+                    " attacker_grave="+offense.getCardsIn(ZoneType.Graveyard).size()+
+                    " defender_grave="+defense.getCardsIn(ZoneType.Graveyard).size()+
+                    " defender_life="+defense.getLife()+
+                    " game_over="+fixture.isGameOver());
+            Assert.assertTrue(dc.blocksAuthorized>=2,
+                    "native referee approved both distinct blockers");
+            Assert.assertTrue(oc.refereeSplitDamageAssignments>0,
+                    "native Forge resolved actual 3-power division among blockers");
+            Assert.assertEquals(defense.getLife(),3,
+                    "the fully blocked 3/3 dealt no player combat damage");
+            Assert.assertFalse(fixture.isGameOver(),"no invented winner");
+            Assert.assertEquals(fullPhysicalInventory(offense),
+                    frozenMain.owned(offense));
+            Assert.assertEquals(fullPhysicalInventory(defense),
+                    frozenMain.owned(defense));
+            System.out.println("STAGE11R_THREE_POWER_FIXTURE left_first="+
+                    leftRegisteredFirst+" accepted_blocks="+dc.blocksAuthorized+
+                    " coordinated="+dc.coordinatedNativeBlocks+
+                    " native_damage_splits="+oc.refereeSplitDamageAssignments+
+                    " attacking_three_dead=true defending_dead=1 defending_alive=1"+
+                    " defender_life="+defense.getLife());
+        }
+
+        // SEPARATE, naturally shuffled original 60-card Constructed games.
+        // This existing harness starts two NEW authentic Forge matches per
+        // seat order with natural London opening, 20 life, fresh libraries,
+        // fully paid spells, authoritative Forge winner and preserved cards.
+        verifyNaturalFourStrengthVanilla(leftRegisteredFirst);
+        System.out.println("STAGE11R_NATURAL_UNCURATED_COHORT left_first="+
+                leftRegisteredFirst+" distinct_games=2");
+    }
+
+    @Test(timeOut=240000)
+    public void nativeThreePowerEmergencyBlockLeftRegisteredFirst() throws Exception {
+        verifyThreePowerEmergencyJointBlock(true);
+    }
+
+    @Test(timeOut=240000)
+    public void nativeThreePowerEmergencyBlockRightRegisteredFirst() throws Exception {
+        verifyThreePowerEmergencyJointBlock(false);
+    }
 }

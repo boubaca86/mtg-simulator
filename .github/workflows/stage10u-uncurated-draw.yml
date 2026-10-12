@@ -1,7 +1,7 @@
-name: Stage 11Q - Mixed-Strength Emergency Joint Defense
+name: Stage 11R - Three-Power Emergency Joint Defense
 
 # Two external persistent actor processes plus one authoritative Forge referee.
-# Stage11Q extends 124 pinned native Forge tests: life-at-risk 3/3+2/2 joint block into vanilla 4/4; native physical graveyard trade with one defender surviving in explicit registered fixture, plus untouched natural matches.
+# Stage11R extends 126 pinned native Forge tests: life-at-risk two 2/2s jointly stop a known vanilla 3/3; real native graveyard trade with one blocker surviving in an explicitly registered fixture, plus untouched natural matches.
 # Registered 60-card decks, no hand curation, true London opening and 20 life; not full MTG or OS sandbox.
 on:
   push:
@@ -97,7 +97,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 stage10h/test_protocol.py | tee stage10u-evidence/stage10h-protocol.log
-      - name: Run native mixed-strength emergency joint defense and 124 inherited Forge tests
+      - name: Run native three-power emergency joint defense and 126 inherited Forge tests
         shell: bash
         run: |
           set -euo pipefail
@@ -117,7 +117,7 @@ jobs:
           echo "Forge Maven exit: $code"
           tail -n 75 "$GITHUB_WORKSPACE/stage10u-evidence/maven.log"
           test "$code" -eq 0
-      - name: Verify exact 126 genuine Forge-native methods with independent XML gate
+      - name: Verify exact 128 genuine Forge-native methods with independent XML gate
         shell: bash
         run: |
           set -euo pipefail
@@ -128,7 +128,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stage11q-mixed-emergency-defense-${{ github.run_id }}-${{ github.run_attempt }}
+          name: stage11r-three-power-emergency-${{ github.run_id }}-${{ github.run_attempt }}
           path: stage10u-evidence/
           if-no-files-found: warn
           retention-days: 14
