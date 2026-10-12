@@ -1,4 +1,4 @@
-"""Require exactly 108 successful Stage 11H methods and prove rejection integrity."""
+"""Require exactly 114 successful Stage 11I methods and prove rejection integrity."""
 import argparse
 import json
 from pathlib import Path
@@ -115,6 +115,12 @@ EXPECTED = {
     "nativeThreeSpeciesVanillaBearCohortRightRegisteredFirst",
     "reservedBlockersCoverThreeAttackersAndPreventNativeLethalDamage",
     "spreadBlockFallbackUsesLegalLaterAttackerWithoutPrivateInputs",
+    "courserRequiresThreeActualManaAndResolvesThroughNativePriority",
+    "unblockedCourserDealsThreeThroughNativeCombat",
+    "courserAndBearNativeCombatPreservesLargerCreatureInEitherRole",
+    "courserDamageRemainsBoundedAndRejectsUnsupportedAssignments",
+    "nativeMixedSizeCreatureCohortLeftRegisteredFirst",
+    "nativeMixedSizeCreatureCohortRightRegisteredFirst",
 }
 
 REJECTIONS = {
@@ -151,7 +157,7 @@ def verify(folder: Path) -> dict:
         if problems:
             raise ValueError(f"test failed or skipped: {name}")
     return {"gate": "PASS", "test_class": CLASS, "executed_methods": len(seen),
-            "previous_regressions": 106, "spread_block_cases": 2,
+            "previous_regressions": 108, "mixed_size_cases": 6,
             "full_magic_game": False, "reserved_seed_games_run": False}
 
 
