@@ -7797,8 +7797,9 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                         "Grizzly Bears".equals(card.getName()))
                     card.setSickness(false); // explicit fixture ONLY
             }
+            final long registeredForestId=forest.getId();
             Assert.assertTrue(defense.getCardsIn(ZoneType.Battlefield).stream()
-                    .anyMatch(c->c.getId()==forest.getId()),
+                    .anyMatch(c->c.getId()==registeredForestId),
                     "real physical Forest is publicly present");
             Assert.assertEquals(fullPhysicalInventory(offense),
                     frozenMain.owned(offense));
