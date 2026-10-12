@@ -26,7 +26,9 @@ def _strict_json_float(token):
     return result
 
 LANDS = frozenset(('Forest', 'Island', 'Plains', 'Swamp', 'Mountain', 'Wastes'))
-CREATURES = frozenset(('Llanowar Elves', 'Grizzly Bears'))
+# Three DISTINCT vanilla 1G 2/2 card names, at most four copies each.
+VANILLA_BEARS = frozenset(('Grizzly Bears', 'Runeclaw Bear', 'Balduvian Bears'))
+CREATURES = frozenset(('Llanowar Elves',)) | VANILLA_BEARS
 
 for raw in sys.stdin.buffer:
     if len(raw) > 16384:
@@ -102,11 +104,11 @@ for raw in sys.stdin.buffer:
     lands = [i for i, name in enumerate(hand) if name in LANDS]
     lands.sort(key=lambda i: (hand[i] != 'Forest', hand[i] != 'Island', i))
     creatures = [i for i, name in enumerate(hand) if name in CREATURES]
-    creatures.sort(key=lambda i: (hand[i] != 'Grizzly Bears', i))
+    creatures.sort(key=lambda i: (hand[i] not in VANILLA_BEARS, i))
     bears = [
         i for i, record in enumerate(view['own_cards']['table'])
         if record.get('appearance') == 'face_up'
-        and record.get('card') == 'Grizzly Bears'
+        and record.get('card') in VANILLA_BEARS
     ]
     # Stage11C: do not stop deploying creatures after the first Bear.
     # Additional Grizzly Bears in our OWN visible hand remain candidates
@@ -115,7 +117,7 @@ for raw in sys.stdin.buffer:
     # reinforcement preference, not a command to put any card in play.
     targets = [i for i, record in enumerate(view['opponent_table'])
                if record.get('appearance') == 'face_up'
-               and record.get('card') == 'Grizzly Bears']
+               and record.get('card') in VANILLA_BEARS]
     # Stage11D: when PUBLIC opposing 2/2 Bears could deal lethal damage,
     # hold back the minimum number of our 2/2 Bears which, IF each legally
     # blocks one attacker, could prevent it. Attacking would tap a Bear and

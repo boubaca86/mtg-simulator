@@ -634,6 +634,14 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         }
     }
 
+    /** Stage11G: separate four-of vanilla 1G 2/2 species; actual legal
+     * casting, attacking and blocking remains Forge referee-authoritative. */
+    private static boolean supportedVanillaBear(String name) {
+        return "Grizzly Bears".equals(name) ||
+                "Runeclaw Bear".equals(name) ||
+                "Balduvian Bears".equals(name);
+    }
+
     /** No attacker phase, priority, combat IDs or hidden zone details reach
      * the defending actor. Its table-index pairs are treated only as preferences.
      * Actual current attackers and combat blocking legality remain in Forge. */
@@ -657,8 +665,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             if(!blocker.isCreature() || !attacker.isCreature() ||
                     blocker.getController()!=self || attacker.getController()!=attackerPlayer ||
                     blocker.isFaceDown() || attacker.isFaceDown() ||
-                    !"Grizzly Bears".equals(blocker.getName()) ||
-                    !"Grizzly Bears".equals(attacker.getName()) ||
+                    !supportedVanillaBear(blocker.getName()) ||
+                    !supportedVanillaBear(attacker.getName()) ||
                     committed.contains(blocker) ||
                     !combat.isAttacking(attacker) ||
                     !CombatUtil.canBlock(attacker,blocker,combat) ||
@@ -729,7 +737,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         Card creature=self.getCardsIn(ZoneType.Hand).get(index);
         if(creature.getOwner()!=self || creature.isFaceDown() || !creature.isCreature()) return null;
         if(!"Llanowar Elves".equals(creature.getName()) &&
-           !"Grizzly Bears".equals(creature.getName())) return null;
+           !supportedVanillaBear(creature.getName())) return null;
         for(SpellAbility sa:creature.getSpellAbilities()) {
             if(!sa.isSpell() || sa.usesTargeting() || sa.getSubAbility()!=null) continue;
             if(sa.getPayCosts()==null || !sa.getPayCosts().hasManaCost() ||
@@ -753,7 +761,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 if(n<0 || n>=self.getCardsIn(ZoneType.Battlefield).size()) continue;
                 Card card=self.getCardsIn(ZoneType.Battlefield).get(n);
                 if(card.getController()==self && !card.isFaceDown() &&
-                        "Grizzly Bears".equals(card.getName()) &&
+                        supportedVanillaBear(card.getName()) &&
                         CombatUtil.canAttack(card,defender) &&
                         CombatUtil.getAttackCost(self.getGame(),card,defender)==null) {
                     authorized.add(n);
@@ -778,7 +786,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             if(n<0 || n>=table.size()) return;
             Card c=table.get(n);
             if(c.getController()!=self || c.isFaceDown() ||
-               !"Grizzly Bears".equals(c.getName()) ||
+               !supportedVanillaBear(c.getName()) ||
                !CombatUtil.canAttack(c,defender) ||
                CombatUtil.getAttackCost(game,c,defender)!=null) return;
             approved.add(c);
@@ -5886,5 +5894,146 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     public void nativeReactiveHealthyBlockingCohortRightRegisteredFirst()
             throws Exception {
         verifyNativeReactiveDefenseCohort(false);
+    }
+
+    /** Stage11G: 60 real Constructed cards; 48 Forest and four of each
+     * distinct vanilla 2/2 Bear. No hand, draw, shuffle or life curation. */
+    private Game nativeThreeSpeciesBearGame(boolean firstSeatActive) {
+        Map<String,Integer> counts=new TreeMap<>();
+        counts.put("Forest",48);
+        counts.put("Grizzly Bears",4);
+        counts.put("Runeclaw Bear",4);
+        counts.put("Balduvian Bears",4);
+        RegisteredPlayer a=new RegisteredPlayer(mainDeck("11G left",counts))
+                .setPlayer(new LobbyPlayerAi("mixed-left",null));
+        RegisteredPlayer b=new RegisteredPlayer(mainDeck("11G right",counts))
+                .setPlayer(new LobbyPlayerAi("mixed-right",null));
+        List<RegisteredPlayer> registered=new ArrayList<>();
+        registered.add(firstSeatActive?a:b);
+        registered.add(firstSeatActive?b:a);
+        GameRules rules=new GameRules(GameType.Constructed);
+        Match match=new Match(rules,registered,"Stage11G");
+        Game game=new Game(registered,rules,match);
+        frozenMain=new FrozenMain(game);
+        Assert.assertNull(game.getPhaseHandler().getPhase());
+        for(Player player:game.getPlayers()) {
+            Map<String,Integer> actual=frozenMain.owned(player);
+            Assert.assertEquals(actual,counts);
+            Assert.assertEquals(actual.values().stream().mapToInt(Integer::intValue).sum(),60);
+            for(String name:Arrays.asList("Grizzly Bears","Runeclaw Bear","Balduvian Bears"))
+                Assert.assertEquals(actual.get(name).intValue(),4);
+        }
+        return game;
+    }
+
+    /** Four PREDECLARED natural shuffled games in each registration order.
+     * Each is two persistent independent Python actors plus one Forge referee.
+     * Actor probes use only own/public JSON; actual block counts may be zero.
+     */
+    private void verifyNativeThreeSpeciesBearCohort(boolean leftRegisteredFirst)
+            throws Exception {
+        int totalBlocks=0,totalAttacks=0,gamesWithBlocks=0;
+        for(int sequence=0;sequence<4;sequence++) {
+            Game game=nativeThreeSpeciesBearGame(leftRegisteredFirst);
+            Player left=game.getPlayers().get(leftRegisteredFirst?0:1);
+            Player right=game.getPlayers().get(leftRegisteredFirst?1:0);
+            try(Actor leftActor=new Actor(5);Actor rightActor=new Actor(5)) {
+                Assert.assertNotEquals(leftActor.process.pid(),rightActor.process.pid());
+                ExternalCreatureController ca=attach(game,left,right,leftActor);
+                ExternalCreatureController cb=attach(game,right,left,rightActor);
+                doRealNativeStartForMultiTurn(game,ca,cb);
+                Assert.assertTrue(ca.openingCallbacks>0 && cb.openingCallbacks>0);
+                Assert.assertEquals(left.getLife(),20);
+                Assert.assertEquals(right.getLife(),20);
+                Assert.assertNull(game.getOutcome());
+                Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+                Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+                for(String name:Arrays.asList("Grizzly Bears","Runeclaw Bear","Balduvian Bears"))
+                    Assert.assertEquals(countCardsWithName(game,name,ZoneType.Battlefield),0);
+
+                for(int seat=0;seat<2;seat++) {
+                    Actor actor=seat==0?leftActor:rightActor;
+                    Player self=seat==0?left:right;
+                    Player other=seat==0?right:left;
+                    JsonObject probe=JsonParser.parseString(observation(self,other))
+                            .getAsJsonObject();
+                    JsonArray hypotheticalHand=new JsonArray();
+                    hypotheticalHand.add("Runeclaw Bear");
+                    hypotheticalHand.add("Balduvian Bears");
+                    hypotheticalHand.add("Grizzly Bears");
+                    probe.getAsJsonObject("own_cards").add("hand",hypotheticalHand);
+                    JsonArray ownTable=new JsonArray(),publicTable=new JsonArray();
+                    for(String name:Arrays.asList("Runeclaw Bear","Balduvian Bears",
+                            "Grizzly Bears")) {
+                        JsonObject record=new JsonObject();
+                        record.addProperty("appearance","face_up");
+                        record.addProperty("card",name);
+                        ownTable.add(record.deepCopy());
+                        publicTable.add(record.deepCopy());
+                    }
+                    probe.getAsJsonObject("own_cards").add("table",ownTable);
+                    probe.add("opponent_table",publicTable);
+                    probe.getAsJsonObject("life_totals").addProperty("self",20);
+                    probe.getAsJsonObject("life_totals").addProperty("opponent",20);
+                    JsonObject plan=actor.ask(probe.toString());
+                    Assert.assertEquals(plan.get("intent").getAsString(),"action_plan");
+                    JsonArray creatures=plan.getAsJsonArray("creature_hand_indices");
+                    Assert.assertEquals(creatures.size(),3);
+                    for(int n=0;n<3;n++) Assert.assertEquals(creatures.get(n).getAsInt(),n);
+                    Assert.assertEquals(plan.getAsJsonArray("attack_table_indices").size(),3);
+                    JsonArray blocks=plan.getAsJsonArray("block_pairs");
+                    Assert.assertEquals(blocks.size(),8);
+                    Assert.assertEquals(blocks.get(0).getAsJsonArray().get(0).getAsInt(),0);
+                    Assert.assertEquals(blocks.get(0).getAsJsonArray().get(1).getAsInt(),0);
+                    Assert.assertEquals(blocks.get(3).getAsJsonArray().get(0).getAsInt(),1);
+                    Assert.assertEquals(blocks.get(3).getAsJsonArray().get(1).getAsInt(),0);
+                    Assert.assertEquals(self.getLife(),20);
+                    Assert.assertEquals(fullPhysicalInventory(self),frozenMain.owned(self));
+                }
+
+                int steps=0;
+                while(!game.isGameOver() && steps++<85000)
+                    game.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(steps<85000,"authentic native game must terminate");
+                Assert.assertTrue(game.isGameOver());
+                Assert.assertNotNull(game.getOutcome(),"Forge determines outcome");
+                Assert.assertFalse(game.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Assert.assertTrue(left.hasLost()!=right.hasLost());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(game.getOutcome().isWinner(winner.getRegisteredPlayer()));
+                Assert.assertTrue(ca.priorityCallbacks>0 && cb.priorityCallbacks>0);
+                Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+                Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+                int blocks=ca.blocksAuthorized+cb.blocksAuthorized;
+                int attacks=ca.attacksAuthorized+cb.attacksAuthorized;
+                totalBlocks+=blocks;
+                totalAttacks+=attacks;
+                if(blocks>0) gamesWithBlocks++;
+                System.out.println("STAGE11G_GAME left_first="+leftRegisteredFirst+
+                        " sequence="+sequence+" left_native_blocks="+ca.blocksAuthorized+
+                        " right_native_blocks="+cb.blocksAuthorized+
+                        " left_attacks="+ca.attacksAuthorized+
+                        " right_attacks="+cb.attacksAuthorized+
+                        " winner="+winner.getName());
+            }
+        }
+        Assert.assertTrue(totalAttacks>0,"real native attacks across four games");
+        System.out.println("STAGE11G_COHORT left_first="+leftRegisteredFirst+
+                " total_games=4 games_with_native_blocks="+gamesWithBlocks+
+                " accepted_native_blocks="+totalBlocks+
+                " accepted_native_attacks="+totalAttacks);
+    }
+
+    @Test(timeOut=180000)
+    public void nativeThreeSpeciesVanillaBearCohortLeftRegisteredFirst()
+            throws Exception {
+        verifyNativeThreeSpeciesBearCohort(true);
+    }
+
+    @Test(timeOut=180000)
+    public void nativeThreeSpeciesVanillaBearCohortRightRegisteredFirst()
+            throws Exception {
+        verifyNativeThreeSpeciesBearCohort(false);
     }
 }
