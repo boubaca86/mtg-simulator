@@ -6,6 +6,7 @@ name: Stage 10S - Native Twenty Life Victory
 on:
   push:
     branches:
+      - expert-stage9a-forge-decision-pairs
       - expert-stage10s-native-twenty-life
     paths:
       - .github/workflows/stage10s-natural-twenty-life.yml

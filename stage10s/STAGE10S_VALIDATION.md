@@ -6,6 +6,11 @@ scenarios and their initial verifier, but no Stage 10S CI workflow.
 The last verified stage was 10R: [run 38194501517](https://github.com/boubaca86/mtg-simulator/actions/runs/38194501517),
 76 real Forge tests, zero failures/errors/skips, at `30ebda6`.
 
+While this candidate was being prepared, the development branch added its own
+Stage 10S workflow in `6530a952e2d7c9cbd9e9f2f81ac86870700df787`.
+This PR incorporates that commit and preserves its development-branch trigger
+alongside PR validation and the additional integrity checks.
+
 ## What this change finishes
 
 - Run all 78 named Stage 10S TestNG methods on Java 21 and the exact Forge
