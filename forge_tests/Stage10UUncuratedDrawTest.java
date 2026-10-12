@@ -5292,4 +5292,116 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             throws Exception {
         verifyNaturalReciprocalFullGame(false);
     }
+
+    /**
+     * Stage11B: one gameplay-policy improvement, a public-life-aware
+     * counterattack. Two independent persistent Python actors decline an
+     * even 2/2 trade while healthy and offer Forge-legal blocks when visible
+     * Bears could deal lethal damage. This is a strategic preference, not a
+     * replacement for native attack/block legality. The isolated probes
+     * construct hypothetical PUBLIC observations only and never alter a
+     * real game, its life totals, decks, opening hands, or battlefield.
+     *
+     * The following full game uses original shuffled 60-card decks, native
+     * London mulligans, ordinary draws, mana payment, combat and outcome.
+     * It requires genuine player combat damage but does not claim both
+     * actors necessarily draw an attacker before a random short game ends.
+     */
+    private void verifyNativeLifeAwareCounterattack(boolean leftRegisteredFirst)
+            throws Exception {
+        Game game=nativeTwoNaturallyPaidBearGame(leftRegisteredFirst);
+        Player left=game.getPlayers().get(leftRegisteredFirst?0:1);
+        Player right=game.getPlayers().get(leftRegisteredFirst?1:0);
+        try(Actor leftActor=new Actor(5);Actor rightActor=new Actor(5)) {
+            Assert.assertNotEquals(leftActor.process.pid(),rightActor.process.pid(),
+                    "exactly two persistent independent Python actors");
+            ExternalCreatureController ca=attach(game,left,right,leftActor);
+            ExternalCreatureController cb=attach(game,right,left,rightActor);
+            doRealNativeStartForMultiTurn(game,ca,cb);
+            Assert.assertTrue(ca.openingCallbacks>0 && cb.openingCallbacks>0);
+            Assert.assertEquals(left.getLife(),20);
+            Assert.assertEquals(right.getLife(),20);
+            Assert.assertNull(game.getOutcome());
+            Assert.assertEquals(countCardsWithName(game,"Grizzly Bears",
+                    ZoneType.Battlefield),0,"no curated opening board");
+            Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+            Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+
+            // The same two LIVE actor PIDs must respond differently to
+            // healthy versus lethal-risk public observations. Probes do not
+            // edit native Forge Game/Card or transfer hidden opponent zones.
+            for(int i=0;i<2;i++) {
+                Actor actor=i==0?leftActor:rightActor;
+                Player self=i==0?left:right;
+                Player other=i==0?right:left;
+                JsonObject probe=JsonParser.parseString(observation(self,other))
+                        .getAsJsonObject();
+                JsonObject faceUpBear=new JsonObject();
+                faceUpBear.addProperty("appearance","face_up");
+                faceUpBear.addProperty("card","Grizzly Bears");
+                JsonArray ownTable=new JsonArray();
+                ownTable.add(faceUpBear.deepCopy());
+                probe.getAsJsonObject("own_cards").add("table",ownTable);
+                JsonArray enemyTable=new JsonArray();
+                enemyTable.add(faceUpBear.deepCopy());
+                probe.add("opponent_table",enemyTable);
+                JsonObject life=probe.getAsJsonObject("life_totals");
+                life.addProperty("self",20);
+                life.addProperty("opponent",20);
+                JsonObject healthy=actor.ask(probe.toString());
+                Assert.assertEquals(healthy.get("intent").getAsString(),"action_plan");
+                Assert.assertEquals(healthy.getAsJsonArray("attack_table_indices").size(),1,
+                        "healthy actor still offers a counterattack");
+                Assert.assertEquals(healthy.getAsJsonArray("block_pairs").size(),0,
+                        "healthy actor does not offer an automatic 2/2 trade");
+                life.addProperty("self",2);
+                JsonObject critical=actor.ask(probe.toString());
+                Assert.assertEquals(critical.getAsJsonArray("attack_table_indices").size(),1);
+                Assert.assertEquals(critical.getAsJsonArray("block_pairs").size(),1,
+                        "public lethal risk changes independent block preference");
+                JsonArray pair=critical.getAsJsonArray("block_pairs").get(0).getAsJsonArray();
+                Assert.assertEquals(pair.get(0).getAsInt(),0);
+                Assert.assertEquals(pair.get(1).getAsInt(),0);
+            }
+
+            boolean actualPlayerDamage=false;
+            int steps=0;
+            while(!game.isGameOver() && steps++<85000) {
+                game.getPhaseHandler().mainLoopStep();
+                if(left.getLife()<20 || right.getLife()<20)
+                    actualPlayerDamage=true;
+            }
+            Assert.assertTrue(steps<85000,"native match must finish naturally");
+            Assert.assertTrue(actualPlayerDamage,
+                    "a real Forge combat attack must damage a registered player");
+            Assert.assertTrue(ca.attacksAuthorized+cb.attacksAuthorized>0,
+                    "Forge, not a probe, must authorize a legal natural attack");
+            Assert.assertTrue(ca.priorityCallbacks>0 && cb.priorityCallbacks>0);
+            Assert.assertTrue(game.isGameOver());
+            Assert.assertNotNull(game.getOutcome(),"Forge records the actual result");
+            Assert.assertFalse(game.getOutcome().isDraw());
+            Assert.assertTrue(left.hasWon()!=right.hasWon());
+            Assert.assertTrue(left.hasLost()!=right.hasLost());
+            Player winner=left.hasWon()?left:right;
+            Assert.assertTrue(game.getOutcome().isWinner(winner.getRegisteredPlayer()));
+            Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+            Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+            System.out.println("STAGE11B_REAL_COMBAT left_attacks="+ca.attacksAuthorized+
+                    " right_attacks="+cb.attacksAuthorized+
+                    " left_life="+left.getLife()+" right_life="+right.getLife()+
+                    " winner="+winner.getName());
+        }
+    }
+
+    @Test(timeOut=180000)
+    public void nativeLifeAwareCounterattackNaturalGameLeftRegisteredFirst()
+            throws Exception {
+        verifyNativeLifeAwareCounterattack(true);
+    }
+
+    @Test(timeOut=180000)
+    public void nativeLifeAwareCounterattackNaturalGameRightRegisteredFirst()
+            throws Exception {
+        verifyNativeLifeAwareCounterattack(false);
+    }
 }

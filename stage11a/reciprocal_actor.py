@@ -125,10 +125,15 @@ for raw in sys.stdin.buffer:
     # (summoning sickness, tapped status, actual phase and defending player).
     # We DO NOT get to see whose turn it is or the true combat state.
     active_attacks = bears[:8]
-    # Prefer distinct one-to-one blocks: an ordinary Bear cannot block two
-    # separate creatures. The referee checks the actual combat legality.
-    block_pairs = [[own_i, enemy_i] for own_i, enemy_i
-                   in zip(bears, targets)][:8]
+    # Stage11B: counterattack while healthy instead of automatically trading
+    # a 2/2 for a visible opposing 2/2. Preserve our attacker until visible
+    # opponent Bears could deal lethal damage in one combat. Their actual
+    # readiness, attacks, and block legality remain entirely Forge-private.
+    # The public life total and face-up Bear count are the ONLY inputs.
+    possible_damage = 2 * len(targets)
+    block_pairs = ([[own_i, enemy_i] for own_i, enemy_i
+                    in zip(bears, targets)][:8]
+                   if view['life_totals']['self'] <= possible_damage else [])
     plan = {
         'intent': 'action_plan',
         'land_hand_indices': lands,
