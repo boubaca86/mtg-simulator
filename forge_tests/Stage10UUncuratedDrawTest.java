@@ -6562,8 +6562,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     own.add(big.deepCopy());
                     probe.getAsJsonObject("own_cards").add("table",own);
                     JsonObject solo=worker.ask(probe.toString());
-                    Assert.assertEquals(solo.getAsJsonArray("block_pairs").size(),4,
-                            "4/4 single defender; 3/3 also accepts 2/2 trade");
+                    Assert.assertEquals(solo.getAsJsonArray("block_pairs").size(),2,
+                            "4/4 single defender is preferred over sacrificing weaker creatures");
                     Assert.assertEquals(solo.getAsJsonArray("block_pairs")
                             .get(0).getAsJsonArray().get(0).getAsInt(),2);
                     Assert.assertEquals(solo.getAsJsonArray("block_pairs")
