@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail closed unless exactly eighty-two real Forge Stage10G TestNG methods ran and passed."""
+"""Fail closed unless exactly eighty-four real Forge Stage10V TestNG methods ran and passed."""
 import argparse
 import json
 import sys
@@ -90,6 +90,8 @@ EXPECTED = {
     "nativeBothManaPaidCombatantsBlockWhenDefenderRegisteredFirst",
     "nativeUncuratedOpeningDrawAndPaidBearWhenAttackerRegisteredFirst",
     "nativeUncuratedOpeningDrawAndPaidBearWhenDefenderRegisteredFirst",
+    "nativeBothUncuratedPlayersPayAndResolveBearsLeftRegisteredFirst",
+    "nativeBothUncuratedPlayersPayAndResolveBearsRightRegisteredFirst",
 }
 
 def verify(folder: Path) -> dict:
@@ -114,7 +116,7 @@ def verify(folder: Path) -> dict:
         if problems:
             raise ValueError(f"test failed or skipped: {name}")
     return {"gate":"PASS","executed_methods":len(EXPECTED),
-            "scope":"Pinned Forge native combat with two external actors: actual delayed and prompt external Python actors under shared I/O budget, native registered mana-paid creature, multi-turn cumulative combat and genuine 20-life-to-zero Forge victory, both actors paid casts and legal blockers across native turns, natural uncurated private opening hands and first paid creature spell, lethal/nonlethal game outcome, inherited backpressure, framing, damage, first-strike, menace and privacy regressions",
+            "scope":"Pinned Forge native combat with two external actors: actual delayed and prompt external Python actors under shared I/O budget, native registered mana-paid creature, multi-turn cumulative combat and genuine 20-life-to-zero Forge victory, both actors paid casts and legal blockers across native turns, natural uncurated private opening hands and first paid creature spell, plus two independent uncurated players' genuine paid creature spells, lethal/nonlethal game outcome, inherited backpressure, framing, damage, first-strike, menace and privacy regressions",
             "full_magic_game":False}
 
 if __name__ == "__main__":
