@@ -6202,4 +6202,112 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         verifyNativeUnequalVanillaCohort(false);
     }
 
+
+    /** Stage11I: both independent persistent actors can plan a legal
+     * two-2/2 cooperative block on a public 3/3. All probes are only
+     * hypothetical OWN/public JSON; native game remains uncurated. */
+    private void verifyNativeCooperativeBlocking(boolean leftRegisteredFirst)
+            throws Exception {
+        for(int gameIndex=0;gameIndex<2;gameIndex++) {
+            Game game=nativeUnequalVanillaGame(leftRegisteredFirst);
+            Player left=game.getPlayers().get(leftRegisteredFirst?0:1);
+            Player right=game.getPlayers().get(leftRegisteredFirst?1:0);
+            try(Actor leftActor=new Actor(5); Actor rightActor=new Actor(5)) {
+                Assert.assertNotEquals(leftActor.process.pid(),rightActor.process.pid());
+                ExternalCreatureController ca=attach(game,left,right,leftActor);
+                ExternalCreatureController cb=attach(game,right,left,rightActor);
+                doRealNativeStartForMultiTurn(game,ca,cb);
+                Assert.assertTrue(ca.openingCallbacks>0 && cb.openingCallbacks>0);
+                Assert.assertEquals(left.getLife(),20);
+                Assert.assertEquals(right.getLife(),20);
+                Assert.assertNull(game.getOutcome());
+                Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+                Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+                for(String name:Arrays.asList("Grizzly Bears","Runeclaw Bear",
+                        "Balduvian Bears","Centaur Courser"))
+                    Assert.assertEquals(countCardsWithName(game,name,ZoneType.Battlefield),0);
+                for(int seat=0;seat<2;seat++) {
+                    Actor actor=seat==0?leftActor:rightActor;
+                    Player self=seat==0?left:right;
+                    Player other=seat==0?right:left;
+                    JsonObject probe=JsonParser.parseString(observation(self,other))
+                            .getAsJsonObject();
+                    JsonObject bearA=new JsonObject();
+                    bearA.addProperty("appearance","face_up");
+                    bearA.addProperty("card","Grizzly Bears");
+                    JsonObject bearB=new JsonObject();
+                    bearB.addProperty("appearance","face_up");
+                    bearB.addProperty("card","Runeclaw Bear");
+                    JsonObject centaur=new JsonObject();
+                    centaur.addProperty("appearance","face_up");
+                    centaur.addProperty("card","Centaur Courser");
+                    JsonArray own=new JsonArray();
+                    own.add(bearA);
+                    own.add(bearB);
+                    JsonArray enemy=new JsonArray();
+                    enemy.add(centaur.deepCopy());
+                    enemy.add(centaur.deepCopy());
+                    probe.getAsJsonObject("own_cards").add("table",own);
+                    probe.add("opponent_table",enemy);
+                    probe.getAsJsonObject("life_totals").addProperty("self",20);
+                    probe.getAsJsonObject("life_totals").addProperty("opponent",20);
+                    JsonObject first=actor.ask(probe.toString());
+                    Assert.assertEquals(first.get("intent").getAsString(),"action_plan");
+                    Assert.assertEquals(first.getAsJsonArray("attack_table_indices").size(),0);
+                    JsonArray joint=first.getAsJsonArray("block_pairs");
+                    Assert.assertEquals(joint.size(),4);
+                    for(int n=0;n<4;n++) {
+                        JsonArray pair=joint.get(n).getAsJsonArray();
+                        Assert.assertEquals(pair.get(0).getAsInt(),n%2);
+                        Assert.assertEquals(pair.get(1).getAsInt(),n/2);
+                    }
+                    own.add(centaur.deepCopy());
+                    probe.getAsJsonObject("own_cards").add("table",own);
+                    JsonObject withLarge=actor.ask(probe.toString());
+                    JsonArray solo=withLarge.getAsJsonArray("block_pairs");
+                    Assert.assertEquals(solo.size(),2);
+                    for(int n=0;n<2;n++) {
+                        JsonArray pair=solo.get(n).getAsJsonArray();
+                        Assert.assertEquals(pair.get(0).getAsInt(),2);
+                        Assert.assertEquals(pair.get(1).getAsInt(),n);
+                    }
+                    Assert.assertEquals(withLarge.getAsJsonArray("attack_table_indices").size(),1);
+                    Assert.assertEquals(withLarge.getAsJsonArray("attack_table_indices")
+                            .get(0).getAsInt(),2);
+                    Assert.assertEquals(self.getLife(),20);
+                    Assert.assertEquals(fullPhysicalInventory(self),frozenMain.owned(self));
+                }
+                int steps=0;
+                while(!game.isGameOver() && steps++<85000)
+                    game.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(steps<85000,"natural Forge game must terminate");
+                Assert.assertTrue(game.isGameOver());
+                Assert.assertNotNull(game.getOutcome());
+                Assert.assertFalse(game.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Assert.assertTrue(left.hasLost()!=right.hasLost());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(game.getOutcome().isWinner(winner.getRegisteredPlayer()));
+                Assert.assertTrue(ca.priorityCallbacks>0 && cb.priorityCallbacks>0);
+                Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+                Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+                System.out.println("STAGE11I_GAME left_first="+leftRegisteredFirst+
+                        " game="+gameIndex+" real_accepted_blocks="+
+                        (ca.blocksAuthorized+cb.blocksAuthorized)+
+                        " left_attacks="+ca.attacksAuthorized+
+                        " right_attacks="+cb.attacksAuthorized+
+                        " winner="+winner.getName());
+            }
+        }
+    }
+
+    @Test(timeOut=180000)
+    public void nativeCooperativeBlockingLeftRegisteredFirst() throws Exception {
+        verifyNativeCooperativeBlocking(true);
+    }
+
+    @Test(timeOut=180000)
+    public void nativeCooperativeBlockingRightRegisteredFirst() throws Exception {
+        verifyNativeCooperativeBlocking(false);
+    }
 }

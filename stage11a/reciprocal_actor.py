@@ -174,6 +174,24 @@ for raw in sys.stdin.buffer:
     ordered_targets = sorted(targets,
         key=lambda i: -public_power(view['opponent_table'][i]['card']))
     block_pairs = []
+    # Stage11I: two independently controlled 2/2s may cooperatively block
+    # one public 3/3. Combined 4 damage defeats it; a solo 2/2 cannot.
+    # The same pair is offered against each visible 3/3 as a fallback,
+    # because actual attacker identities remain referee-private.
+    # CR 509.1a, 510.1a-d. Only Forge validates and resolves combat.
+    smaller = [i for i in defensive_candidates
+               if view['own_cards']['table'][i]['card'] in VANILLA_BEARS]
+    stronger = [i for i in defensive_candidates
+                if view['own_cards']['table'][i]['card'] in VANILLA_THREES]
+    if life > incoming and not stronger and len(smaller) >= 2:
+        for enemy_i in ordered_targets:
+            if view['opponent_table'][enemy_i]['card'] not in VANILLA_THREES:
+                continue
+            for own_i in smaller[:2]:
+                if len(block_pairs) < 8:
+                    block_pairs.append([own_i, enemy_i])
+    # Preserve the single-block candidate fallback plan. Never disclose
+    # combat phase, actual attackers, tapped flags or private game objects.
     for own_i in defensive_candidates:
         own_strength = public_power(view['own_cards']['table'][own_i]['card'])
         for enemy_i in ordered_targets:
@@ -182,7 +200,9 @@ for raw in sys.stdin.buffer:
                 continue
             if len(block_pairs) >= 8:
                 break
-            block_pairs.append([own_i, enemy_i])
+            pair = [own_i, enemy_i]
+            if pair not in block_pairs:
+                block_pairs.append(pair)
         if len(block_pairs) >= 8:
             break
     plan = {
