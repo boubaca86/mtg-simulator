@@ -1,7 +1,7 @@
-name: Stage 10Y - Natural Uncurated Full 20-Life Win
+name: Stage 10Z - Natural Contested Deck-Out Game
 
 # Two external persistent actor processes plus one authoritative Forge referee.
-# Stage10Y extends 88 pinned Forge tests with two full games: uncurated private draws through 20-life victory.
+# Stage10Z extends 90 pinned Forge tests with two complete games: both actors genuinely cast/block, Forge determines authentic library depletion.
 # Registered 60-card decks, no hand curation, true London opening and 20 life; not full MTG or OS sandbox.
 on:
   push:
@@ -94,7 +94,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 stage10h/test_protocol.py | tee stage10u-evidence/stage10h-protocol.log
-      - name: Run full uncurated 20-life Forge victory and 88 inherited methods
+      - name: Run naturally contested deck-out and 90 inherited Forge methods
         shell: bash
         run: |
           set -euo pipefail
@@ -114,7 +114,7 @@ jobs:
           echo "Forge Maven exit: $code"
           tail -n 75 "$GITHUB_WORKSPACE/stage10u-evidence/maven.log"
           test "$code" -eq 0
-      - name: Verify exact 90 genuine Forge-native methods with independent XML gate
+      - name: Verify exact 92 genuine Forge-native methods with independent XML gate
         shell: bash
         run: |
           set -euo pipefail
@@ -125,7 +125,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stage10y-natural-win-${{ github.run_id }}-${{ github.run_attempt }}
+          name: stage10z-contested-deckout-${{ github.run_id }}-${{ github.run_attempt }}
           path: stage10u-evidence/
           if-no-files-found: warn
           retention-days: 14
