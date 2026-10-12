@@ -893,6 +893,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         int blockerCallbacks=0;
         int blocksAuthorized=0;
         int maxBlocksInSingleDeclare=0;
+        // Count ACTUAL legal two-blocker trades, never actor intentions.
+        int coordinatedNativeBlocks=0;
         @Override
         public void declareBlockers(Player defender,Combat combat) {
             try {
@@ -901,6 +903,30 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 int accepted=refereeDeclareBlockers(controlled,opponent,combat,proposed);
                 blocksAuthorized+=accepted;
                 maxBlocksInSingleDeclare=Math.max(maxBlocksInSingleDeclare,accepted);
+                // Count only Forge-validated actual one-attacker/two-blocker
+                // assignments. Actor is NEVER told this combat information.
+                if(accepted>0 && combat!=null) {
+                    for(Card attacker:combat.getAttackers()) {
+                        if(attacker.getController()!=opponent ||
+                                !supportedVanillaFighter(attacker.getName())) continue;
+                        CardCollection legalBlockers=combat.getBlockers(attacker);
+                        if(legalBlockers.size()!=2) continue;
+                        int combined=0;
+                        boolean independentlyWeaker=true;
+                        for(Card blocker:legalBlockers) {
+                            if(blocker.getController()!=controlled ||
+                                    !supportedVanillaFighter(blocker.getName()) ||
+                                    blocker.getNetPower()>=attacker.getNetToughness()) {
+                                independentlyWeaker=false;
+                                break;
+                            }
+                            combined+=blocker.getNetPower();
+                        }
+                        if(independentlyWeaker &&
+                                combined>=attacker.getNetToughness())
+                            coordinatedNativeBlocks++;
+                    }
+                }
             } catch(Exception ex) {
                 throw new IllegalStateException("Actor blocker preference IPC failed",ex);
             }
@@ -6461,5 +6487,129 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     @Test(timeOut=180000)
     public void nativeFourStrengthVanillaRightRegisteredFirst() throws Exception {
         verifyNaturalFourStrengthVanilla(false);
+    }
+
+    /** Stage11K: generic cooperative vanilla defense:
+     * 3/3+2/2 can trade with a 4/4, avoiding an isolated lost creature.
+     * Probes exercise only own/public JSON to both persistent OS actors,
+     * while four full shuffled native games per method are untouched.
+     * The referee records genuine completed declaration-time two-blocker
+     * events separately from policy recommendations; zero is possible.
+     */
+    private void verifyNativeGeneralCooperation(boolean leftRegisteredFirst)
+            throws Exception {
+        int games=3,legalAttacks=0,legalBlocks=0,nativePairs=0;
+        for(int sequence=0;sequence<games;sequence++) {
+            Game game=nativeFourStrengthVanillaGame(leftRegisteredFirst);
+            Player left=game.getPlayers().get(leftRegisteredFirst?0:1);
+            Player right=game.getPlayers().get(leftRegisteredFirst?1:0);
+            try(Actor actorL=new Actor(5);Actor actorR=new Actor(5)) {
+                Assert.assertNotEquals(actorL.process.pid(),actorR.process.pid(),
+                        "two independent persistent external Python players");
+                ExternalCreatureController ca=attach(game,left,right,actorL);
+                ExternalCreatureController cb=attach(game,right,left,actorR);
+                doRealNativeStartForMultiTurn(game,ca,cb);
+                Assert.assertTrue(ca.openingCallbacks>0 && cb.openingCallbacks>0);
+                Assert.assertEquals(left.getLife(),20);
+                Assert.assertEquals(right.getLife(),20);
+                Assert.assertNull(game.getOutcome());
+                Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+                Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+                for(String name:Arrays.asList("Grizzly Bears","Runeclaw Bear",
+                        "Balduvian Bears","Centaur Courser","Rumbling Baloth"))
+                    Assert.assertEquals(countCardsWithName(game,name,ZoneType.Battlefield),0);
+                for(int seat=0;seat<2;seat++) {
+                    Actor worker=seat==0?actorL:actorR;
+                    Player self=seat==0?left:right;
+                    Player other=seat==0?right:left;
+                    JsonObject probe=JsonParser.parseString(observation(self,other))
+                            .getAsJsonObject();
+                    JsonObject small=new JsonObject();
+                    small.addProperty("appearance","face_up");
+                    small.addProperty("card","Grizzly Bears");
+                    JsonObject medium=new JsonObject();
+                    medium.addProperty("appearance","face_up");
+                    medium.addProperty("card","Centaur Courser");
+                    JsonObject big=new JsonObject();
+                    big.addProperty("appearance","face_up");
+                    big.addProperty("card","Rumbling Baloth");
+                    JsonArray own=new JsonArray(),opponentTable=new JsonArray();
+                    own.add(small.deepCopy());
+                    own.add(medium.deepCopy());
+                    opponentTable.add(big.deepCopy());
+                    opponentTable.add(big.deepCopy());
+                    probe.getAsJsonObject("own_cards").add("table",own);
+                    probe.add("opponent_table",opponentTable);
+                    probe.getAsJsonObject("life_totals").addProperty("self",20);
+                    probe.getAsJsonObject("life_totals").addProperty("opponent",20);
+                    JsonObject dual=worker.ask(probe.toString());
+                    Assert.assertEquals(dual.get("intent").getAsString(),"action_plan");
+                    Assert.assertEquals(dual.getAsJsonArray("attack_table_indices").size(),0,
+                            "both visible own creatures weaker than public 4/4");
+                    JsonArray proposed=dual.getAsJsonArray("block_pairs");
+                    Assert.assertEquals(proposed.size(),4,
+                            "3/3 and 2/2 cooperate against either public 4/4");
+                    for(int target=0;target<2;target++) {
+                        Assert.assertEquals(proposed.get(target*2)
+                                .getAsJsonArray().get(0).getAsInt(),1);
+                        Assert.assertEquals(proposed.get(target*2)
+                                .getAsJsonArray().get(1).getAsInt(),target);
+                        Assert.assertEquals(proposed.get(target*2+1)
+                                .getAsJsonArray().get(0).getAsInt(),0);
+                        Assert.assertEquals(proposed.get(target*2+1)
+                                .getAsJsonArray().get(1).getAsInt(),target);
+                    }
+                    own.add(big.deepCopy());
+                    probe.getAsJsonObject("own_cards").add("table",own);
+                    JsonObject solo=worker.ask(probe.toString());
+                    Assert.assertEquals(solo.getAsJsonArray("block_pairs").size(),4,
+                            "4/4 single defender; 3/3 also accepts 2/2 trade");
+                    Assert.assertEquals(solo.getAsJsonArray("block_pairs")
+                            .get(0).getAsJsonArray().get(0).getAsInt(),2);
+                    Assert.assertEquals(solo.getAsJsonArray("block_pairs")
+                            .get(0).getAsJsonArray().get(1).getAsInt(),0);
+                    Assert.assertEquals(self.getLife(),20);
+                    Assert.assertEquals(fullPhysicalInventory(self),frozenMain.owned(self));
+                }
+                int steps=0;
+                while(!game.isGameOver() && steps++<85000)
+                    game.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(steps<85000,"untouched native game must complete");
+                Assert.assertTrue(game.isGameOver());
+                Assert.assertNotNull(game.getOutcome());
+                Assert.assertFalse(game.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Assert.assertTrue(left.hasLost()!=right.hasLost());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(game.getOutcome().isWinner(winner.getRegisteredPlayer()));
+                Assert.assertTrue(ca.priorityCallbacks>0 && cb.priorityCallbacks>0);
+                Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+                Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+                int actualPairs=ca.coordinatedNativeBlocks+cb.coordinatedNativeBlocks;
+                nativePairs+=actualPairs;
+                legalAttacks+=ca.attacksAuthorized+cb.attacksAuthorized;
+                legalBlocks+=ca.blocksAuthorized+cb.blocksAuthorized;
+                System.out.println("STAGE11K_GAME left_first="+leftRegisteredFirst+
+                        " sequence="+sequence+
+                        " actual_referee_accepted_joint_blocks="+actualPairs+
+                        " accepted_blocks="+(ca.blocksAuthorized+cb.blocksAuthorized)+
+                        " real_attacks="+(ca.attacksAuthorized+cb.attacksAuthorized)+
+                        " winner="+winner.getName());
+            }
+        }
+        Assert.assertEquals(games,3,"all predeclared natural games completed");
+        System.out.println("STAGE11K_COHORT left_first="+leftRegisteredFirst+
+                " games="+games+" native_joint_blocks="+nativePairs+
+                " accepted_blocks="+legalBlocks+" real_attacks="+legalAttacks);
+    }
+
+    @Test(timeOut=180000)
+    public void nativeGeneralCooperationLeftRegisteredFirst() throws Exception {
+        verifyNativeGeneralCooperation(true);
+    }
+
+    @Test(timeOut=180000)
+    public void nativeGeneralCooperationRightRegisteredFirst() throws Exception {
+        verifyNativeGeneralCooperation(false);
     }
 }

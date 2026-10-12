@@ -183,22 +183,26 @@ for raw in sys.stdin.buffer:
     ordered_targets = sorted(targets,
         key=lambda i: -public_power(view['opponent_table'][i]['card']))
     block_pairs = []
-    # Stage11I: two independently controlled 2/2s may cooperatively block
-    # one public 3/3. Combined 4 damage defeats it; a solo 2/2 cannot.
-    # The same pair is offered against each visible 3/3 as a fallback,
-    # because actual attacker identities remain referee-private.
-    # CR 509.1a, 510.1a-d. Only Forge validates and resolves combat.
-    smaller = [i for i in defensive_candidates
-               if view['own_cards']['table'][i]['card'] in VANILLA_BEARS]
-    stronger = [i for i in defensive_candidates
-                if public_power(view['own_cards']['table'][i]['card']) >= 3]
-    if life > incoming and not stronger and len(smaller) >= 2:
+    # Stage11K: a generic coordinated block is profitable when TWO weaker
+    # vanilla creatures jointly match the public threat's toughness.
+    # Example: 3/3 + 2/2 against a 4/4, or 2/2 + 2/2 against a 3/3.
+    # Prefer a solo equal/stronger blocker if one is visibly available.
+    # These are only candidate indices, not actual combat assignments:
+    # Forge knows real attacking identity, tapped state and legal timing.
+    if life > incoming:
         for enemy_i in ordered_targets:
-            if view['opponent_table'][enemy_i]['card'] not in VANILLA_THREES:
+            threat_power = public_power(view['opponent_table'][enemy_i]['card'])
+            candidates = sorted(defensive_candidates,
+                key=lambda i: -public_power(view['own_cards']['table'][i]['card']))
+            if any(public_power(view['own_cards']['table'][i]['card'])
+                   >= threat_power for i in candidates):
                 continue
-            for own_i in smaller[:2]:
-                if len(block_pairs) < 8:
-                    block_pairs.append([own_i, enemy_i])
+            if (len(candidates) >= 2 and
+                sum(public_power(view['own_cards']['table'][i]['card'])
+                    for i in candidates[:2]) >= threat_power):
+                for own_i in candidates[:2]:
+                    if len(block_pairs) < 8:
+                        block_pairs.append([own_i, enemy_i])
     # Preserve the single-block candidate fallback plan. Never disclose
     # combat phase, actual attackers, tapped flags or private game objects.
     for own_i in defensive_candidates:
