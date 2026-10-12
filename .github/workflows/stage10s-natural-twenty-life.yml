@@ -1,0 +1,128 @@
+name: Stage 10S - Natural Twenty Life Combat
+
+# Two external persistent actor processes plus one authoritative Forge referee.
+# Stage10S verifies 20-life cumulative native combat over 3 and 10 different turns.
+# Legal registered decks, curated own-hand fixture, no test-set life; not full MTG or OS sandbox.
+on:
+  push:
+    branches:
+      - expert-stage9a-forge-decision-pairs
+    paths:
+      - .github/workflows/stage10s-natural-twenty-life.yml
+      - stage9w/opening_hand_actor.py
+      - stage10b/action_plan_actor.py
+      - stage10d/multi_block_actor.py
+      - stage10d/test_protocol.py
+      - stage10e/menace_defense_actor.py
+      - stage10e/test_protocol.py
+      - stage10h/test_protocol.py
+      - stage10l/adversarial_actor.py
+      - stage10o/controlled_delay_actor.py
+      - forge_tests/Stage10SNaturalTwentyLifeTest.java
+      - forge_tests/verify_stage10s_surefire.py
+
+permissions:
+  contents: read
+
+jobs:
+  real-delayed-exchange-and-pinned-forge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      STAGE10G_WORKER: ${{ github.workspace }}/stage9w/opening_hand_actor.py
+      STAGE10G_LEGACY_PLAN_WORKER: ${{ github.workspace }}/stage10b/action_plan_actor.py
+      STAGE10G_DEFENSE_WORKER: ${{ github.workspace }}/stage10d/multi_block_actor.py
+      STAGE10G_MENACE_WORKER: ${{ github.workspace }}/stage10e/menace_defense_actor.py
+      STAGE10L_ADVERSARIAL_WORKER: ${{ github.workspace }}/stage10l/adversarial_actor.py
+      STAGE10O_DELAY_WORKER: ${{ github.workspace }}/stage10o/controlled_delay_actor.py
+    steps:
+      - name: Checkout feature branch without credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Checkout exact Forge 2.0.15
+        uses: actions/checkout@v4
+        with:
+          repository: Card-Forge/forge
+          ref: forge-2.0.15
+          path: forge-src
+          persist-credentials: false
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install virtual display and Python runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 --version
+          if ! command -v xvfb-run >/dev/null || ! command -v xauth >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y xvfb xauth
+          fi
+      - name: Verify pinned SHA and stage test into disposable Forge
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p stage10s-evidence
+          test "$(git -C forge-src describe --tags --exact-match)" = forge-2.0.15
+          test "$(git -C forge-src rev-parse HEAD)" = 4ec5f1a2c32fa90ecb983a72b9eb47aa5c5d7676
+          git -C forge-src rev-parse HEAD > stage10s-evidence/forge-sha.txt
+          git rev-parse HEAD > stage10s-evidence/feature-sha.txt
+          sha256sum stage9w/opening_hand_actor.py stage10b/action_plan_actor.py stage10d/multi_block_actor.py stage10d/test_protocol.py stage10e/menace_defense_actor.py stage10e/test_protocol.py forge_tests/Stage10SNaturalTwentyLifeTest.java stage10h/test_protocol.py stage10l/adversarial_actor.py stage10o/controlled_delay_actor.py forge_tests/verify_stage10s_surefire.py \
+            > stage10s-evidence/source-hashes.txt
+          test -r "$STAGE10G_WORKER"
+          test -r "$STAGE10G_LEGACY_PLAN_WORKER"
+          test -r "$STAGE10G_DEFENSE_WORKER"
+          test -r "$STAGE10G_MENACE_WORKER"
+          test -r "$STAGE10L_ADVERSARIAL_WORKER"
+          test -r "$STAGE10O_DELAY_WORKER"
+          install -m 0644 forge_tests/Stage10SNaturalTwentyLifeTest.java \
+            forge-src/forge-gui-desktop/src/test/java/forge/ai/Stage10SNaturalTwentyLifeTest.java
+      - name: Verify two-process Stage 10D and Stage 10E actor information contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 stage10d/test_protocol.py | tee stage10s-evidence/stage10d-protocol.log
+          python3 stage10e/test_protocol.py | tee stage10s-evidence/stage10e-protocol.log
+      - name: Verify Stage 10H strict JSON parsing for all four actor types
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 stage10h/test_protocol.py | tee stage10s-evidence/stage10h-protocol.log
+      - name: Run natural twenty-life combat and 76 inherited methods
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd forge-src
+          rm -rf forge-gui-desktop/target/surefire-reports
+          set +e
+          xvfb-run -a mvn -B -ntp -pl forge-gui-desktop -am test \
+            -Dtest=Stage10SNaturalTwentyLifeTest \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            > "$GITHUB_WORKSPACE/stage10s-evidence/maven.log" 2>&1
+          code=$?
+          set -e
+          echo "$code" > "$GITHUB_WORKSPACE/stage10s-evidence/maven-exit.txt"
+          if [ -d forge-gui-desktop/target/surefire-reports ]; then
+            cp -R forge-gui-desktop/target/surefire-reports "$GITHUB_WORKSPACE/stage10s-evidence/surefire"
+          fi
+          echo "Forge Maven exit: $code"
+          tail -n 75 "$GITHUB_WORKSPACE/stage10s-evidence/maven.log"
+          test "$code" -eq 0
+      - name: Verify exact 78 genuine Forge-native twenty-life and inherited tests with independent XML gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 forge_tests/verify_stage10s_surefire.py \
+            --reports stage10s-evidence/surefire \
+            | tee stage10s-evidence/gate.json
+      - name: Save build, per-method XML, source hashes and gate result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage10s-natural-twenty-life-${{ github.run_id }}-${{ github.run_attempt }}
+          path: stage10s-evidence/
+          if-no-files-found: warn
+          retention-days: 14
