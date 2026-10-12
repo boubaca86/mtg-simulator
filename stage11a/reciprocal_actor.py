@@ -149,7 +149,19 @@ for raw in sys.stdin.buffer:
     # This uses only public life and visible Bears, never hidden readiness,
     # draw order or referee phase; Forge remains the sole legal arbiter.
     if 0 < life <= incoming:
-        reserve_count = min(len(fighters), (incoming - life) // 2 + 1)
+        # Stage11O: one vanilla block stops that threat's whole power,
+        # not always two damage. Reserve the fewest creatures that COULD
+        # keep us alive by blocking the largest visible threats first.
+        # This is a preference estimate; Forge still owns actual readiness.
+        remaining = incoming
+        reserve_count = 0
+        for strength in sorted(
+                (public_power(view['opponent_table'][i]['card'])
+                 for i in targets), reverse=True):
+            if remaining < life or reserve_count == len(fighters):
+                break
+            remaining -= strength
+            reserve_count += 1
     elif targets and 0 < life <= incoming + 4:
         reserve_count = min(len(fighters), 1)
     else:
@@ -205,6 +217,20 @@ for raw in sys.stdin.buffer:
     ordered_targets = sorted(targets,
         key=lambda i: -public_power(view['opponent_table'][i]['card']))
     block_pairs = []
+    # Stage11O: at lethal risk, cover distinct threats before proposing
+    # alternate targets. Row-major pairs made Forge commit every blocker
+    # to the first attacker, letting preventable lethal damage through.
+    # Rotated fallback rounds retain later legal targets without exposing
+    # which creatures are actually attacking or able to block.
+    if 0 < life <= incoming:
+        for offset in range(len(ordered_targets)):
+            for position, own_i in enumerate(defensive_candidates):
+                if len(block_pairs) == 8:
+                    break
+                enemy_i = ordered_targets[(position + offset) % len(ordered_targets)]
+                block_pairs.append([own_i, enemy_i])
+            if len(block_pairs) == 8:
+                break
     # Stage11K: a generic coordinated block is profitable when TWO weaker
     # vanilla creatures jointly match the public threat's toughness.
     # Example: 3/3 + 2/2 against a 4/4, or 2/2 + 2/2 against a 3/3.
@@ -227,7 +253,7 @@ for raw in sys.stdin.buffer:
                         block_pairs.append([own_i, enemy_i])
     # Preserve the single-block candidate fallback plan. Never disclose
     # combat phase, actual attackers, tapped flags or private game objects.
-    for own_i in defensive_candidates:
+    for own_i in ([] if 0 < life <= incoming else defensive_candidates):
         own_strength = public_power(view['own_cards']['table'][own_i]['card'])
         for enemy_i in ordered_targets:
             enemy_strength = public_power(view['opponent_table'][enemy_i]['card'])
