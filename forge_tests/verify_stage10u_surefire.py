@@ -1,9 +1,8 @@
-#!/usr/bin/env python3
-"""Fail closed unless exactly one hundred and six real Forge Stage11B TestNG methods ran and passed."""
+"""Require exactly 108 successful Stage 11H methods and prove rejection integrity."""
 import argparse
 import json
-import sys
 from pathlib import Path
+import sys
 from xml.etree import ElementTree as ET
 
 CLASS = "forge.ai.Stage10UUncuratedDrawTest"
@@ -114,9 +113,18 @@ EXPECTED = {
     "nativeReactiveHealthyBlockingCohortRightRegisteredFirst",
     "nativeThreeSpeciesVanillaBearCohortLeftRegisteredFirst",
     "nativeThreeSpeciesVanillaBearCohortRightRegisteredFirst",
+    "reservedBlockersCoverThreeAttackersAndPreventNativeLethalDamage",
+    "spreadBlockFallbackUsesLegalLaterAttackerWithoutPrivateInputs",
 }
 
-def verify(folder: Path) -> dict:
+REJECTIONS = {
+    "illegalExtraActorCommandIsRejectedBeforeForgeCanChangeState",
+    "forgedCreatureCommandsAndUnsupportedCardAreRejected",
+    "forgedAttackPayloadsAndOutOfTurnAccessFailClosed",
+}
+
+
+def cases(folder: Path):
     if not folder.is_dir():
         raise ValueError("Surefire reports missing")
     seen = {}
@@ -125,28 +133,51 @@ def verify(folder: Path) -> dict:
         for case in root.iter():
             if case.tag.rsplit("}", 1)[-1] != "testcase":
                 continue
-            if case.get("classname") not in (CLASS, CLASS.rsplit(".", 1)[-1]):
-                continue
+            if case.get("classname") != CLASS:
+                raise ValueError("unexpected test class")
             name = case.get("name")
             if not name or name in seen:
-                raise ValueError("duplicated or anonymous method")
-            failures = [e for e in case if e.tag.rsplit("}", 1)[-1] in ("failure", "error", "skipped")]
-            seen[name] = failures
+                raise ValueError("duplicate or anonymous test method")
+            seen[name] = [child for child in case
+                          if child.tag.rsplit("}", 1)[-1] in ("failure", "error", "skipped")]
+    return seen
+
+
+def verify(folder: Path) -> dict:
+    seen = cases(folder)
     if set(seen) != EXPECTED:
-        raise ValueError(f"methods differ: found {sorted(seen)}, expected {sorted(EXPECTED)}")
+        raise ValueError(f"methods differ: missing={sorted(EXPECTED - seen.keys())}, extra={sorted(seen.keys() - EXPECTED)}")
     for name, problems in seen.items():
         if problems:
             raise ValueError(f"test failed or skipped: {name}")
-    return {"gate":"PASS","executed_methods":len(EXPECTED),
-            "scope":"Pinned Forge native combat with two external actors: actual delayed and prompt external Python actors under shared I/O budget, native registered mana-paid creature, multi-turn cumulative combat and genuine 20-life-to-zero Forge victory, both actors paid casts and legal blockers across native turns, natural uncurated private opening hands and first paid creature spell, plus two independent uncurated players' genuine paid creature spells and naturally cast 2/2 versus 2/2 block/combat deaths and two successive genuine independently paid block combats across distinct turns, and native uncurated shuffled opening through entire real 20-life combat victory in both registration orders, plus complete 20-life game where two independently casting/blocking actors reach authentic Forge library-depletion loss, and two symmetric independently attacking/blocking player actors play to one real Forge winner, plus public-life-aware counterattack/block preferences and reinforcement-after-first-creature and proactive early-risk holdback, healthy reactive block-target fallbacks, three separate legal four-of vanilla 2/2 creature names in natural full 60-card games, and lethal-risk reserve-attacker policies verified by both independent processes during naturally shuffled Forge games with real player combat damage, lethal/nonlethal game outcome, inherited backpressure, framing, damage, first-strike, menace and privacy regressions",
-            "full_magic_game":False}
+    return {"gate": "PASS", "test_class": CLASS, "executed_methods": len(seen),
+            "previous_regressions": 106, "spread_block_cases": 2,
+            "full_magic_game": False, "reserved_seed_games_run": False}
+
+
+def verify_mutation(folder: Path, maven_exit: int) -> dict:
+    if maven_exit != 1:
+        raise ValueError("expected Maven test failure, not success or process crash")
+    seen = cases(folder)
+    if set(seen) != REJECTIONS:
+        raise ValueError("mutation must execute exactly the three repaired rejection methods")
+    for name, problems in seen.items():
+        if len(problems) != 1:
+            raise ValueError(f"mutation survived or had multiple failures: {name}")
+        failure = problems[0]
+        if (failure.tag.rsplit("}", 1)[-1] != "failure"
+                or failure.get("type") != "java.lang.AssertionError"
+                or "FORGED_PAYLOAD_ACCEPTED:" not in failure.get("message", "")):
+            raise ValueError(f"unexpected failure does not prove mutation detection: {name}")
+    return {"gate": "PASS", "disabled_validator_detected_by": sorted(seen)}
+
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--reports", type=Path, required=True)
     args = parser.parse_args()
     try:
-        print(json.dumps(verify(args.reports),sort_keys=True))
-    except (OSError,ValueError,ET.ParseError) as exc:
-        print(json.dumps({"gate":"FAIL","reason":str(exc)}), file=sys.stderr)
+        print(json.dumps(verify(args.reports), sort_keys=True))
+    except (OSError, ValueError, ET.ParseError) as exc:
+        print(json.dumps({"gate": "FAIL", "reason": str(exc)}), file=sys.stderr)
         sys.exit(1)

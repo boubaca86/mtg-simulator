@@ -151,10 +151,16 @@ for raw in sys.stdin.buffer:
     # The trusted referee enforces distinct blockers and the eight-pair cap.
     defensive_candidates = reserved if reserve_count else bears
     block_pairs = []
-    for own_i in defensive_candidates:
-        for enemy_i in targets:
+    # Stage11H: offer distinct first-choice targets before alternatives.
+    # A row-major Cartesian product made Forge commit every blocker to the
+    # first legal attacker, contradicting the reserve damage estimate above.
+    # Rotate each later round to retain fallbacks without starving later
+    # blockers of the eight-pair budget. Readiness stays referee-private.
+    for offset in range(len(targets)):
+        for position, own_i in enumerate(defensive_candidates):
             if len(block_pairs) >= 8:
                 break
+            enemy_i = targets[(position + offset) % len(targets)]
             block_pairs.append([own_i, enemy_i])
         if len(block_pairs) >= 8:
             break
