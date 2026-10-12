@@ -1,12 +1,14 @@
-name: Stage 11N - Public Lethal Swarm Combat
+name: Stage 11O - Critical Mixed Defense
 
 # Two external persistent actor processes plus one authoritative Forge referee.
-# Stage11N extends 118 pinned native Forge tests: public-life-aware multi-attacker lethal over one strong blocker, native outcome and distinct untouched natural matches.
+# Stage11O extends 120 pinned Forge tests with three explicit low-life defense fixtures.
+# Inherited uncurated natural matches remain separate from arranged regressions.
 # Registered 60-card decks, no hand curation, true London opening and 20 life; not full MTG or OS sandbox.
 on:
   push:
     branches:
       - expert-stage9a-forge-decision-pairs
+      - expert-stage11o-critical-mixed-defense
     paths:
       - .github/workflows/stage10u-uncurated-draw.yml
       - stage9w/opening_hand_actor.py
@@ -22,6 +24,27 @@ on:
       - stage11a/reciprocal_actor.py
       - forge_tests/Stage10UUncuratedDrawTest.java
       - forge_tests/verify_stage10u_surefire.py
+      - forge_tests/stage11o_rejection_integrity.py
+      - forge_tests/test_verify_stage11o_surefire.py
+      - stage11o/**
+
+  pull_request:
+    paths:
+      - .github/workflows/stage10u-uncurated-draw.yml
+      - stage9w/**
+      - stage10b/**
+      - stage10d/**
+      - stage10e/**
+      - stage10h/**
+      - stage10l/**
+      - stage10o/**
+      - stage10v/**
+      - stage11a/**
+      - stage11o/**
+      - forge_tests/Stage10UUncuratedDrawTest.java
+      - forge_tests/verify_stage10u_surefire.py
+      - forge_tests/stage11o_rejection_integrity.py
+      - forge_tests/test_verify_stage11o_surefire.py
 
 permissions:
   contents: read
@@ -74,7 +97,7 @@ jobs:
           test "$(git -C forge-src rev-parse HEAD)" = 4ec5f1a2c32fa90ecb983a72b9eb47aa5c5d7676
           git -C forge-src rev-parse HEAD > stage10u-evidence/forge-sha.txt
           git rev-parse HEAD > stage10u-evidence/feature-sha.txt
-          sha256sum stage9w/opening_hand_actor.py stage10b/action_plan_actor.py stage10d/multi_block_actor.py stage10d/test_protocol.py stage10e/menace_defense_actor.py stage10e/test_protocol.py forge_tests/Stage10UUncuratedDrawTest.java stage10h/test_protocol.py stage10l/adversarial_actor.py stage10o/controlled_delay_actor.py stage10v/visible_opponent_actor.py stage11a/reciprocal_actor.py forge_tests/verify_stage10u_surefire.py \
+          sha256sum stage9w/opening_hand_actor.py stage10b/action_plan_actor.py stage10d/multi_block_actor.py stage10d/test_protocol.py stage10e/menace_defense_actor.py stage10e/test_protocol.py forge_tests/Stage10UUncuratedDrawTest.java stage10h/test_protocol.py stage10l/adversarial_actor.py stage10o/controlled_delay_actor.py stage10v/visible_opponent_actor.py stage11a/reciprocal_actor.py forge_tests/verify_stage10u_surefire.py forge_tests/stage11o_rejection_integrity.py forge_tests/test_verify_stage11o_surefire.py stage11o/test_protocol.py \
             > stage10u-evidence/source-hashes.txt
           test -r "$STAGE10G_WORKER"
           test -r "$STAGE10G_LEGACY_PLAN_WORKER"
@@ -97,7 +120,13 @@ jobs:
         run: |
           set -euo pipefail
           python3 stage10h/test_protocol.py | tee stage10u-evidence/stage10h-protocol.log
-      - name: Run native public lethal swarm combat and 118 inherited Forge tests
+      - name: Verify critical defense policy and evidence rejection checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest -v stage11o.test_protocol forge_tests.test_verify_stage11o_surefire 2>&1 \
+            | tee stage10u-evidence/stage11o-python-tests.log
+      - name: Run three critical defense fixtures and 120 inherited Forge tests
         shell: bash
         run: |
           set -euo pipefail
@@ -117,18 +146,27 @@ jobs:
           echo "Forge Maven exit: $code"
           tail -n 75 "$GITHUB_WORKSPACE/stage10u-evidence/maven.log"
           test "$code" -eq 0
-      - name: Verify exact 120 genuine Forge-native methods with independent XML gate
+      - name: Verify exact 123 genuine Forge-native methods with independent XML gate
         shell: bash
         run: |
           set -euo pipefail
           python3 forge_tests/verify_stage10u_surefire.py \
             --reports stage10u-evidence/surefire \
             | tee stage10u-evidence/gate.json
+      - name: Prove repaired assertions detect a disabled validator
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m forge_tests.stage11o_rejection_integrity \
+            --forge-root forge-src \
+            --baseline stage10u-evidence/surefire \
+            --evidence stage10u-evidence/rejection-mutation \
+            | tee stage10u-evidence/rejection-mutation.log
       - name: Save build, per-method XML, source hashes and gate result
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stage11n-public-lethal-swarm-${{ github.run_id }}-${{ github.run_attempt }}
+          name: stage11o-critical-mixed-defense-${{ github.run_id }}-${{ github.run_attempt }}
           path: stage10u-evidence/
           if-no-files-found: warn
           retention-days: 14
