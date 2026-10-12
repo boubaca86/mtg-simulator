@@ -5352,8 +5352,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 Assert.assertEquals(healthy.get("intent").getAsString(),"action_plan");
                 Assert.assertEquals(healthy.getAsJsonArray("attack_table_indices").size(),1,
                         "healthy actor still offers a counterattack");
-                Assert.assertEquals(healthy.getAsJsonArray("block_pairs").size(),0,
-                        "healthy actor does not offer an automatic 2/2 trade");
+                Assert.assertEquals(healthy.getAsJsonArray("block_pairs").size(),1,
+                        "Stage11F offers a legal defensive trade even at healthy life");
                 life.addProperty("self",2);
                 JsonObject critical=actor.ask(probe.toString());
                 Assert.assertEquals(critical.getAsJsonArray("attack_table_indices").size(),0,
@@ -5569,7 +5569,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 JsonObject healthy=actor.ask(probe.toString());
                 Assert.assertEquals(healthy.get("intent").getAsString(),"action_plan");
                 Assert.assertEquals(healthy.getAsJsonArray("attack_table_indices").size(),3);
-                Assert.assertEquals(healthy.getAsJsonArray("block_pairs").size(),0);
+                Assert.assertEquals(healthy.getAsJsonArray("block_pairs").size(),8,
+                        "Stage11F offers bounded candidate blocks even when healthy");
 
                 // Six visible incoming damage vs four life: prevent at
                 // least four damage by reserving two available 2/2s.
@@ -5579,17 +5580,18 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 JsonArray blocks=endangered.getAsJsonArray("block_pairs");
                 Assert.assertEquals(attacks.size(),1,"one safe attacker remains");
                 Assert.assertEquals(attacks.get(0).getAsInt(),0);
-                Assert.assertEquals(blocks.size(),2,"two Bears reserved");
+                Assert.assertEquals(blocks.size(),6,
+                        "two reserved Bears offer three legal-target fallbacks each");
                 Assert.assertEquals(blocks.get(0).getAsJsonArray().get(0).getAsInt(),1);
                 Assert.assertEquals(blocks.get(0).getAsJsonArray().get(1).getAsInt(),0);
-                Assert.assertEquals(blocks.get(1).getAsJsonArray().get(0).getAsInt(),2);
-                Assert.assertEquals(blocks.get(1).getAsJsonArray().get(1).getAsInt(),1);
+                Assert.assertEquals(blocks.get(2).getAsJsonArray().get(1).getAsInt(),2);
+                Assert.assertEquals(blocks.get(3).getAsJsonArray().get(0).getAsInt(),2);
 
                 // Six vs six needs only one blocker; retain two attackers.
                 life.addProperty("self",6);
                 JsonObject borderline=actor.ask(probe.toString());
                 Assert.assertEquals(borderline.getAsJsonArray("attack_table_indices").size(),2);
-                Assert.assertEquals(borderline.getAsJsonArray("block_pairs").size(),1);
+                Assert.assertEquals(borderline.getAsJsonArray("block_pairs").size(),3);
 
                 // One remaining Bear must be able to defend when a single
                 // face-up opposing Bear could be lethal. A proposal is not
@@ -5699,14 +5701,14 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 JsonObject safe=actor.ask(probe.toString());
                 Assert.assertEquals(safe.getAsJsonArray("attack_table_indices").size(),3,
                         "outside two-turn danger all own Bears may attack");
-                Assert.assertEquals(safe.getAsJsonArray("block_pairs").size(),0);
+                Assert.assertEquals(safe.getAsJsonArray("block_pairs").size(),8);
 
                 life.addProperty("self",10);
                 JsonObject atRisk=actor.ask(probe.toString());
                 Assert.assertEquals(atRisk.get("intent").getAsString(),"action_plan");
                 Assert.assertEquals(atRisk.getAsJsonArray("attack_table_indices").size(),2,
                         "hold one Bear for defense before one-swing lethal");
-                Assert.assertEquals(atRisk.getAsJsonArray("block_pairs").size(),1);
+                Assert.assertEquals(atRisk.getAsJsonArray("block_pairs").size(),3);
                 Assert.assertEquals(atRisk.getAsJsonArray("block_pairs")
                         .get(0).getAsJsonArray().get(0).getAsInt(),2);
                 Assert.assertEquals(atRisk.getAsJsonArray("block_pairs")
@@ -5715,7 +5717,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 life.addProperty("self",6);
                 JsonObject imminent=actor.ask(probe.toString());
                 Assert.assertEquals(imminent.getAsJsonArray("attack_table_indices").size(),2);
-                Assert.assertEquals(imminent.getAsJsonArray("block_pairs").size(),1);
+                Assert.assertEquals(imminent.getAsJsonArray("block_pairs").size(),3);
 
                 // Observation-only probes MUST NOT alter real life or inventory.
                 Assert.assertEquals(self.getLife(),20);
@@ -5763,5 +5765,126 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     public void nativeEarlyReserveNaturalGameRightRegisteredFirst()
             throws Exception {
         verifyNativeAdvanceDefenseReserve(false);
+    }
+
+    /**
+     * Stage11F: reactive healthy blocking against any ACTUALLY attacking Bear.
+     * Each actor offers public-board candidate pairs, including alternatives
+     * for a creature at a later opponent-table index. Forge retains exclusive
+     * authority to reject tapped, non-attacking or otherwise illegal pairs.
+     * Four PREDECLARED sequential naturally shuffled full native games are
+     * played in EACH registration order, not selectively rerolled. Genuine
+     * accepted block counts are printed, INCLUDING ZERO if it occurs.
+     * No opening cards, deck orders, life totals or game outcomes are curated.
+     */
+    private void verifyNativeReactiveDefenseCohort(boolean leftRegisteredFirst)
+            throws Exception {
+        int games=4;
+        int allAcceptedBlocks=0,allAcceptedAttacks=0;
+        int gamesWithBlocks=0;
+        for(int iteration=0;iteration<games;iteration++) {
+            Game game=nativeTwoNaturallyPaidBearGame(leftRegisteredFirst);
+            Player left=game.getPlayers().get(leftRegisteredFirst?0:1);
+            Player right=game.getPlayers().get(leftRegisteredFirst?1:0);
+            try(Actor leftActor=new Actor(5);Actor rightActor=new Actor(5)) {
+                Assert.assertNotEquals(leftActor.process.pid(),rightActor.process.pid(),
+                        "each natural game has exactly two external actor processes");
+                ExternalCreatureController ca=attach(game,left,right,leftActor);
+                ExternalCreatureController cb=attach(game,right,left,rightActor);
+                doRealNativeStartForMultiTurn(game,ca,cb);
+                Assert.assertTrue(ca.openingCallbacks>0 && cb.openingCallbacks>0);
+                Assert.assertEquals(left.getLife(),20);
+                Assert.assertEquals(right.getLife(),20);
+                Assert.assertNull(game.getOutcome());
+                Assert.assertEquals(countCardsWithName(game,"Grizzly Bears",
+                        ZoneType.Battlefield),0,"no staged native board");
+                Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+                Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+
+                // Probe BOTH persistent real players, using only own/public
+                // JSON. A defensive preference can be proposed at 20 life
+                // without revealing turn, phase, stack or actual attackers.
+                for(int i=0;i<2;i++) {
+                    Actor actor=i==0?leftActor:rightActor;
+                    Player self=i==0?left:right;
+                    Player other=i==0?right:left;
+                    JsonObject probe=JsonParser.parseString(observation(self,other))
+                            .getAsJsonObject();
+                    JsonObject visibleBear=new JsonObject();
+                    visibleBear.addProperty("appearance","face_up");
+                    visibleBear.addProperty("card","Grizzly Bears");
+                    JsonArray ownTable=new JsonArray();
+                    ownTable.add(visibleBear.deepCopy());
+                    JsonArray enemyTable=new JsonArray();
+                    for(int n=0;n<3;n++) enemyTable.add(visibleBear.deepCopy());
+                    probe.getAsJsonObject("own_cards").add("table",ownTable);
+                    probe.add("opponent_table",enemyTable);
+                    probe.getAsJsonObject("life_totals").addProperty("self",20);
+                    probe.getAsJsonObject("life_totals").addProperty("opponent",20);
+                    JsonObject healthy=actor.ask(probe.toString());
+                    Assert.assertEquals(healthy.get("intent").getAsString(),"action_plan");
+                    Assert.assertEquals(healthy.getAsJsonArray("attack_table_indices").size(),1,
+                            "the actor can still attack when healthy");
+                    JsonArray proposed=healthy.getAsJsonArray("block_pairs");
+                    Assert.assertEquals(proposed.size(),3,
+                            "healthy blocker attempts all visible target indices");
+                    for(int enemy=0;enemy<3;enemy++) {
+                        JsonArray pair=proposed.get(enemy).getAsJsonArray();
+                        Assert.assertEquals(pair.get(0).getAsInt(),0);
+                        Assert.assertEquals(pair.get(1).getAsInt(),enemy);
+                    }
+                    Assert.assertEquals(self.getLife(),20,"probe must not edit life");
+                    Assert.assertEquals(fullPhysicalInventory(self),frozenMain.owned(self),
+                            "probe cannot edit cards or shuffle");
+                }
+
+                int steps=0;
+                while(!game.isGameOver() && steps++<85000)
+                    game.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(steps<85000,"native game must terminate");
+                Assert.assertTrue(game.isGameOver());
+                Assert.assertNotNull(game.getOutcome(),"Forge owns outcome");
+                Assert.assertFalse(game.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Assert.assertTrue(left.hasLost()!=right.hasLost());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(game.getOutcome().isWinner(winner.getRegisteredPlayer()));
+                Assert.assertTrue(ca.priorityCallbacks>0 && cb.priorityCallbacks>0,
+                        "both independent actors play the natural match");
+                Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+                Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+                int accepted=ca.blocksAuthorized+cb.blocksAuthorized;
+                int attacks=ca.attacksAuthorized+cb.attacksAuthorized;
+                allAcceptedBlocks+=accepted;
+                allAcceptedAttacks+=attacks;
+                if(accepted>0) gamesWithBlocks++;
+                System.out.println("STAGE11F_GAME seat_left_first="+leftRegisteredFirst+
+                        " sequence="+iteration+" left_native_blocks="+ca.blocksAuthorized+
+                        " right_native_blocks="+cb.blocksAuthorized+
+                        " left_attacks="+ca.attacksAuthorized+
+                        " right_attacks="+cb.attacksAuthorized+
+                        " winner="+winner.getName());
+            }
+        }
+        Assert.assertEquals(games,4,"no shuffle/result-selective early exit");
+        Assert.assertTrue(allAcceptedAttacks>=0);
+        // An uncurated game can legitimately contain no mutual Bears, so
+        // the policy test cannot demand an invented or forced natural block.
+        System.out.println("STAGE11F_COHORT left_first="+leftRegisteredFirst+
+                " total_games="+games+" games_with_native_blocks="+gamesWithBlocks+
+                " accepted_native_blocks="+allAcceptedBlocks+
+                " accepted_native_attacks="+allAcceptedAttacks);
+    }
+
+    @Test(timeOut=180000)
+    public void nativeReactiveHealthyBlockingCohortLeftRegisteredFirst()
+            throws Exception {
+        verifyNativeReactiveDefenseCohort(true);
+    }
+
+    @Test(timeOut=180000)
+    public void nativeReactiveHealthyBlockingCohortRightRegisteredFirst()
+            throws Exception {
+        verifyNativeReactiveDefenseCohort(false);
     }
 }

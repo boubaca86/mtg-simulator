@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail closed unless exactly one hundred and two real Forge Stage11B TestNG methods ran and passed."""
+"""Fail closed unless exactly one hundred and four real Forge Stage11B TestNG methods ran and passed."""
 import argparse
 import json
 import sys
@@ -110,6 +110,8 @@ EXPECTED = {
     "nativeLethalRiskReserveNaturalGameRightRegisteredFirst",
     "nativeEarlyReserveNaturalGameLeftRegisteredFirst",
     "nativeEarlyReserveNaturalGameRightRegisteredFirst",
+    "nativeReactiveHealthyBlockingCohortLeftRegisteredFirst",
+    "nativeReactiveHealthyBlockingCohortRightRegisteredFirst",
 }
 
 def verify(folder: Path) -> dict:
@@ -134,7 +136,7 @@ def verify(folder: Path) -> dict:
         if problems:
             raise ValueError(f"test failed or skipped: {name}")
     return {"gate":"PASS","executed_methods":len(EXPECTED),
-            "scope":"Pinned Forge native combat with two external actors: actual delayed and prompt external Python actors under shared I/O budget, native registered mana-paid creature, multi-turn cumulative combat and genuine 20-life-to-zero Forge victory, both actors paid casts and legal blockers across native turns, natural uncurated private opening hands and first paid creature spell, plus two independent uncurated players' genuine paid creature spells and naturally cast 2/2 versus 2/2 block/combat deaths and two successive genuine independently paid block combats across distinct turns, and native uncurated shuffled opening through entire real 20-life combat victory in both registration orders, plus complete 20-life game where two independently casting/blocking actors reach authentic Forge library-depletion loss, and two symmetric independently attacking/blocking player actors play to one real Forge winner, plus public-life-aware counterattack/block preferences and reinforcement-after-first-creature and proactive early-risk holdback and lethal-risk reserve-attacker policies verified by both independent processes during naturally shuffled Forge games with real player combat damage, lethal/nonlethal game outcome, inherited backpressure, framing, damage, first-strike, menace and privacy regressions",
+            "scope":"Pinned Forge native combat with two external actors: actual delayed and prompt external Python actors under shared I/O budget, native registered mana-paid creature, multi-turn cumulative combat and genuine 20-life-to-zero Forge victory, both actors paid casts and legal blockers across native turns, natural uncurated private opening hands and first paid creature spell, plus two independent uncurated players' genuine paid creature spells and naturally cast 2/2 versus 2/2 block/combat deaths and two successive genuine independently paid block combats across distinct turns, and native uncurated shuffled opening through entire real 20-life combat victory in both registration orders, plus complete 20-life game where two independently casting/blocking actors reach authentic Forge library-depletion loss, and two symmetric independently attacking/blocking player actors play to one real Forge winner, plus public-life-aware counterattack/block preferences and reinforcement-after-first-creature and proactive early-risk holdback, healthy reactive block-target fallbacks, and lethal-risk reserve-attacker policies verified by both independent processes during naturally shuffled Forge games with real player combat damage, lethal/nonlethal game outcome, inherited backpressure, framing, damage, first-strike, menace and privacy regressions",
             "full_magic_game":False}
 
 if __name__ == "__main__":

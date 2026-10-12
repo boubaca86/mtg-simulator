@@ -140,8 +140,22 @@ for raw in sys.stdin.buffer:
         reserve_count = 0
     reserved = bears[-reserve_count:] if reserve_count else []
     active_attacks = bears[:len(bears) - reserve_count][:8]
-    block_pairs = [[own_i, enemy_i] for own_i, enemy_i
-                   in zip(reserved, targets)][:8]
+    # Stage11F: a healthy defender should still offer legal 2/2 blocks.
+    # Attack and defense proposals coexist without assuming the phase.
+    # A creature may have attacked already (and be tapped), so ONLY Forge
+    # decides whether its offered block is legal in the current combat.
+    # Candidate fallbacks let one untapped Bear try each publicly visible
+    # enemy Bear; no actor receives the private actual-attacker list.
+    # The trusted referee enforces distinct blockers and the eight-pair cap.
+    defensive_candidates = reserved if reserve_count else bears
+    block_pairs = []
+    for own_i in defensive_candidates:
+        for enemy_i in targets:
+            if len(block_pairs) >= 8:
+                break
+            block_pairs.append([own_i, enemy_i])
+        if len(block_pairs) >= 8:
+            break
     plan = {
         'intent': 'action_plan',
         'land_hand_indices': lands,
