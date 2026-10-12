@@ -5063,4 +5063,118 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             throws Exception {
         verifyNativeUncuratedFullTwentyLifeWin(false);
     }
+
+    /**
+     * Stage10Z: finish a REAL native game after the opponent cast an original
+     * Bear, legally blocked, and both original Bears actually died. Unlike
+     * Stage10Y's 60-Island nonblocking benchmark, both 60-card decks include
+     * four naturally shuffled Bears, and BOTH persistent external Python
+     * actors make gameplay decisions from own/public-only information.
+     *
+     * To isolate a second fully authentic game-ending route, the defender's
+     * phase-blind preference remains defensive while the attacker attacks
+     * only against a publicly visible opposing Bear. Once all actual
+     * encounters finish, normal Forge draw steps continue until the first
+     * attempted draw from an empty library ends the game under CR 104.3c
+     * and 704.5b. NO referee-forced draw, library emptying, timeout winner,
+     * opening hand staging, battlefield curation, or life manipulation.
+     */
+    private void verifyNativeNaturalContestedDeckOut(boolean attackerRegisteredFirst)
+            throws Exception {
+        Game game=nativeTwoNaturallyPaidBearGame(attackerRegisteredFirst);
+        Player attacking=game.getPlayers().get(attackerRegisteredFirst?0:1);
+        Player defending=game.getPlayers().get(attackerRegisteredFirst?1:0);
+        try(Actor aggressor=new Actor(4);Actor guardian=new Actor(2)) {
+            Assert.assertNotEquals(aggressor.process.pid(),guardian.process.pid(),
+                    "exactly two independently persisted Python actor OS processes");
+            ExternalCreatureController ca=attach(game,attacking,defending,aggressor);
+            ExternalCreatureController cb=attach(game,defending,attacking,guardian);
+            doRealNativeStartForMultiTurn(game,ca,cb);
+            Assert.assertTrue(ca.openingCallbacks>0 && cb.openingCallbacks>0,
+                    "actual native privately shuffled opening hands and London mulligans");
+            Assert.assertEquals(attacking.getLife(),20);
+            Assert.assertEquals(defending.getLife(),20);
+            Assert.assertEquals(countDeadBears(attacking),0);
+            Assert.assertEquals(countDeadBears(defending),0);
+            Assert.assertEquals(countCardsWithName(game,"Grizzly Bears",ZoneType.Battlefield),0,
+                    "no prepared initial board");
+            Assert.assertEquals(fullPhysicalInventory(attacking),frozenMain.owned(attacking));
+            Assert.assertEquals(fullPhysicalInventory(defending),frozenMain.owned(defending));
+
+            boolean attackerPaid=false,defenderPaid=false,actualCombatDeaths=false;
+            int steps=0;
+            while(!game.isGameOver() && steps++<80000) {
+                game.getPhaseHandler().mainLoopStep();
+                if(!game.getStack().isEmpty()) {
+                    int tappedA=0,tappedD=0;
+                    for(Card c:attacking.getCardsIn(ZoneType.Battlefield))
+                        if(c.isLand() && c.isTapped()) tappedA++;
+                    for(Card c:defending.getCardsIn(ZoneType.Battlefield))
+                        if(c.isLand() && c.isTapped()) tappedD++;
+                    if(tappedA>=2 && basicLandCountOnBattlefield(attacking)>=2)
+                        attackerPaid=true;
+                    if(tappedD>=2 && basicLandCountOnBattlefield(defending)>=2)
+                        defenderPaid=true;
+                }
+                if(countDeadBears(attacking)>=1 && countDeadBears(defending)>=1)
+                    actualCombatDeaths=true;
+                Assert.assertEquals(attacking.getLife(),20,
+                        "all attacked 2/2 creatures remain legally blocked");
+                Assert.assertEquals(defending.getLife(),20,
+                        "no damage can be manufactured to force an outcome");
+            }
+            Assert.assertTrue(steps<80000,
+                    "actual native game must terminate before bounded safety limit");
+            Assert.assertTrue(attackerPaid && defenderPaid,
+                    "BOTH actors genuinely cast their own mana-paid Bears");
+            Assert.assertTrue(actualCombatDeaths && cb.blocksAuthorized>=1,
+                    "opponent must genuinely and legally block and kill attacker");
+            Assert.assertTrue(ca.attackCallbacks>0 && cb.blockerCallbacks>0);
+            Assert.assertTrue(ca.refereeDamageAssignments+cb.refereeDamageAssignments>0,
+                    "Forge alone assigned actual 2/2 combat damage");
+            Assert.assertTrue(game.getPhaseHandler().getTurn()>40,
+                    "natural repeated turn/draw progression must reach decking");
+            Assert.assertTrue(game.isGameOver());
+            Assert.assertNotNull(game.getOutcome(),"native Forge determines the winner");
+            Assert.assertFalse(game.getOutcome().isDraw());
+            Assert.assertTrue(attacking.hasWon()!=defending.hasWon(),
+                    "exactly one of the two registered players is the real winner");
+            Assert.assertTrue(attacking.hasLost()!=defending.hasLost(),
+                    "exactly one real player must lose");
+            Player winner=attacking.hasWon()?attacking:defending;
+            Player loser=attacking.hasLost()?attacking:defending;
+            Assert.assertNotSame(winner,loser);
+            Assert.assertTrue(game.getOutcome().isWinner(winner.getRegisteredPlayer()));
+            Assert.assertEquals(loser.getCardsIn(ZoneType.Library).size(),0,
+                    "real draw from empty original library causes natural Forge loss");
+            Assert.assertEquals(attacking.getLife(),20);
+            Assert.assertEquals(defending.getLife(),20);
+            Assert.assertEquals(fullPhysicalInventory(attacking),frozenMain.owned(attacking));
+            Assert.assertEquals(fullPhysicalInventory(defending),frozenMain.owned(defending));
+            JsonObject attackerView=JsonParser.parseString(observation(attacking,defending))
+                    .getAsJsonObject();
+            JsonObject defenderView=JsonParser.parseString(observation(defending,attacking))
+                    .getAsJsonObject();
+            Assert.assertEquals(attackerView.size(),4);
+            Assert.assertEquals(defenderView.size(),4);
+            for(JsonObject view:Arrays.asList(attackerView,defenderView)) {
+                for(String denied:Arrays.asList("opponent_hand","library_order",
+                        "library_top","turn","phase","priority","stack"))
+                    Assert.assertFalse(view.has(denied),
+                            "independent process must never receive referee-only data");
+            }
+        }
+    }
+
+    @Test(timeOut=180000)
+    public void nativeNaturallyDepletedLibraryAfterRealContestedCombatAttackerRegisteredFirst()
+            throws Exception {
+        verifyNativeNaturalContestedDeckOut(true);
+    }
+
+    @Test(timeOut=180000)
+    public void nativeNaturallyDepletedLibraryAfterRealContestedCombatDefenderRegisteredFirst()
+            throws Exception {
+        verifyNativeNaturalContestedDeckOut(false);
+    }
 }
