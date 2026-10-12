@@ -4446,8 +4446,10 @@ public final class Stage10TTwoPaidCombatantsTest extends AITest {
             Assert.assertEquals(defender.getLife(),20,"legal block prevents own life loss");
             Assert.assertFalse(game.isGameOver());
             Assert.assertNull(game.getOutcome());
-            Assert.assertEquals(countInventory(attacker),frozenMain.owned(attacker));
-            Assert.assertEquals(countInventory(defender),frozenMain.owned(defender));
+            // Both Bears are in actual Forge graveyards after combat. The
+            // precombat three-zone helper cannot prove whole-deck conservation.
+            Assert.assertEquals(fullPhysicalInventory(attacker),frozenMain.owned(attacker));
+            Assert.assertEquals(fullPhysicalInventory(defender),frozenMain.owned(defender));
             Assert.assertTrue(ca.priorityCallbacks>3 && cb.priorityCallbacks>3);
             Assert.assertTrue(first.process.isAlive() && second.process.isAlive());
             JsonObject attackerView=JsonParser.parseString(observation(attacker,defender))
