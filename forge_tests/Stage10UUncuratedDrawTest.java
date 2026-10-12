@@ -880,20 +880,21 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     throw new SecurityException("unregistered or unsupported combat target");
                 }
             }
-            // Stage11L. CR 510.1c-d (2026-09-25): after blockers are
-            // declared a creature may divide damage among ALL legal
-            // blockers. On the passed-in Forge-owned legal target list,
-            // spend just enough on each creature to kill it, then assign
-            // any leftover damage to the first. E.g. 4/4 vs two 2/2:
-            // assign 2+2, rather than obsolete 4+0.
-            // This decision stays inside the trusted referee process;
-            // no combat/private state is sent to the actor subprocess.
+            // Stage11M: CR 510.1c-d + 704.5g. Allocate to Forge's
+            // current remaining lethal damage, NOT printed toughness:
+            // already-marked damage (and damage assigned by other
+            // attackers in the same combat step) reduces the required
+            // amount. Example 3/3 vs damaged 2/2 (1 marked) and fresh
+            // 2/2: allocate 1+2, destroying both, instead of 2+1.
+            // For healthy 4/4 vs two 2/2s preserve Stage11L 2+2.
+            // Remaining surplus goes to first legal target. Referee
+            // owns all Card state; actor receives no combat internals.
             Map<Card,Integer> split=new LinkedHashMap<>();
             int damageLeft=damageDealt;
             for(Card target:targets) {
                 if(damageLeft<=0) break;
                 int assigned=Math.min(damageLeft,
-                        Math.max(1,target.getNetToughness()));
+                        Math.max(1,target.getLethalDamage()));
                 split.put(target,assigned);
                 damageLeft-=assigned;
             }
@@ -6795,5 +6796,192 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     @Test(timeOut=180000)
     public void nativeDamageDivisionRightRegisteredFirst() throws Exception {
         verifyRefereeMultiTargetDamageSplit(false);
+    }
+
+    /**
+     * Stage11M gameplay: a damaged blocker needs LESS new combat damage.
+     * Validate the newly changed native referee allocation with registered
+     * physical cards, and separately validate actual Forge graveyard
+     * destruction after native two-blocker combat. Explicit fixtures are
+     * NEVER represented as untouched natural shuffled games.
+     */
+    private void verifyDamageAwareLethalSplitAndNativeDeaths(boolean leftRegisteredFirst)
+            throws Exception {
+        Game fixture=nativeFourStrengthVanillaGame(leftRegisteredFirst);
+        Player attacker=fixture.getPlayers().get(leftRegisteredFirst?0:1);
+        Player defender=fixture.getPlayers().get(leftRegisteredFirst?1:0);
+        try(Actor workerA=new Actor(5);Actor workerD=new Actor(5)) {
+            Assert.assertNotEquals(workerA.process.pid(),workerD.process.pid());
+            ExternalCreatureController ac=attach(fixture,attacker,defender,workerA);
+            ExternalCreatureController dc=attach(fixture,defender,attacker,workerD);
+            doRealNativeStartForMultiTurn(fixture,ac,dc);
+            fixturePlaceRegisteredVanilla(fixture,attacker,"Centaur Courser");
+            fixturePlaceRegisteredVanilla(fixture,attacker,"Rumbling Baloth");
+            fixturePlaceRegisteredVanilla(fixture,defender,"Grizzly Bears");
+            fixturePlaceRegisteredVanilla(fixture,defender,"Runeclaw Bear");
+            fixturePlaceRegisteredVanilla(fixture,defender,"Centaur Courser");
+            Card courser=attacker.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->"Centaur Courser".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Card baloth=attacker.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->"Rumbling Baloth".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Card woundedBear=defender.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->"Grizzly Bears".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Card freshBear=defender.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->"Runeclaw Bear".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Card woundedCourser=defender.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->"Centaur Courser".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertEquals(woundedBear.getDamage(),0);
+            Assert.assertEquals(woundedCourser.getDamage(),0);
+            // Referee-only fixture: set public marked damage without moving
+            // cards or mutating the two independent actor observations.
+            woundedBear.setDamage(1);
+            woundedCourser.setDamage(2);
+            Assert.assertEquals(woundedBear.getLethalDamage(),1);
+            Assert.assertEquals(woundedCourser.getLethalDamage(),1);
+            CardCollection bears=new CardCollection();
+            bears.add(woundedBear);
+            bears.add(freshBear);
+            Map<Card,Integer> threeVsTwo=ac.assignCombatDamage(courser,bears,
+                    null,3,defender,false);
+            Assert.assertEquals(threeVsTwo.size(),2);
+            Assert.assertEquals(threeVsTwo.get(woundedBear),Integer.valueOf(1),
+                    "marked 1 damage reduces 2/2 lethal requirement to 1");
+            Assert.assertEquals(threeVsTwo.get(freshBear),Integer.valueOf(2),
+                    "3/3 now deals lethal to BOTH blockers instead of 2+1");
+            Assert.assertEquals(threeVsTwo.values().stream()
+                    .mapToInt(Integer::intValue).sum(),3);
+            CardCollection mixed=new CardCollection();
+            mixed.add(woundedCourser);
+            mixed.add(freshBear);
+            Map<Card,Integer> fourVsMixed=ac.assignCombatDamage(baloth,mixed,
+                    null,4,defender,false);
+            Assert.assertEquals(fourVsMixed.size(),2);
+            Assert.assertEquals(fourVsMixed.get(woundedCourser),Integer.valueOf(2),
+                    "one lethal plus one surplus damage on damaged 3/3");
+            Assert.assertEquals(fourVsMixed.get(freshBear),Integer.valueOf(2));
+            Assert.assertEquals(fourVsMixed.values().stream()
+                    .mapToInt(Integer::intValue).sum(),4);
+            Assert.assertEquals(ac.refereeDamageAssignments,2);
+            Assert.assertEquals(ac.refereeSplitDamageAssignments,2);
+            Assert.assertEquals(dc.refereeDamageAssignments,0);
+            Assert.assertEquals(attacker.getLife(),20);
+            Assert.assertEquals(defender.getLife(),20);
+            Assert.assertEquals(fullPhysicalInventory(attacker),frozenMain.owned(attacker));
+            Assert.assertEquals(fullPhysicalInventory(defender),frozenMain.owned(defender));
+            Assert.assertFalse(observation(attacker,defender).contains("\"phase\""));
+            Assert.assertFalse(observation(defender,attacker).contains("\"stack\""));
+            System.out.println("STAGE11M_DAMAGE_AWARE_FIXTURE left_first="+
+                    leftRegisteredFirst+" damaged_bear_vs_fresh=1+2"+
+                    " damaged_courser_vs_fresh=2+2");
+        }
+
+        // A DISTINCT registered-card native combat fixture: actual
+        // post-combat graveyard locations, not merely proposed assignments.
+        Game combatGame=nativeFourStrengthVanillaGame(leftRegisteredFirst);
+        Player offense=combatGame.getPlayers().get(leftRegisteredFirst?0:1);
+        Player defense=combatGame.getPlayers().get(leftRegisteredFirst?1:0);
+        try(Actor actorO=new Actor(5);Actor actorD=new Actor(5)) {
+            Assert.assertNotEquals(actorO.process.pid(),actorD.process.pid());
+            ExternalCreatureController oc=attach(combatGame,offense,defense,actorO);
+            ExternalCreatureController dc=attach(combatGame,defense,offense,actorD);
+            doRealNativeStartForMultiTurn(combatGame,oc,dc);
+            fixturePlaceRegisteredVanilla(combatGame,offense,"Rumbling Baloth");
+            fixturePlaceRegisteredVanilla(combatGame,defense,"Grizzly Bears");
+            fixturePlaceRegisteredVanilla(combatGame,defense,"Runeclaw Bear");
+            Assert.assertEquals(countCardsWithName(combatGame,"Grizzly Bears",
+                    ZoneType.Graveyard),0);
+            Assert.assertEquals(countCardsWithName(combatGame,"Runeclaw Bear",
+                    ZoneType.Graveyard),0);
+            Assert.assertEquals(countCardsWithName(combatGame,"Rumbling Baloth",
+                    ZoneType.Graveyard),0);
+            boolean bothBlockersDied=false;
+            int steps=0;
+            while(!combatGame.isGameOver() && steps++<2500) {
+                combatGame.getPhaseHandler().mainLoopStep();
+                if(oc.refereeSplitDamageAssignments>0 &&
+                        dc.coordinatedNativeBlocks>0 &&
+                        countCardsWithName(combatGame,"Grizzly Bears",
+                                ZoneType.Graveyard)>=1 &&
+                        countCardsWithName(combatGame,"Runeclaw Bear",
+                                ZoneType.Graveyard)>=1) {
+                    bothBlockersDied=true;
+                    break;
+                }
+            }
+            Assert.assertTrue(steps<2500,"bounded genuine Forge combat");
+            Assert.assertTrue(dc.coordinatedNativeBlocks>0,
+                    "Forge must authorize both weak blockers against 4/4");
+            Assert.assertTrue(oc.refereeSplitDamageAssignments>0,
+                    "real combat step must request 2+2 damage allocation");
+            Assert.assertTrue(bothBlockersDied,
+                    "BOTH real physical 2/2 blockers must die to native damage");
+            Assert.assertEquals(countCardsWithName(combatGame,"Grizzly Bears",
+                    ZoneType.Battlefield),0);
+            Assert.assertEquals(countCardsWithName(combatGame,"Runeclaw Bear",
+                    ZoneType.Battlefield),0);
+            Assert.assertEquals(fullPhysicalInventory(offense),frozenMain.owned(offense));
+            Assert.assertEquals(fullPhysicalInventory(defense),frozenMain.owned(defense));
+            System.out.println("STAGE11M_NATIVE_DEATH_FIXTURE left_first="+
+                    leftRegisteredFirst+" actual_two_blocker_graveyard_deaths=2"+
+                    " real_split_assignments="+oc.refereeSplitDamageAssignments+
+                    " native_steps="+steps);
+        }
+
+        // One new untouched natural 60-card game per registration order,
+        // with real shuffle, mulligans, paid casts, combat and Forge outcome.
+        Game natural=nativeFourStrengthVanillaGame(leftRegisteredFirst);
+        Player left=natural.getPlayers().get(leftRegisteredFirst?0:1);
+        Player right=natural.getPlayers().get(leftRegisteredFirst?1:0);
+        try(Actor actorL=new Actor(5);Actor actorR=new Actor(5)) {
+            Assert.assertNotEquals(actorL.process.pid(),actorR.process.pid());
+            ExternalCreatureController lc=attach(natural,left,right,actorL);
+            ExternalCreatureController rc=attach(natural,right,left,actorR);
+            doRealNativeStartForMultiTurn(natural,lc,rc);
+            Assert.assertEquals(left.getLife(),20);
+            Assert.assertEquals(right.getLife(),20);
+            Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+            Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+            for(String name:Arrays.asList("Grizzly Bears","Runeclaw Bear",
+                    "Balduvian Bears","Centaur Courser","Rumbling Baloth"))
+                Assert.assertEquals(countCardsWithName(natural,name,
+                        ZoneType.Battlefield),0);
+            int steps=0;
+            while(!natural.isGameOver() && steps++<85000)
+                natural.getPhaseHandler().mainLoopStep();
+            Assert.assertTrue(steps<85000,"full native game terminates");
+            Assert.assertTrue(natural.isGameOver());
+            Assert.assertNotNull(natural.getOutcome());
+            Assert.assertFalse(natural.getOutcome().isDraw());
+            Assert.assertTrue(left.hasWon()!=right.hasWon());
+            Player winner=left.hasWon()?left:right;
+            Assert.assertTrue(natural.getOutcome().isWinner(winner.getRegisteredPlayer()));
+            Assert.assertTrue(lc.priorityCallbacks>0 && rc.priorityCallbacks>0);
+            Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+            Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+            System.out.println("STAGE11M_UNCURATED_GAME left_first="+
+                    leftRegisteredFirst+" real_attacks="+
+                    (lc.attacksAuthorized+rc.attacksAuthorized)+
+                    " accepted_blocks="+(lc.blocksAuthorized+rc.blocksAuthorized)+
+                    " native_splits="+(lc.refereeSplitDamageAssignments+
+                            rc.refereeSplitDamageAssignments)+
+                    " winner="+winner.getName());
+        }
+    }
+
+    @Test(timeOut=180000)
+    public void nativeDamageAwareSplitAndTwoBlockerDeathsLeftRegisteredFirst()
+            throws Exception {
+        verifyDamageAwareLethalSplitAndNativeDeaths(true);
+    }
+
+    @Test(timeOut=180000)
+    public void nativeDamageAwareSplitAndTwoBlockerDeathsRightRegisteredFirst()
+            throws Exception {
+        verifyDamageAwareLethalSplitAndNativeDeaths(false);
     }
 }

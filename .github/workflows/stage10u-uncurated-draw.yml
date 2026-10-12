@@ -1,7 +1,7 @@
-name: Stage 11L - Native Multi-Target Damage Division
+name: Stage 11M - Damage-Aware Lethal Combat
 
 # Two external persistent actor processes plus one authoritative Forge referee.
-# Stage11L extends 114 pinned Forge tests with rules-compliant 4/4 damage splitting across two 2/2 blockers, trusted allocation fixtures, and untouched shuffled native games.
+# Stage11M extends 116 pinned Forge tests: marked-damage-aware lethal splits and real Forge double-blocker graveyard deaths in explicitly named fixtures, plus untouched natural matches.
 # Registered 60-card decks, no hand curation, true London opening and 20 life; not full MTG or OS sandbox.
 on:
   push:
@@ -97,7 +97,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 stage10h/test_protocol.py | tee stage10u-evidence/stage10h-protocol.log
-      - name: Run native multi-target damage division and 114 inherited Forge tests
+      - name: Run damage-aware native lethal combat and 116 inherited Forge tests
         shell: bash
         run: |
           set -euo pipefail
@@ -117,7 +117,7 @@ jobs:
           echo "Forge Maven exit: $code"
           tail -n 75 "$GITHUB_WORKSPACE/stage10u-evidence/maven.log"
           test "$code" -eq 0
-      - name: Verify exact 116 genuine Forge-native methods with independent XML gate
+      - name: Verify exact 118 genuine Forge-native methods with independent XML gate
         shell: bash
         run: |
           set -euo pipefail
@@ -128,7 +128,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stage11l-multi-target-splits-${{ github.run_id }}-${{ github.run_attempt }}
+          name: stage11m-damage-aware-lethal-${{ github.run_id }}-${{ github.run_attempt }}
           path: stage10u-evidence/
           if-no-files-found: warn
           retention-days: 14
