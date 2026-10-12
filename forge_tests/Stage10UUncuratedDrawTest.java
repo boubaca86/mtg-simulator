@@ -5246,7 +5246,11 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             // and each receives genuine combat callbacks, but both need not
             // physically attack in a naturally shuffled individual game.
             Assert.assertTrue(ca.attackCallbacks>0 && cb.attackCallbacks>0);
-            Assert.assertTrue(ca.blockerCallbacks>0 && cb.blockerCallbacks>0);
+            Assert.assertTrue(ca.priorityCallbacks>0 && cb.priorityCallbacks>0,
+                    "both independent actors participate in real native priority");
+            // Forge can legally skip declareBlockers entirely in a combat
+            // with no eligible opposing creature. Do not require a callback
+            // that native combat rules do not guarantee.
             Assert.assertTrue(game.isGameOver());
             Assert.assertNotNull(game.getOutcome(),
                     "Forge, not the test or actors, ends game");
