@@ -6893,6 +6893,15 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             fixturePlaceRegisteredVanilla(combatGame,offense,"Rumbling Baloth");
             fixturePlaceRegisteredVanilla(combatGame,defense,"Grizzly Bears");
             fixturePlaceRegisteredVanilla(combatGame,defense,"Runeclaw Bear");
+            // Track the ACTUAL two physical registered blocker identities.
+            // Later genuine priority can cast another same-named Bear; its
+            // legal arrival must never invalidate our original-death proof.
+            final long grizzlyFixtureId=defense.getCardsIn(ZoneType.Battlefield)
+                    .stream().filter(c->"Grizzly Bears".equals(c.getName()))
+                    .findFirst().orElseThrow().getId();
+            final long runeclawFixtureId=defense.getCardsIn(ZoneType.Battlefield)
+                    .stream().filter(c->"Runeclaw Bear".equals(c.getName()))
+                    .findFirst().orElseThrow().getId();
             Assert.assertEquals(countCardsWithName(combatGame,"Grizzly Bears",
                     ZoneType.Graveyard),0);
             Assert.assertEquals(countCardsWithName(combatGame,"Runeclaw Bear",
@@ -6905,10 +6914,10 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 combatGame.getPhaseHandler().mainLoopStep();
                 if(oc.refereeSplitDamageAssignments>0 &&
                         dc.coordinatedNativeBlocks>0 &&
-                        countCardsWithName(combatGame,"Grizzly Bears",
-                                ZoneType.Graveyard)>=1 &&
-                        countCardsWithName(combatGame,"Runeclaw Bear",
-                                ZoneType.Graveyard)>=1) {
+                        defense.getCardsIn(ZoneType.Graveyard).stream()
+                                .anyMatch(c->c.getId()==grizzlyFixtureId) &&
+                        defense.getCardsIn(ZoneType.Graveyard).stream()
+                                .anyMatch(c->c.getId()==runeclawFixtureId)) {
                     bothBlockersDied=true;
                     break;
                 }
@@ -6920,10 +6929,12 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     "real combat step must request 2+2 damage allocation");
             Assert.assertTrue(bothBlockersDied,
                     "BOTH real physical 2/2 blockers must die to native damage");
-            Assert.assertEquals(countCardsWithName(combatGame,"Grizzly Bears",
-                    ZoneType.Battlefield),0);
-            Assert.assertEquals(countCardsWithName(combatGame,"Runeclaw Bear",
-                    ZoneType.Battlefield),0);
+            Assert.assertFalse(defense.getCardsIn(ZoneType.Battlefield).stream()
+                    .anyMatch(c->c.getId()==grizzlyFixtureId),
+                    "original registered Grizzly blocker left battlefield");
+            Assert.assertFalse(defense.getCardsIn(ZoneType.Battlefield).stream()
+                    .anyMatch(c->c.getId()==runeclawFixtureId),
+                    "original registered Runeclaw blocker left battlefield");
             Assert.assertEquals(fullPhysicalInventory(offense),frozenMain.owned(offense));
             Assert.assertEquals(fullPhysicalInventory(defense),frozenMain.owned(defense));
             System.out.println("STAGE11M_NATIVE_DEATH_FIXTURE left_first="+
