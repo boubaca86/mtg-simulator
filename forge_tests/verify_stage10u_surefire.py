@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail closed unless exactly ninety real Forge Stage10Y TestNG methods ran and passed."""
+"""Fail closed unless exactly ninety-two real Forge Stage10Z TestNG methods ran and passed."""
 import argparse
 import json
 import sys
@@ -98,6 +98,8 @@ EXPECTED = {
     "nativeTwoSuccessiveUncuratedBlocksDefenderRegisteredFirst",
     "nativeUncuratedTwentyLifeForgeVictoryAttackerRegisteredFirst",
     "nativeUncuratedTwentyLifeForgeVictoryDefenderRegisteredFirst",
+    "nativeNaturallyDepletedLibraryAfterRealContestedCombatAttackerRegisteredFirst",
+    "nativeNaturallyDepletedLibraryAfterRealContestedCombatDefenderRegisteredFirst",
 }
 
 def verify(folder: Path) -> dict:
@@ -122,7 +124,7 @@ def verify(folder: Path) -> dict:
         if problems:
             raise ValueError(f"test failed or skipped: {name}")
     return {"gate":"PASS","executed_methods":len(EXPECTED),
-            "scope":"Pinned Forge native combat with two external actors: actual delayed and prompt external Python actors under shared I/O budget, native registered mana-paid creature, multi-turn cumulative combat and genuine 20-life-to-zero Forge victory, both actors paid casts and legal blockers across native turns, natural uncurated private opening hands and first paid creature spell, plus two independent uncurated players' genuine paid creature spells and naturally cast 2/2 versus 2/2 block/combat deaths and two successive genuine independently paid block combats across distinct turns, and native uncurated shuffled opening through entire real 20-life combat victory in both registration orders, lethal/nonlethal game outcome, inherited backpressure, framing, damage, first-strike, menace and privacy regressions",
+            "scope":"Pinned Forge native combat with two external actors: actual delayed and prompt external Python actors under shared I/O budget, native registered mana-paid creature, multi-turn cumulative combat and genuine 20-life-to-zero Forge victory, both actors paid casts and legal blockers across native turns, natural uncurated private opening hands and first paid creature spell, plus two independent uncurated players' genuine paid creature spells and naturally cast 2/2 versus 2/2 block/combat deaths and two successive genuine independently paid block combats across distinct turns, and native uncurated shuffled opening through entire real 20-life combat victory in both registration orders, plus complete 20-life game where two independently casting/blocking actors reach authentic Forge library-depletion loss, lethal/nonlethal game outcome, inherited backpressure, framing, damage, first-strike, menace and privacy regressions",
             "full_magic_game":False}
 
 if __name__ == "__main__":
