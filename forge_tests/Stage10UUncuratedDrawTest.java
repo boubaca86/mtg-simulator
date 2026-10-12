@@ -6984,4 +6984,142 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             throws Exception {
         verifyDamageAwareLethalSplitAndNativeDeaths(false);
     }
+
+    /**
+     * Stage11N GAMEPLAY: numerical lethal-swarm decision using ONLY public
+     * table and public life, without inventing legal tap/readiness or hidden
+     * game state. Separate explicit native registered-card combat fixture
+     * demonstrates real Forge 3x2/2 attacks into a single 4/4 at four life.
+     * A completely separate fresh 60-card natural match is never curated.
+     */
+    private void verifyPublicLethalSwarmAndNativeOutcome(boolean leftRegisteredFirst)
+            throws Exception {
+        Game fixture=nativeFourStrengthVanillaGame(leftRegisteredFirst);
+        Player seatA=fixture.getPlayers().get(0);
+        Player seatB=fixture.getPlayers().get(1);
+        try(Actor workerA=new Actor(5);Actor workerB=new Actor(5)) {
+            Assert.assertNotEquals(workerA.process.pid(),workerB.process.pid());
+            ExternalCreatureController ca=attach(fixture,seatA,seatB,workerA);
+            ExternalCreatureController cb=attach(fixture,seatB,seatA,workerB);
+            doRealNativeStartForMultiTurn(fixture,ca,cb);
+            Assert.assertEquals(seatA.getLife(),20);
+            Assert.assertEquals(seatB.getLife(),20);
+            Player offense=fixture.getPhaseHandler().getPlayerTurn();
+            Assert.assertNotNull(offense,"Forge owns starting player");
+            Player defense=offense==seatA?seatB:seatA;
+            Actor offensiveWorker=offense==seatA?workerA:workerB;
+            Actor defensiveWorker=offense==seatA?workerB:workerA;
+            ExternalCreatureController oc=offense==seatA?ca:cb;
+            ExternalCreatureController dc=offense==seatA?cb:ca;
+            for(String name:Arrays.asList("Grizzly Bears",
+                    "Runeclaw Bear","Balduvian Bears"))
+                fixturePlaceRegisteredVanilla(fixture,offense,name);
+            fixturePlaceRegisteredVanilla(fixture,defense,"Rumbling Baloth");
+            for(Card card:offense.getCardsIn(ZoneType.Battlefield))
+                if(Arrays.asList("Grizzly Bears","Runeclaw Bear",
+                        "Balduvian Bears").contains(card.getName()))
+                    card.setSickness(false); // EXPLICIT fixture, not natural match
+            Assert.assertEquals(fullPhysicalInventory(offense),
+                    frozenMain.owned(offense));
+            Assert.assertEquals(fullPhysicalInventory(defense),
+                    frozenMain.owned(defense));
+            Assert.assertEquals(countCardsWithName(fixture,"Rumbling Baloth",
+                    ZoneType.Battlefield),1);
+            Assert.assertTrue(defense.setLife(5,null),
+                    "fixture-only public life 5 before nonlethal probe");
+            JsonObject belowThreshold=offensiveWorker.ask(
+                    observation(offense,defense));
+            Assert.assertEquals(belowThreshold.getAsJsonArray(
+                    "attack_table_indices").size(),0,
+                    "three weak attackers should not charge 4/4 at 5 life");
+            Assert.assertTrue(defense.setLife(4,null),
+                    "fixture-only public life 4 for numerical lethal");
+            JsonObject lethal=offensiveWorker.ask(
+                    observation(offense,defense));
+            Assert.assertEquals(lethal.get("intent").getAsString(),"action_plan");
+            Assert.assertEquals(lethal.getAsJsonArray(
+                    "attack_table_indices").size(),3,
+                    "3x2/2 forces at least four unblocked vanilla damage");
+            Assert.assertEquals(defensiveWorker.ask(observation(defense,offense))
+                    .get("intent").getAsString(),"action_plan");
+            Assert.assertFalse(observation(offense,defense).contains(
+                    "\\\"phase\\\""));
+            Assert.assertFalse(observation(defense,offense).contains(
+                    "\\\"stack\\\""));
+            Assert.assertEquals(defense.getLife(),4,
+                    "external actor probes cannot mutate referee life");
+            int steps=0;
+            while(!fixture.isGameOver() && steps++<2500)
+                fixture.getPhaseHandler().mainLoopStep();
+            Assert.assertTrue(steps<2500,"bounded real Forge combat");
+            Assert.assertTrue(fixture.isGameOver(),
+                    "native 3x2/2 versus 4/4 must resolve lethal by unblocked creatures");
+            Assert.assertTrue(oc.attacksAuthorized>=3,
+                    "three genuinely legal attackers accepted by native Forge");
+            Assert.assertTrue(dc.blocksAuthorized>0,
+                    "defender gets an actual native legal block");
+            Assert.assertTrue(offense.hasWon(),"Forge declares the winner");
+            Assert.assertTrue(defense.hasLost(),"Forge declares life loss");
+            Assert.assertNotNull(fixture.getOutcome());
+            Assert.assertTrue(fixture.getOutcome().isWinner(
+                    offense.getRegisteredPlayer()));
+            Assert.assertEquals(fullPhysicalInventory(offense),
+                    frozenMain.owned(offense));
+            Assert.assertEquals(fullPhysicalInventory(defense),
+                    frozenMain.owned(defense));
+            System.out.println("STAGE11N_LETHAL_SWARM_FIXTURE left_first="+
+                    leftRegisteredFirst+" native_attacks="+oc.attacksAuthorized+
+                    " native_blocks="+dc.blocksAuthorized+
+                    " defender_life="+defense.getLife());
+        }
+
+        // Distinct COMPLETELY uncurated registered Constructed game.
+        Game natural=nativeFourStrengthVanillaGame(leftRegisteredFirst);
+        Player left=natural.getPlayers().get(leftRegisteredFirst?0:1);
+        Player right=natural.getPlayers().get(leftRegisteredFirst?1:0);
+        try(Actor workerL=new Actor(5);Actor workerR=new Actor(5)) {
+            Assert.assertNotEquals(workerL.process.pid(),workerR.process.pid());
+            ExternalCreatureController lc=attach(natural,left,right,workerL);
+            ExternalCreatureController rc=attach(natural,right,left,workerR);
+            doRealNativeStartForMultiTurn(natural,lc,rc);
+            Assert.assertEquals(left.getLife(),20);
+            Assert.assertEquals(right.getLife(),20);
+            Assert.assertTrue(lc.openingCallbacks>0 && rc.openingCallbacks>0);
+            Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+            Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+            for(String name:Arrays.asList("Grizzly Bears","Runeclaw Bear",
+                    "Balduvian Bears","Centaur Courser","Rumbling Baloth"))
+                Assert.assertEquals(countCardsWithName(natural,name,
+                        ZoneType.Battlefield),0,"no curated natural board");
+            int steps=0;
+            while(!natural.isGameOver() && steps++<85000)
+                natural.getPhaseHandler().mainLoopStep();
+            Assert.assertTrue(steps<85000,"full natural Forge match terminates");
+            Assert.assertTrue(natural.isGameOver());
+            Assert.assertNotNull(natural.getOutcome());
+            Assert.assertFalse(natural.getOutcome().isDraw());
+            Assert.assertTrue(left.hasWon()!=right.hasWon());
+            Player winner=left.hasWon()?left:right;
+            Assert.assertTrue(natural.getOutcome().isWinner(
+                    winner.getRegisteredPlayer()));
+            Assert.assertTrue(lc.priorityCallbacks>0 && rc.priorityCallbacks>0);
+            Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+            Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+            System.out.println("STAGE11N_UNCURATED_GAME left_first="+
+                    leftRegisteredFirst+" real_attacks="+
+                    (lc.attacksAuthorized+rc.attacksAuthorized)+
+                    " accepted_blocks="+(lc.blocksAuthorized+rc.blocksAuthorized)+
+                    " winner="+winner.getName());
+        }
+    }
+
+    @Test(timeOut=180000)
+    public void nativePublicLethalSwarmLeftRegisteredFirst() throws Exception {
+        verifyPublicLethalSwarmAndNativeOutcome(true);
+    }
+
+    @Test(timeOut=180000)
+    public void nativePublicLethalSwarmRightRegisteredFirst() throws Exception {
+        verifyPublicLethalSwarmAndNativeOutcome(false);
+    }
 }

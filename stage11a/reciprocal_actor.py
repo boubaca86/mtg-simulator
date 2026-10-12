@@ -162,11 +162,30 @@ for raw in sys.stdin.buffer:
     public_largest_defender = max(
         (public_power(view['opponent_table'][i]['card']) for i in targets),
         default=0)
+    candidate_attackers = fighters[:len(fighters) - reserve_count]
     active_attacks = [
-        i for i in fighters[:len(fighters) - reserve_count]
+        i for i in candidate_attackers
         if public_power(view['own_cards']['table'][i]['card'])
            >= public_largest_defender
     ][:8]
+    # Stage11N: CR 508.1 / 509.1a. A vanilla defender can normally
+    # block ONE attacker. Even if every own creature is smaller than
+    # the largest visible blocker, a numerical attack can be lethal:
+    # three 2/2s into one 4/4 leave at least two 2/2s unblocked.
+    # Compute a conservative public-only damage floor: assume each
+    # visible opposing creature blocks our highest-power attacker.
+    # No tap/sickness/phase/hidden information is inferred. The
+    # authoritative Forge referee alone selects legal attackers,
+    # blocking choices, native damage, and winner.
+    opposing_life = view['life_totals']['opponent']
+    unblocked_strengths = sorted(
+        (public_power(view['own_cards']['table'][i]['card'])
+         for i in candidate_attackers), reverse=True)
+    possible_blockers = len(targets)
+    guaranteed_unblocked = sum(unblocked_strengths[possible_blockers:])
+    if (0 < opposing_life <= guaranteed_unblocked
+            and len(candidate_attackers) <= 8):
+        active_attacks = candidate_attackers[:]
     # Stage11F: a healthy defender should still offer legal 2/2 blocks.
     # Attack and defense proposals coexist without assuming the phase.
     # A creature may have attacked already (and be tapped), so ONLY Forge
