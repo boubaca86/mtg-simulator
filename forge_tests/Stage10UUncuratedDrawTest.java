@@ -7748,6 +7748,147 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 leftRegisteredFirst+" distinct_games=2");
     }
 
+
+    /**
+     * Stage11S GAMEPLAY: treat ordinary public basic Forest as nonblocking
+     * when considering a 4/4+2/2 numerical attack into a 4/4 defender.
+     * Registered physical Forest is placed ONLY in a labeled controlled
+     * fixture. Actual creature declaration, land status, blocking, life,
+     * damage and graveyards remain Forge-authoritative. Separately run
+     * two completely untouched natural 60-card games per seat order.
+     */
+    private void verifyBasicForestNonblockerPressure(boolean leftRegisteredFirst)
+            throws Exception {
+        Game fixture=nativeFourStrengthVanillaGame(leftRegisteredFirst);
+        Player seatA=fixture.getPlayers().get(0);
+        Player seatB=fixture.getPlayers().get(1);
+        try(Actor workerA=new Actor(5);Actor workerB=new Actor(5)) {
+            Assert.assertNotEquals(workerA.process.pid(),workerB.process.pid());
+            ExternalCreatureController ca=attach(fixture,seatA,seatB,workerA);
+            ExternalCreatureController cb=attach(fixture,seatB,seatA,workerB);
+            doRealNativeStartForMultiTurn(fixture,ca,cb);
+            Player offense=fixture.getPhaseHandler().getPlayerTurn();
+            Assert.assertNotNull(offense);
+            Player defense=offense==seatA?seatB:seatA;
+            Actor attackingWorker=offense==seatA?workerA:workerB;
+            ExternalCreatureController oc=offense==seatA?ca:cb;
+            ExternalCreatureController dc=offense==seatA?cb:ca;
+            Assert.assertEquals(offense.getLife(),20);
+            Assert.assertEquals(defense.getLife(),20);
+            fixturePlaceRegisteredVanilla(fixture,offense,"Rumbling Baloth");
+            fixturePlaceRegisteredVanilla(fixture,offense,"Grizzly Bears");
+            fixturePlaceRegisteredVanilla(fixture,defense,"Rumbling Baloth");
+            Card forest=null;
+            for(ZoneType zone:Arrays.asList(ZoneType.Hand,ZoneType.Library)) {
+                for(Card candidate:defense.getCardsIn(zone)) {
+                    if("Forest".equals(candidate.getName())) {
+                        forest=candidate;
+                        break;
+                    }
+                }
+                if(forest!=null) break;
+            }
+            Assert.assertNotNull(forest,"physical registered Forest must exist");
+            Assert.assertNotNull(fixture.getAction().moveToPlay(forest,null,
+                    forge.game.ability.AbilityKey.newMap()),
+                    "fixture-only registered public basic land onto battlefield");
+            for(Card card:offense.getCardsIn(ZoneType.Battlefield)) {
+                if("Rumbling Baloth".equals(card.getName()) ||
+                        "Grizzly Bears".equals(card.getName()))
+                    card.setSickness(false); // explicit fixture ONLY
+            }
+            Assert.assertTrue(defense.getCardsIn(ZoneType.Battlefield).stream()
+                    .anyMatch(c->c.getId()==forest.getId()),
+                    "real physical Forest is publicly present");
+            Assert.assertEquals(fullPhysicalInventory(offense),
+                    frozenMain.owned(offense));
+            Assert.assertEquals(fullPhysicalInventory(defense),
+                    frozenMain.owned(defense));
+            JsonObject publicBefore=JsonParser.parseString(
+                    observation(offense,defense)).getAsJsonObject();
+            Assert.assertEquals(publicBefore.getAsJsonArray("opponent_table").size(),2,
+                    "one public 4/4 and one public basic Forest");
+            Assert.assertTrue(defense.setLife(7,null),
+                    "controlled seven-life baseline, not a natural match");
+            Assert.assertEquals(attackingWorker.ask(observation(offense,defense))
+                    .getAsJsonArray("attack_table_indices").size(),1,
+                    "seven life remains outside safe nonlethal pressure threshold");
+            Assert.assertTrue(defense.setLife(6,null),
+                    "controlled public six life, natural games unchanged");
+            JsonObject pressure=attackingWorker.ask(observation(offense,defense));
+            Assert.assertEquals(pressure.getAsJsonArray("attack_table_indices").size(),2,
+                    "known Forest does not become a second 4/4 blocker");
+            // Privacy-safe independent hypothetical projections. NEVER
+            // alter the physical game or reveal facedown identity.
+            JsonObject unknown=JsonParser.parseString(
+                    observation(offense,defense)).getAsJsonObject();
+            JsonObject facedown=new JsonObject();
+            facedown.addProperty("appearance","face_down");
+            unknown.getAsJsonArray("opponent_table").add(facedown);
+            Assert.assertEquals(attackingWorker.ask(unknown.toString())
+                    .getAsJsonArray("attack_table_indices").size(),1,
+                    "a possible unrecognized second blocker is conservative");
+            JsonObject other=JsonParser.parseString(
+                    observation(offense,defense)).getAsJsonObject();
+            JsonObject uncertain=new JsonObject();
+            uncertain.addProperty("appearance","face_up");
+            uncertain.addProperty("card","Unknown Permanent");
+            other.getAsJsonArray("opponent_table").add(uncertain);
+            Assert.assertEquals(attackingWorker.ask(other.toString())
+                    .getAsJsonArray("attack_table_indices").size(),1,
+                    "unrecognized face-up permanent cannot be presumed harmless");
+            Assert.assertEquals(defense.getLife(),6,
+                    "external actors cannot alter native referee life");
+            Assert.assertFalse(observation(offense,defense).contains(
+                    "\\\"phase\\\""));
+            Assert.assertFalse(observation(defense,offense).contains(
+                    "\\\"stack\\\""));
+            boolean dealtPhysicalDamage=false;
+            int steps=0;
+            while(!fixture.isGameOver() && steps++<2500) {
+                fixture.getPhaseHandler().mainLoopStep();
+                if(defense.getLife()<=4) {
+                    dealtPhysicalDamage=true;
+                    break;
+                }
+            }
+            Assert.assertTrue(steps<2500,"native combat completed within bound");
+            Assert.assertTrue(dealtPhysicalDamage,
+                    "real Forge must resolve >=2 player combat damage");
+            Assert.assertTrue(oc.attacksAuthorized>=2,
+                    "both offered attackers accepted by true Forge legality");
+            Assert.assertTrue(dc.blocksAuthorized>=1,
+                    "opposing native 4/4 creature makes a legal block");
+            Assert.assertTrue(defense.getLife()>=2 && defense.getLife()<=4,
+                    "one vanilla 4/4 blocks one attacker, land blocks none");
+            Assert.assertFalse(fixture.isGameOver(),
+                    "nonlethal player damage must not invent a winner");
+            Assert.assertEquals(fullPhysicalInventory(offense),
+                    frozenMain.owned(offense));
+            Assert.assertEquals(fullPhysicalInventory(defense),
+                    frozenMain.owned(defense));
+            System.out.println("STAGE11S_PUBLIC_FOREST_FIXTURE left_first="+
+                    leftRegisteredFirst+" native_attacks="+oc.attacksAuthorized+
+                    " native_blocks="+dc.blocksAuthorized+
+                    " actual_forest_present=true real_defender_life="+defense.getLife());
+        }
+        // DISTINCT completely untouched native 60-card Constructed games,
+        // real London mulligans and opening life 20, no curated order.
+        verifyNaturalFourStrengthVanilla(leftRegisteredFirst);
+        System.out.println("STAGE11S_FRESH_NATURAL_COHORT left_first="+
+                leftRegisteredFirst+" games=2");
+    }
+
+    @Test(timeOut=240000)
+    public void nativeBasicForestPressureLeftRegisteredFirst() throws Exception {
+        verifyBasicForestNonblockerPressure(true);
+    }
+
+    @Test(timeOut=240000)
+    public void nativeBasicForestPressureRightRegisteredFirst() throws Exception {
+        verifyBasicForestNonblockerPressure(false);
+    }
+
     @Test(timeOut=240000)
     public void nativeThreePowerEmergencyBlockLeftRegisteredFirst() throws Exception {
         verifyThreePowerEmergencyJointBlock(true);

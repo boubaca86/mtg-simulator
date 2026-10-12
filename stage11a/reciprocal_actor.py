@@ -212,22 +212,27 @@ for raw in sys.stdin.buffer:
     unblocked_strengths = sorted(
         (public_power(view['own_cards']['table'][i]['card'])
          for i in candidate_attackers), reverse=True)
-    # Face-down and unrecognized visible permanents are not assumed
-    # incapable of blocking. Count ALL public opposing table entries as
-    # potential blockers; their secret identities are never requested.
-    possible_blockers = len(view['opponent_table'])
+    # Stage11S GAMEPLAY: In these strictly vanilla-only creature matches,
+    # publicly identified ordinary basic lands cannot themselves block
+    # (CR 509.1a). They therefore do NOT consume one of the opponent's
+    # blocker slots. All unrecognized/facedown permanents still count
+    # conservatively as possible blockers: never infer their identities.
+    # Forge alone checks actual status, animation, evasion, legal blocks,
+    # combat damage and winners; no private referee fields are exposed.
+    possible_blockers = sum(
+        1 for record in view['opponent_table']
+        if record.get('appearance') != 'face_up'
+        or record.get('card') not in LANDS)
     guaranteed_unblocked = sum(unblocked_strengths[possible_blockers:])
     if (0 < opposing_life <= guaranteed_unblocked
             and len(candidate_attackers) <= 8):
         active_attacks = candidate_attackers[:]
-    # Stage11O: bounded NONLETHAL numerical overload. If a vanilla
-    # 4/4 anchor already attacks into one 4/4, adding a 2/2 makes at
-    # least 2 combat damage get through (assuming both legal attackers,
-    # with one ordinary blocker). Keep ordinary defense reserves and
-    # only press a nearby public opponent-life threshold. Every public
-    # opposing permanent must be a KNOWN vanilla creature here; unknown
-    # or face-down cards invalidate the tactical estimate. No actor
-    # knows priority, phase, tap/sickness, a hidden hand or library.
+    # Stage11O/11S: bounded NONLETHAL numerical overload. A vanilla
+    # 4/4 plus 2/2 pressure one vanilla 4/4 blocker; a known Forest
+    # is not another creature. Keep reserves and use only nearby public
+    # opponent life. Every public permanent must be known vanilla or
+    # basic land; unknown/facedown records disable this estimate.
+    # No actor knows priority, phase, tap/sickness, hidden cards/order.
     elif (len(candidate_attackers) <= 8
           and 0 < guaranteed_unblocked < opposing_life
           and opposing_life <= guaranteed_unblocked + 4
@@ -238,7 +243,7 @@ for raw in sys.stdin.buffer:
           and any(public_power(view['own_cards']['table'][i]['card'])
                   < public_largest_defender for i in candidate_attackers)
           and all(record.get('appearance') == 'face_up'
-                  and record.get('card') in VANILLA_FIGHTERS
+                  and record.get('card') in (VANILLA_FIGHTERS | LANDS)
                   for record in view['opponent_table'])):
         active_attacks = candidate_attackers[:]
     # Stage11F: a healthy defender should still offer legal 2/2 blocks.
