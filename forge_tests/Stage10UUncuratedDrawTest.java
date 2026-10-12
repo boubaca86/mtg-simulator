@@ -7938,8 +7938,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             Assert.assertEquals(candidates.size(),3,
                     "public immediate lethal must commit all three 2/2s");
             Set<Integer> indices=new HashSet<>();
-            for(JsonElement el:candidates)
-                Assert.assertTrue(indices.add(el.getAsInt()),
+            for(int i=0;i<candidates.size();i++)
+                Assert.assertTrue(indices.add(candidates.get(i).getAsInt()),
                         "three distinct own table indices");
             JsonObject facedownView=JsonParser.parseString(
                     observation(offense,defense)).getAsJsonObject();
