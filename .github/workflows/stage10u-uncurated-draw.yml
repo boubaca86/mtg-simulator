@@ -1,7 +1,7 @@
-name: Stage 11T - Public Immediate Lethal Over Reserve
+name: Stage 11U - Nonlethal All-Weak Swarm Pressure
 
 # Two external persistent actor processes plus one authoritative Forge referee.
-# Stage11T extends 130 pinned native Forge tests: at urgent own life, public immediate lethal via 3x2/2 into one known 4/4 overrides the normal defensive attacker reserve; true physical Forge death plus untouched shuffled natural matches.
+# Stage11U extends 132 pinned native Forge tests: at healthy own life and opponent life 8, three publicly vanilla 2/2 attackers pressure one known 4/4 defender even though all are individually smaller; real 4+ nonlethal Forge damage plus untouched shuffled natural matches.
 # Registered 60-card decks, no hand curation, true London opening and 20 life; not full MTG or OS sandbox.
 on:
   push:
@@ -97,7 +97,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 stage10h/test_protocol.py | tee stage10u-evidence/stage10h-protocol.log
-      - name: Run native reserve-overriding lethal attacks and 130 inherited Forge tests
+      - name: Run native nonlethal all-weak swarm attacks and 132 inherited Forge tests
         shell: bash
         run: |
           set -euo pipefail
@@ -117,7 +117,7 @@ jobs:
           echo "Forge Maven exit: $code"
           tail -n 75 "$GITHUB_WORKSPACE/stage10u-evidence/maven.log"
           test "$code" -eq 0
-      - name: Verify exact 132 genuine Forge-native methods with independent XML gate
+      - name: Verify exact 134 genuine Forge-native methods with independent XML gate
         shell: bash
         run: |
           set -euo pipefail
@@ -128,7 +128,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stage11t-public-lethal-over-reserve-${{ github.run_id }}-${{ github.run_attempt }}
+          name: stage11u-nonlethal-all-weak-pressure-${{ github.run_id }}-${{ github.run_attempt }}
           path: stage10u-evidence/
           if-no-files-found: warn
           retention-days: 14

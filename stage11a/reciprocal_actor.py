@@ -252,6 +252,29 @@ for raw in sys.stdin.buffer:
     elif (0 < opposing_life <= guaranteed_unblocked
             and len(candidate_attackers) <= 8):
         active_attacks = candidate_attackers[:]
+    # Stage11U GAMEPLAY: a whole squad of vanilla creatures individually
+    # weaker than the public defender may still apply useful NONLETHAL
+    # pressure. Three visible 2/2s against one known 4/4 can send at least
+    # four player damage through the one-creature/one-blocker rule
+    # (CR 509.1a, 510.1b), even though each 2/2 alone is a poor trade.
+    # Distinct from Stage11N's immediate lethal swarm and Stage11O's mixed
+    # 4/4+2/2 pressure, this offers an all-underpowered three-creature
+    # attack at opposing life 6-8, only while our own life is safely above
+    # visible incoming strength. Never count unknown/facedown permanents
+    # as known vanilla blockers, never claim legal readiness or outcomes.
+    # Actual legality, combat losses and player damage belong to Forge.
+    elif (len(candidate_attackers) == 3
+          and all(public_power(view['own_cards']['table'][i]['card'])
+                  == 2 for i in candidate_attackers)
+          and public_largest_defender == 4
+          and possible_blockers == 1
+          and 6 <= opposing_life <= 8
+          and guaranteed_unblocked == 4
+          and life > incoming + 4
+          and all(record.get('appearance') == 'face_up'
+                  and record.get('card') in (VANILLA_FIGHTERS | LANDS)
+                  for record in view['opponent_table'])):
+        active_attacks = candidate_attackers[:]
     # Stage11O/11S: bounded NONLETHAL numerical overload. A vanilla
     # 4/4 plus 2/2 pressure one vanilla 4/4 blocker; a known Forest
     # is not another creature. Keep reserves and use only nearby public
