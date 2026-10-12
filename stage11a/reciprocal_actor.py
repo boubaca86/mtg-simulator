@@ -189,6 +189,27 @@ for raw in sys.stdin.buffer:
     if (0 < opposing_life <= guaranteed_unblocked
             and len(candidate_attackers) <= 8):
         active_attacks = candidate_attackers[:]
+    # Stage11O: bounded NONLETHAL numerical overload. If a vanilla
+    # 4/4 anchor already attacks into one 4/4, adding a 2/2 makes at
+    # least 2 combat damage get through (assuming both legal attackers,
+    # with one ordinary blocker). Keep ordinary defense reserves and
+    # only press a nearby public opponent-life threshold. Every public
+    # opposing permanent must be a KNOWN vanilla creature here; unknown
+    # or face-down cards invalidate the tactical estimate. No actor
+    # knows priority, phase, tap/sickness, a hidden hand or library.
+    elif (len(candidate_attackers) <= 8
+          and 0 < guaranteed_unblocked < opposing_life
+          and opposing_life <= guaranteed_unblocked + 4
+          and life > incoming + 4
+          and len(candidate_attackers) > possible_blockers
+          and public_largest_defender > 0
+          and len(active_attacks) > 0
+          and any(public_power(view['own_cards']['table'][i]['card'])
+                  < public_largest_defender for i in candidate_attackers)
+          and all(record.get('appearance') == 'face_up'
+                  and record.get('card') in VANILLA_FIGHTERS
+                  for record in view['opponent_table'])):
+        active_attacks = candidate_attackers[:]
     # Stage11F: a healthy defender should still offer legal 2/2 blocks.
     # Attack and defense proposals coexist without assuming the phase.
     # A creature may have attacked already (and be tapped), so ONLY Forge
