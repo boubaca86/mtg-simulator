@@ -20,12 +20,12 @@ def disabled_validator(source):
     return pattern.sub(lambda m: m[1] + "\n        // DISPOSABLE MUTATION: accept all replies.\n    }", source)
 
 
-def run(forge_root, baseline, evidence):
+def run(forge_root, baseline, evidence, verify_baseline=verify):
     repo = Path(__file__).resolve().parents[1]
     forge_root, evidence = forge_root.resolve(), evidence.resolve()
     if subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=forge_root, text=True).strip() != FORGE_SHA:
         raise ValueError("requires exact pinned upstream Forge")
-    verify(baseline)
+    verify_baseline(baseline)
     source = (repo / SOURCE).read_text()
     target = forge_root / "forge-gui-desktop/src/test/java/forge/ai/Stage10SNaturalTwentyLifeTest.java"
     if target.read_text() != source:

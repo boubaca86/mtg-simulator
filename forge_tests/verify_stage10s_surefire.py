@@ -94,7 +94,7 @@ REJECTIONS = {
 }
 
 
-def cases(folder: Path):
+def cases(folder: Path, expected_class=CLASS):
     if not folder.is_dir():
         raise ValueError("Surefire reports missing")
     seen = {}
@@ -103,7 +103,7 @@ def cases(folder: Path):
         for case in root.iter():
             if case.tag.rsplit("}", 1)[-1] != "testcase":
                 continue
-            if case.get("classname") != CLASS:
+            if case.get("classname") != expected_class:
                 raise ValueError("unexpected test class")
             name = case.get("name")
             if not name or name in seen:
