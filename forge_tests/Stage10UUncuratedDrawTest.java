@@ -5356,7 +5356,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                         "healthy actor does not offer an automatic 2/2 trade");
                 life.addProperty("self",2);
                 JsonObject critical=actor.ask(probe.toString());
-                Assert.assertEquals(critical.getAsJsonArray("attack_table_indices").size(),1);
+                Assert.assertEquals(critical.getAsJsonArray("attack_table_indices").size(),0,
+                        "Stage11D preserves its only Bear for lethal-risk defense");
                 Assert.assertEquals(critical.getAsJsonArray("block_pairs").size(),1,
                         "public lethal risk changes independent block preference");
                 JsonArray pair=critical.getAsJsonArray("block_pairs").get(0).getAsJsonArray();
@@ -5514,5 +5515,135 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     public void nativeReserveDeploymentNaturalGameRightRegisteredFirst()
             throws Exception {
         verifyNativeReserveDeployment(false);
+    }
+
+    /**
+     * Stage11D: a symmetric external actor should conserve just enough
+     * publicly visible Bears to propose defensive blocks against possible
+     * lethal combat damage. This reconciles attacking-taps-creatures
+     * (CR 508.1f) with the untapped-blocker requirement (CR 509.1a).
+     * Policy probes are constructed solely from legal own/public observation
+     * fields and cannot change the native match. Two real actors then play
+     * each privately shuffled 60-card game to Forge's actual outcome.
+     */
+    private void verifyNativeLethalRiskReserve(boolean leftRegisteredFirst)
+            throws Exception {
+        Game game=nativeTwoNaturallyPaidBearGame(leftRegisteredFirst);
+        Player left=game.getPlayers().get(leftRegisteredFirst?0:1);
+        Player right=game.getPlayers().get(leftRegisteredFirst?1:0);
+        try(Actor leftActor=new Actor(5);Actor rightActor=new Actor(5)) {
+            Assert.assertNotEquals(leftActor.process.pid(),rightActor.process.pid(),
+                    "two independent persistent Python actor OS processes");
+            ExternalCreatureController ca=attach(game,left,right,leftActor);
+            ExternalCreatureController cb=attach(game,right,left,rightActor);
+            doRealNativeStartForMultiTurn(game,ca,cb);
+            Assert.assertTrue(ca.openingCallbacks>0 && cb.openingCallbacks>0);
+            Assert.assertEquals(left.getLife(),20);
+            Assert.assertEquals(right.getLife(),20);
+            Assert.assertNull(game.getOutcome());
+            Assert.assertEquals(countCardsWithName(game,"Grizzly Bears",
+                    ZoneType.Battlefield),0,"no staged initial creatures");
+            Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+            Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+
+            for(int i=0;i<2;i++) {
+                Actor actor=i==0?leftActor:rightActor;
+                Player self=i==0?left:right;
+                Player other=i==0?right:left;
+                JsonObject probe=JsonParser.parseString(observation(self,other))
+                        .getAsJsonObject();
+                JsonObject bear=new JsonObject();
+                bear.addProperty("appearance","face_up");
+                bear.addProperty("card","Grizzly Bears");
+                JsonArray own=new JsonArray();
+                for(int j=0;j<3;j++) own.add(bear.deepCopy());
+                probe.getAsJsonObject("own_cards").add("table",own);
+                JsonArray opponents=new JsonArray();
+                for(int j=0;j<3;j++) opponents.add(bear.deepCopy());
+                probe.add("opponent_table",opponents);
+                JsonObject life=probe.getAsJsonObject("life_totals");
+
+                // Healthy: all three Bears available as attack candidates.
+                life.addProperty("self",20);
+                life.addProperty("opponent",20);
+                JsonObject healthy=actor.ask(probe.toString());
+                Assert.assertEquals(healthy.get("intent").getAsString(),"action_plan");
+                Assert.assertEquals(healthy.getAsJsonArray("attack_table_indices").size(),3);
+                Assert.assertEquals(healthy.getAsJsonArray("block_pairs").size(),0);
+
+                // Six visible incoming damage vs four life: prevent at
+                // least four damage by reserving two available 2/2s.
+                life.addProperty("self",4);
+                JsonObject endangered=actor.ask(probe.toString());
+                JsonArray attacks=endangered.getAsJsonArray("attack_table_indices");
+                JsonArray blocks=endangered.getAsJsonArray("block_pairs");
+                Assert.assertEquals(attacks.size(),1,"one safe attacker remains");
+                Assert.assertEquals(attacks.get(0).getAsInt(),0);
+                Assert.assertEquals(blocks.size(),2,"two Bears reserved");
+                Assert.assertEquals(blocks.get(0).getAsJsonArray().get(0).getAsInt(),1);
+                Assert.assertEquals(blocks.get(0).getAsJsonArray().get(1).getAsInt(),0);
+                Assert.assertEquals(blocks.get(1).getAsJsonArray().get(0).getAsInt(),2);
+                Assert.assertEquals(blocks.get(1).getAsJsonArray().get(1).getAsInt(),1);
+
+                // Six vs six needs only one blocker; retain two attackers.
+                life.addProperty("self",6);
+                JsonObject borderline=actor.ask(probe.toString());
+                Assert.assertEquals(borderline.getAsJsonArray("attack_table_indices").size(),2);
+                Assert.assertEquals(borderline.getAsJsonArray("block_pairs").size(),1);
+
+                // One remaining Bear must be able to defend when a single
+                // face-up opposing Bear could be lethal. A proposal is not
+                // a guarantee of a legal block; Forge decides eligibility.
+                JsonArray single=new JsonArray();
+                single.add(bear.deepCopy());
+                probe.getAsJsonObject("own_cards").add("table",single);
+                probe.add("opponent_table",single.deepCopy());
+                life.addProperty("self",2);
+                JsonObject finalDefense=actor.ask(probe.toString());
+                Assert.assertEquals(finalDefense.getAsJsonArray("attack_table_indices").size(),0);
+                Assert.assertEquals(finalDefense.getAsJsonArray("block_pairs").size(),1);
+                Assert.assertEquals(finalDefense.getAsJsonArray("block_pairs")
+                        .get(0).getAsJsonArray().get(0).getAsInt(),0);
+
+                // All edited values belong to PROBE JSON, not Forge game.
+                Assert.assertEquals(self.getLife(),20);
+                Assert.assertEquals(fullPhysicalInventory(self),frozenMain.owned(self));
+            }
+
+            int steps=0;
+            boolean combatDamage=false;
+            while(!game.isGameOver() && steps++<85000) {
+                game.getPhaseHandler().mainLoopStep();
+                if(left.getLife()<20 || right.getLife()<20) combatDamage=true;
+            }
+            Assert.assertTrue(steps<85000,"real shuffled game must terminate");
+            Assert.assertTrue(combatDamage,"true native player combat damage");
+            Assert.assertTrue(ca.attacksAuthorized+cb.attacksAuthorized>0);
+            Assert.assertTrue(ca.priorityCallbacks>0 && cb.priorityCallbacks>0);
+            Assert.assertTrue(game.isGameOver());
+            Assert.assertNotNull(game.getOutcome(),"native Forge determines outcome");
+            Assert.assertFalse(game.getOutcome().isDraw());
+            Assert.assertTrue(left.hasWon()!=right.hasWon());
+            Assert.assertTrue(left.hasLost()!=right.hasLost());
+            Player winner=left.hasWon()?left:right;
+            Assert.assertTrue(game.getOutcome().isWinner(winner.getRegisteredPlayer()));
+            Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+            Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+            System.out.println("STAGE11D_DEFENSE real_left_attacks="+ca.attacksAuthorized+
+                    " real_right_attacks="+cb.attacksAuthorized+
+                    " left_life="+left.getLife()+" right_life="+right.getLife());
+        }
+    }
+
+    @Test(timeOut=180000)
+    public void nativeLethalRiskReserveNaturalGameLeftRegisteredFirst()
+            throws Exception {
+        verifyNativeLethalRiskReserve(true);
+    }
+
+    @Test(timeOut=180000)
+    public void nativeLethalRiskReserveNaturalGameRightRegisteredFirst()
+            throws Exception {
+        verifyNativeLethalRiskReserve(false);
     }
 }

@@ -116,21 +116,23 @@ for raw in sys.stdin.buffer:
     targets = [i for i, record in enumerate(view['opponent_table'])
                if record.get('appearance') == 'face_up'
                and record.get('card') == 'Grizzly Bears']
-    # Stage11A: a symmetric player offers an attack whenever it controls
-    # a publicly face-up Bear, whether or not the opponent has a blocker.
-    # Forge decides which proposed creatures can legally attack on its turn
-    # (summoning sickness, tapped status, actual phase and defending player).
-    # We DO NOT get to see whose turn it is or the true combat state.
-    active_attacks = bears[:8]
-    # Stage11B: counterattack while healthy instead of automatically trading
-    # a 2/2 for a visible opposing 2/2. Preserve our attacker until visible
-    # opponent Bears could deal lethal damage in one combat. Their actual
-    # readiness, attacks, and block legality remain entirely Forge-private.
-    # The public life total and face-up Bear count are the ONLY inputs.
-    possible_damage = 2 * len(targets)
-    block_pairs = ([[own_i, enemy_i] for own_i, enemy_i
-                    in zip(bears, targets)][:8]
-                   if view['life_totals']['self'] <= possible_damage else [])
+    # Stage11D: when PUBLIC opposing 2/2 Bears could deal lethal damage,
+    # hold back the minimum number of our 2/2 Bears which, IF each legally
+    # blocks one attacker, could prevent it. Attacking would tap a Bear and
+    # make it unavailable for ordinary blocks on the opponent's next turn
+    # (CR 508.1f, 509.1a). All legality, timing, tap/sickness and actual
+    # attacker selection remain Forge-private and referee-authoritative.
+    # This is a conservative estimate: visible Bears may not attack, and
+    # some of our own Bears might be unable to block. Do not pretend the
+    # observation exposes readiness, hidden abilities, or combat state.
+    incoming = 2 * len(targets)
+    life = view['life_totals']['self']
+    reserve_count = (min(len(bears), (incoming - life) // 2 + 1)
+                     if 0 < life <= incoming else 0)
+    reserved = bears[-reserve_count:] if reserve_count else []
+    active_attacks = bears[:len(bears) - reserve_count][:8]
+    block_pairs = [[own_i, enemy_i] for own_i, enemy_i
+                   in zip(reserved, targets)][:8]
     plan = {
         'intent': 'action_plan',
         'land_hand_indices': lands,
