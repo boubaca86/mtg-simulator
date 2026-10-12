@@ -1,7 +1,7 @@
-name: Stage 11G - Three-Species Vanilla Bear Combat
+name: Stage 11H - Unequal Vanilla Combat Strategy
 
 # Two external persistent actor processes plus one authoritative Forge referee.
-# Stage11G extends 104 pinned Forge tests with natural four-game cohorts of 48 Forest + four each Grizzly Bears, Runeclaw Bear and Balduvian Bears, with genuine Forge casts, attacks and blocks.
+# Stage11H extends 106 pinned Forge tests with four-game cohorts of 44 Forest, 12 Bears and 4 Centaur Courser 3/3, genuine unequal combat and public-only tactics.
 # Registered 60-card decks, no hand curation, true London opening and 20 life; not full MTG or OS sandbox.
 on:
   push:
@@ -97,7 +97,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 stage10h/test_protocol.py | tee stage10u-evidence/stage10h-protocol.log
-      - name: Run three-species vanilla combat and 104 inherited Forge tests
+      - name: Run unequal vanilla combat and 106 inherited Forge tests
         shell: bash
         run: |
           set -euo pipefail
@@ -117,7 +117,7 @@ jobs:
           echo "Forge Maven exit: $code"
           tail -n 75 "$GITHUB_WORKSPACE/stage10u-evidence/maven.log"
           test "$code" -eq 0
-      - name: Verify exact 106 genuine Forge-native methods with independent XML gate
+      - name: Verify exact 108 genuine Forge-native methods with independent XML gate
         shell: bash
         run: |
           set -euo pipefail
@@ -128,7 +128,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stage11g-three-species-${{ github.run_id }}-${{ github.run_attempt }}
+          name: stage11h-unequal-combat-${{ github.run_id }}-${{ github.run_attempt }}
           path: stage10u-evidence/
           if-no-files-found: warn
           retention-days: 14
