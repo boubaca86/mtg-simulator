@@ -4614,4 +4614,117 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             throws Exception {
         verifyNativeUncuratedOpeningAndActualPaidBear(false);
     }
+
+    /**
+     * Stage10V: both seats draw their OWN genuine shuffled opening hands
+     * and independently pay for Bears from their normal 60-card registered
+     * decks. The defensive actor deliberately has no attack directive:
+     * this increments mutual creature deployment, not yet uncurated combat.
+     * No hidden deck inspection, hand arrangement or seeded battlefield.
+     */
+    private Game nativeTwoNaturallyPaidBearGame(boolean firstSeatActive) {
+        Map<String,Integer> left=new TreeMap<>();
+        left.put("Forest",56);
+        left.put("Grizzly Bears",4);
+        Map<String,Integer> right=new TreeMap<>();
+        right.put("Forest",56);
+        right.put("Grizzly Bears",4);
+        RegisteredPlayer a=new RegisteredPlayer(mainDeck("10V independent left",left))
+                .setPlayer(new LobbyPlayerAi("natural-left",null));
+        RegisteredPlayer b=new RegisteredPlayer(mainDeck("10V independent right",right))
+                .setPlayer(new LobbyPlayerAi("natural-right",null));
+        List<RegisteredPlayer> registered=new ArrayList<>();
+        registered.add(firstSeatActive?a:b);
+        registered.add(firstSeatActive?b:a);
+        GameRules rules=new GameRules(GameType.Constructed);
+        Match match=new Match(rules,registered,"Stage10V");
+        Game game=new Game(registered,rules,match);
+        frozenMain=new FrozenMain(game);
+        Assert.assertNull(game.getPhaseHandler().getPhase());
+        Assert.assertEquals(frozenMain.owned(game.getPlayers().get(0)).values()
+                .stream().mapToInt(Integer::intValue).sum(),60);
+        Assert.assertEquals(frozenMain.owned(game.getPlayers().get(1)).values()
+                .stream().mapToInt(Integer::intValue).sum(),60);
+        return game;
+    }
+
+    private void verifyTwoNativeUncuratedPaidCasts(boolean firstSeatActive)
+            throws Exception {
+        Game game=nativeTwoNaturallyPaidBearGame(firstSeatActive);
+        Player left=game.getPlayers().get(firstSeatActive?0:1);
+        Player right=game.getPlayers().get(firstSeatActive?1:0);
+        try(Actor a=new Actor(2);Actor b=new Actor(2)) {
+            Assert.assertNotEquals(a.process.pid(),b.process.pid(),
+                    "two separate persistent external Python actor processes");
+            ExternalCreatureController ca=attach(game,left,right,a);
+            ExternalCreatureController cb=attach(game,right,left,b);
+            doRealNativeStartForMultiTurn(game,ca,cb);
+            // Neither prepareKnownCastingScenario nor any card-moving test hook.
+            Assert.assertTrue(ca.openingCallbacks>0 && cb.openingCallbacks>0);
+            Assert.assertEquals(left.getLife(),20);
+            Assert.assertEquals(right.getLife(),20);
+            Assert.assertEquals(countCardsWithName(game,"Grizzly Bears",
+                    ZoneType.Battlefield),0);
+            Assert.assertTrue(game.getStack().isEmpty());
+            Assert.assertEquals(countInventory(left),frozenMain.owned(left));
+            Assert.assertEquals(countInventory(right),frozenMain.owned(right));
+            boolean leftPaid=false,rightPaid=false,leftResolved=false,rightResolved=false;
+            int steps=0;
+            while(!game.isGameOver() && steps++<20000) {
+                game.getPhaseHandler().mainLoopStep();
+                if(!game.getStack().isEmpty()) {
+                    int tappedLeft=0,tappedRight=0;
+                    for(Card card:left.getCardsIn(ZoneType.Battlefield))
+                        if(card.isLand() && card.isTapped()) tappedLeft++;
+                    for(Card card:right.getCardsIn(ZoneType.Battlefield))
+                        if(card.isLand() && card.isTapped()) tappedRight++;
+                    if(tappedLeft>=2 && basicLandCountOnBattlefield(left)>=2)
+                        leftPaid=true;
+                    if(tappedRight>=2 && basicLandCountOnBattlefield(right)>=2)
+                        rightPaid=true;
+                }
+                for(Card card:left.getCardsIn(ZoneType.Battlefield))
+                    if("Grizzly Bears".equals(card.getName())) leftResolved=true;
+                for(Card card:right.getCardsIn(ZoneType.Battlefield))
+                    if("Grizzly Bears".equals(card.getName())) rightResolved=true;
+                if(leftResolved && rightResolved) break;
+            }
+            Assert.assertTrue(steps<20000,"bounded natural Forge turns and draws");
+            Assert.assertTrue(leftPaid && rightPaid,
+                    "each independent actor must genuinely pay two mana on Forge stack");
+            Assert.assertTrue(leftResolved && rightResolved,
+                    "both uncurated players must resolve originally registered Bears");
+            Assert.assertTrue(ca.priorityCallbacks>1 && cb.priorityCallbacks>1);
+            Assert.assertEquals(left.getLife(),20);
+            Assert.assertEquals(right.getLife(),20);
+            Assert.assertFalse(game.isGameOver());
+            Assert.assertNull(game.getOutcome());
+            Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+            Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+            Assert.assertTrue(a.process.isAlive() && b.process.isAlive());
+            JsonObject leftView=JsonParser.parseString(observation(left,right))
+                    .getAsJsonObject();
+            JsonObject rightView=JsonParser.parseString(observation(right,left))
+                    .getAsJsonObject();
+            Assert.assertEquals(leftView.size(),4);
+            Assert.assertEquals(rightView.size(),4);
+            for(String denied:Arrays.asList("phase","turn","priority","stack",
+                    "opponent_hand","library_order","library_top")) {
+                Assert.assertFalse(leftView.has(denied));
+                Assert.assertFalse(rightView.has(denied));
+            }
+        }
+    }
+
+    @Test(timeOut=120000)
+    public void nativeBothUncuratedPlayersPayAndResolveBearsLeftRegisteredFirst()
+            throws Exception {
+        verifyTwoNativeUncuratedPaidCasts(true);
+    }
+
+    @Test(timeOut=120000)
+    public void nativeBothUncuratedPlayersPayAndResolveBearsRightRegisteredFirst()
+            throws Exception {
+        verifyTwoNativeUncuratedPaidCasts(false);
+    }
 }
