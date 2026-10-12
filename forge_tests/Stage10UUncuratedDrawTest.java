@@ -388,7 +388,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         }
         Actor(int mode,String testScript,String actorMode) throws Exception {
             String script=testScript!=null ? testScript :
-                    System.getenv(mode==4 ? "STAGE10W_VISIBLE_OPPONENT_WORKER" :
+                    System.getenv(mode==5 ? "STAGE11A_RECIPROCAL_WORKER" :
+                    mode==4 ? "STAGE10W_VISIBLE_OPPONENT_WORKER" :
                     mode==3 ? "STAGE10G_MENACE_WORKER" :
                     mode==2 ? "STAGE10G_DEFENSE_WORKER" :
                     mode==1 ? "STAGE10G_LEGACY_PLAN_WORKER" : "STAGE10G_WORKER");
@@ -823,12 +824,16 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             }
         }
         int attackCallbacks=0;
+        int attacksAuthorized=0;
         @Override
         public void declareAttackers(Player attacker,Combat combat) {
             try {
                 attackCallbacks++;
                 JsonObject proposed=subprocess.ask(observation(controlled,opponent));
                 refereeDeclareAttackers(controlled,opponent,combat,proposed);
+                for(Card candidate:controlled.getCardsIn(ZoneType.Battlefield)) {
+                    if(combat.isAttacking(candidate)) attacksAuthorized++;
+                }
             } catch(Exception ex) {
                 throw new IllegalStateException("Actor attack IPC failed",ex);
             }
@@ -5176,5 +5181,110 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     public void nativeNaturallyDepletedLibraryAfterRealContestedCombatDefenderRegisteredFirst()
             throws Exception {
         verifyNativeNaturalContestedDeckOut(false);
+    }
+
+    /**
+     * Stage11A: BOTH independent Python actors run the same symmetric
+     * attack-and-block preference, unlike the passive Stage10Z defender.
+     * All 60 original registered cards per player are shuffled by native
+     * Match.startGame. Nobody curates hand contents, life, libraries, or the
+     * battlefield. Forge alone enforces legal attacks, blocks, costs,
+     * summoning sickness, priority, damage and the actual game winner.
+     *
+     * This test asserts both actors genuinely have paid for and resolved
+     * original creatures, and at least one legal attack occurs on each
+     * side when Forge allows it. The combat/turn sequence can differ due
+     * to real native shuffling and London mulligans.
+     */
+    private void verifyNaturalReciprocalFullGame(boolean leftRegisteredFirst)
+            throws Exception {
+        Game game=nativeTwoNaturallyPaidBearGame(leftRegisteredFirst);
+        Player left=game.getPlayers().get(leftRegisteredFirst?0:1);
+        Player right=game.getPlayers().get(leftRegisteredFirst?1:0);
+        try(Actor leftActor=new Actor(5);Actor rightActor=new Actor(5)) {
+            Assert.assertNotEquals(leftActor.process.pid(),rightActor.process.pid(),
+                    "independent persistent external Python processes");
+            ExternalCreatureController ca=attach(game,left,right,leftActor);
+            ExternalCreatureController cb=attach(game,right,left,rightActor);
+            doRealNativeStartForMultiTurn(game,ca,cb);
+            Assert.assertTrue(ca.openingCallbacks>0 && cb.openingCallbacks>0,
+                    "both players' genuine uncurated opening-hand decisions");
+            Assert.assertEquals(left.getLife(),20);
+            Assert.assertEquals(right.getLife(),20);
+            Assert.assertTrue(game.getStack().isEmpty());
+            Assert.assertEquals(countCardsWithName(game,"Grizzly Bears",
+                    ZoneType.Battlefield),0,"no fixture creature");
+            Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+            Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+            boolean leftPaid=false,rightPaid=false,leftResolved=false,rightResolved=false;
+            boolean sawCombat=false;
+            int steps=0;
+            while(!game.isGameOver() && steps++<85000) {
+                game.getPhaseHandler().mainLoopStep();
+                if(!game.getStack().isEmpty()) {
+                    int tappedLeft=0,tappedRight=0;
+                    for(Card c:left.getCardsIn(ZoneType.Battlefield))
+                        if(c.isLand() && c.isTapped()) tappedLeft++;
+                    for(Card c:right.getCardsIn(ZoneType.Battlefield))
+                        if(c.isLand() && c.isTapped()) tappedRight++;
+                    if(tappedLeft>=2 && basicLandCountOnBattlefield(left)>=2)
+                        leftPaid=true;
+                    if(tappedRight>=2 && basicLandCountOnBattlefield(right)>=2)
+                        rightPaid=true;
+                }
+                for(Card c:left.getCardsIn(ZoneType.Battlefield))
+                    if("Grizzly Bears".equals(c.getName())) leftResolved=true;
+                for(Card c:right.getCardsIn(ZoneType.Battlefield))
+                    if("Grizzly Bears".equals(c.getName())) rightResolved=true;
+                if(ca.attacksAuthorized+cb.attacksAuthorized>0) sawCombat=true;
+            }
+            Assert.assertTrue(steps<85000,"natural Forge game must finish");
+            Assert.assertTrue(leftPaid && rightPaid,
+                    "both actors genuinely pay their own original Bears");
+            Assert.assertTrue(leftResolved && rightResolved,
+                    "each player's actual native drawn creature must resolve");
+            Assert.assertTrue(sawCombat && ca.attacksAuthorized>0 &&
+                    cb.attacksAuthorized>0,
+                    "both independent actors must actually declare legal attacks");
+            Assert.assertTrue(ca.attackCallbacks>0 && cb.attackCallbacks>0);
+            Assert.assertTrue(ca.blockerCallbacks>0 && cb.blockerCallbacks>0);
+            Assert.assertTrue(game.isGameOver());
+            Assert.assertNotNull(game.getOutcome(),
+                    "Forge, not the test or actors, ends game");
+            Assert.assertFalse(game.getOutcome().isDraw());
+            Assert.assertTrue(left.hasWon()!=right.hasWon(),
+                    "one genuinely registered native winner required");
+            Assert.assertTrue(left.hasLost()!=right.hasLost(),
+                    "one genuinely registered loser required");
+            Player winner=left.hasWon()?left:right;
+            Player loser=left.hasLost()?left:right;
+            Assert.assertNotSame(winner,loser);
+            Assert.assertTrue(game.getOutcome().isWinner(winner.getRegisteredPlayer()));
+            Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+            Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+            JsonObject lView=JsonParser.parseString(observation(left,right))
+                    .getAsJsonObject();
+            JsonObject rView=JsonParser.parseString(observation(right,left))
+                    .getAsJsonObject();
+            for(JsonObject view:Arrays.asList(lView,rView)) {
+                Assert.assertEquals(view.size(),4);
+                for(String denied:Arrays.asList("opponent_hand","library_order",
+                        "library_top","turn","phase","priority","stack")) {
+                    Assert.assertFalse(view.has(denied));
+                }
+            }
+        }
+    }
+
+    @Test(timeOut=180000)
+    public void nativeReciprocalAttackCapablePlayersPlayToActualOutcomeLeftRegisteredFirst()
+            throws Exception {
+        verifyNaturalReciprocalFullGame(true);
+    }
+
+    @Test(timeOut=180000)
+    public void nativeReciprocalAttackCapablePlayersPlayToActualOutcomeRightRegisteredFirst()
+            throws Exception {
+        verifyNaturalReciprocalFullGame(false);
     }
 }
