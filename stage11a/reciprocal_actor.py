@@ -127,8 +127,17 @@ for raw in sys.stdin.buffer:
     # observation exposes readiness, hidden abilities, or combat state.
     incoming = 2 * len(targets)
     life = view['life_totals']['self']
-    reserve_count = (min(len(bears), (incoming - life) // 2 + 1)
-                     if 0 < life <= incoming else 0)
+    # Stage11E: prepare ONE untapped reserve a full 2/2 trade earlier.
+    # When life is up to four ABOVE a visible single-swing threat, keeping
+    # one Bear home can stop a follow-up attack and trade with an attacker.
+    # This uses only public life and visible Bears, never hidden readiness,
+    # draw order or referee phase; Forge remains the sole legal arbiter.
+    if 0 < life <= incoming:
+        reserve_count = min(len(bears), (incoming - life) // 2 + 1)
+    elif targets and 0 < life <= incoming + 4:
+        reserve_count = min(len(bears), 1)
+    else:
+        reserve_count = 0
     reserved = bears[-reserve_count:] if reserve_count else []
     active_attacks = bears[:len(bears) - reserve_count][:8]
     block_pairs = [[own_i, enemy_i] for own_i, enemy_i

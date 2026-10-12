@@ -5646,4 +5646,122 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             throws Exception {
         verifyNativeLethalRiskReserve(false);
     }
+
+    /**
+     * Stage11E: one defended 2/2 is held back *before* single-swing lethal
+     * exposure, because attacking usually taps a potential blocker.
+     * Each persistent Python actor receives only its own hand/visible table,
+     * legally visible enemy board and public life. Hypothetical JSON probes
+     * do not touch the authentic native Forge game. Actual blocks are
+     * counted only when Forge accepts assignments in declareBlockers;
+     * naturally shuffled games can legitimately finish without one.
+     */
+    private void verifyNativeAdvanceDefenseReserve(boolean leftRegisteredFirst)
+            throws Exception {
+        Game game=nativeTwoNaturallyPaidBearGame(leftRegisteredFirst);
+        Player left=game.getPlayers().get(leftRegisteredFirst?0:1);
+        Player right=game.getPlayers().get(leftRegisteredFirst?1:0);
+        try(Actor leftActor=new Actor(5);Actor rightActor=new Actor(5)) {
+            Assert.assertNotEquals(leftActor.process.pid(),rightActor.process.pid());
+            ExternalCreatureController ca=attach(game,left,right,leftActor);
+            ExternalCreatureController cb=attach(game,right,left,rightActor);
+            doRealNativeStartForMultiTurn(game,ca,cb);
+            Assert.assertTrue(ca.openingCallbacks>0 && cb.openingCallbacks>0);
+            Assert.assertEquals(left.getLife(),20);
+            Assert.assertEquals(right.getLife(),20);
+            Assert.assertNull(game.getOutcome());
+            Assert.assertEquals(countCardsWithName(game,"Grizzly Bears",
+                    ZoneType.Battlefield),0,"no staged starting board");
+            Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+            Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+
+            for(int i=0;i<2;i++) {
+                Actor actor=i==0?leftActor:rightActor;
+                Player self=i==0?left:right;
+                Player other=i==0?right:left;
+                JsonObject probe=JsonParser.parseString(observation(self,other))
+                        .getAsJsonObject();
+                JsonObject bear=new JsonObject();
+                bear.addProperty("appearance","face_up");
+                bear.addProperty("card","Grizzly Bears");
+                JsonArray own=new JsonArray();
+                JsonArray enemy=new JsonArray();
+                for(int j=0;j<3;j++) {
+                    own.add(bear.deepCopy());
+                    enemy.add(bear.deepCopy());
+                }
+                probe.getAsJsonObject("own_cards").add("table",own);
+                probe.add("opponent_table",enemy);
+                JsonObject life=probe.getAsJsonObject("life_totals");
+
+                life.addProperty("self",11);
+                life.addProperty("opponent",20);
+                JsonObject safe=actor.ask(probe.toString());
+                Assert.assertEquals(safe.getAsJsonArray("attack_table_indices").size(),3,
+                        "outside two-turn danger all own Bears may attack");
+                Assert.assertEquals(safe.getAsJsonArray("block_pairs").size(),0);
+
+                life.addProperty("self",10);
+                JsonObject atRisk=actor.ask(probe.toString());
+                Assert.assertEquals(atRisk.get("intent").getAsString(),"action_plan");
+                Assert.assertEquals(atRisk.getAsJsonArray("attack_table_indices").size(),2,
+                        "hold one Bear for defense before one-swing lethal");
+                Assert.assertEquals(atRisk.getAsJsonArray("block_pairs").size(),1);
+                Assert.assertEquals(atRisk.getAsJsonArray("block_pairs")
+                        .get(0).getAsJsonArray().get(0).getAsInt(),2);
+                Assert.assertEquals(atRisk.getAsJsonArray("block_pairs")
+                        .get(0).getAsJsonArray().get(1).getAsInt(),0);
+
+                life.addProperty("self",6);
+                JsonObject imminent=actor.ask(probe.toString());
+                Assert.assertEquals(imminent.getAsJsonArray("attack_table_indices").size(),2);
+                Assert.assertEquals(imminent.getAsJsonArray("block_pairs").size(),1);
+
+                // Observation-only probes MUST NOT alter real life or inventory.
+                Assert.assertEquals(self.getLife(),20);
+                Assert.assertEquals(fullPhysicalInventory(self),frozenMain.owned(self));
+            }
+
+            int steps=0;
+            boolean actualPlayerDamage=false;
+            while(!game.isGameOver() && steps++<85000) {
+                game.getPhaseHandler().mainLoopStep();
+                if(left.getLife()<20 || right.getLife()<20)
+                    actualPlayerDamage=true;
+            }
+            Assert.assertTrue(steps<85000,"native game finishes from legal actions");
+            Assert.assertTrue(actualPlayerDamage,"genuine native combat damages a player");
+            Assert.assertTrue(ca.attacksAuthorized+cb.attacksAuthorized>0);
+            Assert.assertTrue(ca.priorityCallbacks>0 && cb.priorityCallbacks>0);
+            Assert.assertTrue(game.isGameOver());
+            Assert.assertNotNull(game.getOutcome());
+            Assert.assertFalse(game.getOutcome().isDraw());
+            Assert.assertTrue(left.hasWon()!=right.hasWon());
+            Assert.assertTrue(left.hasLost()!=right.hasLost());
+            Player winner=left.hasWon()?left:right;
+            Assert.assertTrue(game.getOutcome().isWinner(winner.getRegisteredPlayer()));
+            Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+            Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+            // Only refereeDeclareBlockers increments blocksAuthorized on a
+            // physically accepted legal block. Zero is a possible AUTHENTIC
+            // result under a full random draw; do not secretly reroll it.
+            System.out.println("STAGE11E_NATIVE_BLOCKS left="+ca.blocksAuthorized+
+                    " right="+cb.blocksAuthorized+
+                    " left_attacks="+ca.attacksAuthorized+
+                    " right_attacks="+cb.attacksAuthorized+
+                    " left_life="+left.getLife()+" right_life="+right.getLife());
+        }
+    }
+
+    @Test(timeOut=180000)
+    public void nativeEarlyReserveNaturalGameLeftRegisteredFirst()
+            throws Exception {
+        verifyNativeAdvanceDefenseReserve(true);
+    }
+
+    @Test(timeOut=180000)
+    public void nativeEarlyReserveNaturalGameRightRegisteredFirst()
+            throws Exception {
+        verifyNativeAdvanceDefenseReserve(false);
+    }
 }

@@ -1,7 +1,7 @@
-name: Stage 11D - Lethal-Risk Defender Reserve
+name: Stage 11E - Early-Risk Defensive Holdback
 
 # Two external persistent actor processes plus one authoritative Forge referee.
-# Stage11D extends 98 pinned Forge tests with two native lethal-risk reserve-player games and public-only actor probes.
+# Stage11E extends 100 pinned Forge tests with two native early-risk reserve-player games, public-only actor probes and accepted-block telemetry.
 # Registered 60-card decks, no hand curation, true London opening and 20 life; not full MTG or OS sandbox.
 on:
   push:
@@ -97,7 +97,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 stage10h/test_protocol.py | tee stage10u-evidence/stage10h-protocol.log
-      - name: Run defensive-reserve actors and 98 inherited Forge tests
+      - name: Run early defensive reserve actors and 100 inherited Forge tests
         shell: bash
         run: |
           set -euo pipefail
@@ -117,7 +117,7 @@ jobs:
           echo "Forge Maven exit: $code"
           tail -n 75 "$GITHUB_WORKSPACE/stage10u-evidence/maven.log"
           test "$code" -eq 0
-      - name: Verify exact 100 genuine Forge-native methods with independent XML gate
+      - name: Verify exact 102 genuine Forge-native methods with independent XML gate
         shell: bash
         run: |
           set -euo pipefail
@@ -128,7 +128,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stage11d-defensive-reserve-${{ github.run_id }}-${{ github.run_attempt }}
+          name: stage11e-early-defense-${{ github.run_id }}-${{ github.run_attempt }}
           path: stage10u-evidence/
           if-no-files-found: warn
           retention-days: 14
