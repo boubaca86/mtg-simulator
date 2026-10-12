@@ -224,7 +224,32 @@ for raw in sys.stdin.buffer:
         if record.get('appearance') != 'face_up'
         or record.get('card') not in LANDS)
     guaranteed_unblocked = sum(unblocked_strengths[possible_blockers:])
-    if (0 < opposing_life <= guaranteed_unblocked
+    # Stage11T: an IMMEDIATELY lethal public vanilla attack may justify
+    # committing the final creature normally reserved for next-turn defense.
+    # Example at own life 4, opposing life 4: three known 2/2s against
+    # one known 4/4 leave two unblocked creatures dealing four real damage
+    # IF Forge permits all three legal attackers. Reserving one 2/2
+    # instead would forfeit that immediate-win opportunity.
+    # Bound the calculation to eight visible own vanilla creatures,
+    # and require every opposing permanent to be a known vanilla
+    # fighter or ordinary basic land: unknown/facedown cards INVALIDATE
+    # the exclusive blocker calculation. Never infer actual readiness,
+    # opposing hand, priority, timing, stack or future draws.
+    # This is only an ATTACK PREFERENCE; Forge remains sole authority.
+    full_lethal_strengths = sorted(
+        (public_power(view['own_cards']['table'][i]['card'])
+         for i in fighters), reverse=True)
+    full_unblocked = sum(full_lethal_strengths[possible_blockers:])
+    public_lethal_reserve_override = (
+        reserve_count > 0 and len(fighters) <= 8 and
+        0 < opposing_life <= full_unblocked and
+        opposing_life > guaranteed_unblocked and
+        all(record.get('appearance') == 'face_up' and
+            record.get('card') in (VANILLA_FIGHTERS | LANDS)
+            for record in view['opponent_table']))
+    if public_lethal_reserve_override:
+        active_attacks = fighters[:]
+    elif (0 < opposing_life <= guaranteed_unblocked
             and len(candidate_attackers) <= 8):
         active_attacks = candidate_attackers[:]
     # Stage11O/11S: bounded NONLETHAL numerical overload. A vanilla

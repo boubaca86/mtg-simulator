@@ -7880,6 +7880,137 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 leftRegisteredFirst+" games=2");
     }
 
+
+    /**
+     * Stage11T GAMEPLAY: PUBLIC IMMEDIATE LETHAL overrides the actor's
+     * defensive reserve, but only when every public opposing permanent
+     * has known ordinary vanilla/blocking status. The reference position
+     * is an EXPLICIT controlled physical registered-card Forge fixture:
+     * at both players life 4, attack with 3x2/2 through a single 4/4.
+     * The old reserve would leave only two 2/2 candidates and miss lethal.
+     * Three separate natural games? No: exactly TWO fresh independent
+     * untouched Constructed full games are run per registration order
+     * using the existing natural-game harness after the controlled fixture.
+     */
+    private void verifyImmediateLethalBeatsReserve(boolean leftRegisteredFirst)
+            throws Exception {
+        Game fixture=nativeFourStrengthVanillaGame(leftRegisteredFirst);
+        Player seatA=fixture.getPlayers().get(0);
+        Player seatB=fixture.getPlayers().get(1);
+        try(Actor workerA=new Actor(5); Actor workerB=new Actor(5)) {
+            Assert.assertNotEquals(workerA.process.pid(),workerB.process.pid(),
+                    "exactly two external persistent independent actor PIDs");
+            ExternalCreatureController ca=attach(fixture,seatA,seatB,workerA);
+            ExternalCreatureController cb=attach(fixture,seatB,seatA,workerB);
+            doRealNativeStartForMultiTurn(fixture,ca,cb);
+            Player offense=fixture.getPhaseHandler().getPlayerTurn();
+            Assert.assertNotNull(offense);
+            Player defense=offense==seatA?seatB:seatA;
+            Actor offensiveWorker=offense==seatA?workerA:workerB;
+            ExternalCreatureController oc=offense==seatA?ca:cb;
+            ExternalCreatureController dc=offense==seatA?cb:ca;
+            Assert.assertEquals(offense.getLife(),20);
+            Assert.assertEquals(defense.getLife(),20);
+            for(String name:Arrays.asList("Grizzly Bears",
+                    "Runeclaw Bear","Balduvian Bears"))
+                fixturePlaceRegisteredVanilla(fixture,offense,name);
+            fixturePlaceRegisteredVanilla(fixture,defense,"Rumbling Baloth");
+            for(Card card:offense.getCardsIn(ZoneType.Battlefield))
+                if(Arrays.asList("Grizzly Bears","Runeclaw Bear",
+                        "Balduvian Bears").contains(card.getName()))
+                    card.setSickness(false); // EXPLICIT fixture ONLY
+            Assert.assertEquals(fullPhysicalInventory(offense),
+                    frozenMain.owned(offense));
+            Assert.assertEquals(fullPhysicalInventory(defense),
+                    frozenMain.owned(defense));
+            Assert.assertTrue(offense.setLife(4,null),
+                    "fixture-only urgent offensive life; natural games start 20");
+            Assert.assertTrue(defense.setLife(5,null),
+                    "fixture-only opponent control life 5");
+            Assert.assertEquals(offensiveWorker.ask(observation(offense,defense))
+                    .getAsJsonArray("attack_table_indices").size(),0,
+                    "without immediate lethal, the defense reserve remains");
+            Assert.assertTrue(defense.setLife(4,null),
+                    "fixture-only opposing life four lethal opportunity");
+            JsonObject winning=offensiveWorker.ask(observation(offense,defense));
+            JsonArray candidates=winning.getAsJsonArray("attack_table_indices");
+            Assert.assertEquals(winning.get("intent").getAsString(),"action_plan");
+            Assert.assertEquals(candidates.size(),3,
+                    "public immediate lethal must commit all three 2/2s");
+            Set<Integer> indices=new HashSet<>();
+            for(JsonElement el:candidates)
+                Assert.assertTrue(indices.add(el.getAsInt()),
+                        "three distinct own table indices");
+            JsonObject facedownView=JsonParser.parseString(
+                    observation(offense,defense)).getAsJsonObject();
+            JsonObject facedown=new JsonObject();
+            facedown.addProperty("appearance","face_down");
+            facedownView.getAsJsonArray("opponent_table").add(facedown);
+            Assert.assertEquals(offensiveWorker.ask(facedownView.toString())
+                    .getAsJsonArray("attack_table_indices").size(),0,
+                    "face-down possible second blocker cancels lethal override");
+            JsonObject unknownView=JsonParser.parseString(
+                    observation(offense,defense)).getAsJsonObject();
+            JsonObject other=new JsonObject();
+            other.addProperty("appearance","face_up");
+            other.addProperty("card","Unknown Permanent");
+            unknownView.getAsJsonArray("opponent_table").add(other);
+            Assert.assertEquals(offensiveWorker.ask(unknownView.toString())
+                    .getAsJsonArray("attack_table_indices").size(),0,
+                    "unrecognized permanent cannot be assumed nonblocking");
+            Assert.assertEquals(offense.getLife(),4);
+            Assert.assertEquals(defense.getLife(),4,
+                    "synthetic probes have no native Forge side effects");
+            Assert.assertFalse(observation(offense,defense).contains(
+                    "\\\"phase\\\""));
+            Assert.assertFalse(observation(defense,offense).contains(
+                    "\\\"stack\\\""));
+            int steps=0;
+            while(!fixture.isGameOver() && steps++<2500)
+                fixture.getPhaseHandler().mainLoopStep();
+            Assert.assertTrue(steps<2500,"native Forge combat resolves boundedly");
+            Assert.assertTrue(fixture.isGameOver(),
+                    "three genuinely legal 2/2 attacks kill at public life four");
+            Assert.assertTrue(oc.attacksAuthorized>=3,
+                    "Forge truly accepts three legal attacks");
+            Assert.assertTrue(dc.blocksAuthorized>0,
+                    "one genuine native 4/4 blocker assigned");
+            Assert.assertTrue(offense.hasWon(),
+                    "Forge, not the outside actor, decides real winner");
+            Assert.assertTrue(defense.hasLost());
+            Assert.assertNotNull(fixture.getOutcome());
+            Assert.assertTrue(fixture.getOutcome().isWinner(
+                    offense.getRegisteredPlayer()));
+            Assert.assertTrue(defense.getLife()<=0,
+                    "Forge resolves actual lethal unblocked player damage");
+            Assert.assertEquals(fullPhysicalInventory(offense),
+                    frozenMain.owned(offense));
+            Assert.assertEquals(fullPhysicalInventory(defense),
+                    frozenMain.owned(defense));
+            System.out.println("STAGE11T_RESERVE_OVERRIDE_FIXTURE left_first="+
+                    leftRegisteredFirst+" real_attacks="+oc.attacksAuthorized+
+                    " accepted_blocks="+dc.blocksAuthorized+
+                    " Forge_winner="+offense.getName()+
+                    " real_defender_life="+defense.getLife());
+        }
+        // DISTINCT fully untouched uncurated 60-card physical games:
+        // two new naturally shuffled complete matches per registration
+        // order; genuine London opening, both start at 20 life.
+        verifyNaturalFourStrengthVanilla(leftRegisteredFirst);
+        System.out.println("STAGE11T_NATURAL_UNCURATED_COHORT left_first="+
+                leftRegisteredFirst+" distinct_games=2");
+    }
+
+    @Test(timeOut=240000)
+    public void nativePublicLethalBeatsReserveLeftRegisteredFirst() throws Exception {
+        verifyImmediateLethalBeatsReserve(true);
+    }
+
+    @Test(timeOut=240000)
+    public void nativePublicLethalBeatsReserveRightRegisteredFirst() throws Exception {
+        verifyImmediateLethalBeatsReserve(false);
+    }
+
     @Test(timeOut=240000)
     public void nativeBasicForestPressureLeftRegisteredFirst() throws Exception {
         verifyBasicForestNonblockerPressure(true);
