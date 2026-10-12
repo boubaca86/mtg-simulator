@@ -5404,4 +5404,115 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             throws Exception {
         verifyNativeLifeAwareCounterattack(false);
     }
+
+    /**
+     * Stage11C: deployment of a second creature is no longer suppressed by
+     * seeing one's own first Bear. A direct independent-process policy probe
+     * uses only hypothetical OWN hand and PUBLIC battlefield entries; it
+     * never changes the authentic live game. Then BOTH real workers continue
+     * a native shuffled, untouched 60-card Forge match to a true outcome.
+     * Because the real shuffles are not curated, multiple resolved Bears
+     * and reciprocal combat are telemetry, not guaranteed test assertions.
+     */
+    private void verifyNativeReserveDeployment(boolean leftRegisteredFirst)
+            throws Exception {
+        Game game=nativeTwoNaturallyPaidBearGame(leftRegisteredFirst);
+        Player left=game.getPlayers().get(leftRegisteredFirst?0:1);
+        Player right=game.getPlayers().get(leftRegisteredFirst?1:0);
+        try(Actor leftActor=new Actor(5);Actor rightActor=new Actor(5)) {
+            Assert.assertNotEquals(leftActor.process.pid(),rightActor.process.pid(),
+                    "two persistent independent Python actor OS processes");
+            ExternalCreatureController ca=attach(game,left,right,leftActor);
+            ExternalCreatureController cb=attach(game,right,left,rightActor);
+            doRealNativeStartForMultiTurn(game,ca,cb);
+            Assert.assertTrue(ca.openingCallbacks>0 && cb.openingCallbacks>0);
+            Assert.assertEquals(left.getLife(),20);
+            Assert.assertEquals(right.getLife(),20);
+            Assert.assertNull(game.getOutcome());
+            Assert.assertEquals(countCardsWithName(game,"Grizzly Bears",
+                    ZoneType.Battlefield),0,"no curated native starting creatures");
+            Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+            Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+
+            for(int i=0;i<2;i++) {
+                Actor actor=i==0?leftActor:rightActor;
+                Player self=i==0?left:right;
+                Player other=i==0?right:left;
+                JsonObject probe=JsonParser.parseString(observation(self,other))
+                        .getAsJsonObject();
+                JsonArray hand=new JsonArray();
+                hand.add("Forest");
+                hand.add("Forest");
+                hand.add("Grizzly Bears");
+                hand.add("Grizzly Bears");
+                probe.getAsJsonObject("own_cards").add("hand",hand);
+                JsonObject bear=new JsonObject();
+                bear.addProperty("appearance","face_up");
+                bear.addProperty("card","Grizzly Bears");
+                JsonArray ownTable=new JsonArray();
+                ownTable.add(bear);
+                probe.getAsJsonObject("own_cards").add("table",ownTable);
+                probe.add("opponent_table",new JsonArray());
+                JsonObject plan=actor.ask(probe.toString());
+                Assert.assertEquals(plan.get("intent").getAsString(),"action_plan");
+                JsonArray reinforcement=plan.getAsJsonArray("creature_hand_indices");
+                Assert.assertEquals(reinforcement.size(),2,
+                        "first own Bear must not suppress reinforcing creatures");
+                Assert.assertEquals(reinforcement.get(0).getAsInt(),2);
+                Assert.assertEquals(reinforcement.get(1).getAsInt(),3);
+                Assert.assertEquals(plan.getAsJsonArray("attack_table_indices").size(),1,
+                        "existing Bear may still be offered for legal combat");
+                Assert.assertEquals(plan.getAsJsonArray("block_pairs").size(),0);
+                // This probe only measures actor preference. No real hand,
+                // actual battlefield, shuffled library or life was altered.
+                Assert.assertEquals(self.getLife(),20);
+                Assert.assertEquals(fullPhysicalInventory(self),frozenMain.owned(self));
+            }
+
+            boolean actualPlayerDamage=false;
+            int peakLiveBears=0,steps=0;
+            while(!game.isGameOver() && steps++<85000) {
+                game.getPhaseHandler().mainLoopStep();
+                int liveLeft=0,liveRight=0;
+                for(Card card:left.getCardsIn(ZoneType.Battlefield))
+                    if("Grizzly Bears".equals(card.getName())) liveLeft++;
+                for(Card card:right.getCardsIn(ZoneType.Battlefield))
+                    if("Grizzly Bears".equals(card.getName())) liveRight++;
+                peakLiveBears=Math.max(peakLiveBears,Math.max(liveLeft,liveRight));
+                if(left.getLife()<20 || right.getLife()<20)
+                    actualPlayerDamage=true;
+            }
+            Assert.assertTrue(steps<85000,"authentic Forge game must end");
+            Assert.assertTrue(actualPlayerDamage,
+                    "at least one actual Forge player-damaging attack");
+            Assert.assertTrue(ca.attacksAuthorized+cb.attacksAuthorized>0,
+                    "Forge authorizes at least one real legal attack");
+            Assert.assertTrue(ca.priorityCallbacks>0 && cb.priorityCallbacks>0);
+            Assert.assertTrue(game.isGameOver());
+            Assert.assertNotNull(game.getOutcome());
+            Assert.assertFalse(game.getOutcome().isDraw());
+            Assert.assertTrue(left.hasWon()!=right.hasWon());
+            Assert.assertTrue(left.hasLost()!=right.hasLost());
+            Player winner=left.hasWon()?left:right;
+            Assert.assertTrue(game.getOutcome().isWinner(winner.getRegisteredPlayer()));
+            Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+            Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+            System.out.println("STAGE11C_REINFORCEMENTS real_left_attacks="+
+                    ca.attacksAuthorized+" real_right_attacks="+cb.attacksAuthorized+
+                    " peak_real_bears_on_one_side="+peakLiveBears+
+                    " left_life="+left.getLife()+" right_life="+right.getLife());
+        }
+    }
+
+    @Test(timeOut=180000)
+    public void nativeReserveDeploymentNaturalGameLeftRegisteredFirst()
+            throws Exception {
+        verifyNativeReserveDeployment(true);
+    }
+
+    @Test(timeOut=180000)
+    public void nativeReserveDeploymentNaturalGameRightRegisteredFirst()
+            throws Exception {
+        verifyNativeReserveDeployment(false);
+    }
 }

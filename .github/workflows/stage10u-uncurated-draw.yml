@@ -1,7 +1,7 @@
-name: Stage 11B - Life-Aware Counterattack
+name: Stage 11C - Reinforcement Deployment
 
 # Two external persistent actor processes plus one authoritative Forge referee.
-# Stage11B extends 94 pinned Forge tests with two native life-aware counterattack games and public-only policy probes.
+# Stage11C extends 96 pinned Forge tests with two native reinforcement-policy games and public-only actor probes.
 # Registered 60-card decks, no hand curation, true London opening and 20 life; not full MTG or OS sandbox.
 on:
   push:
@@ -97,7 +97,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 stage10h/test_protocol.py | tee stage10u-evidence/stage10h-protocol.log
-      - name: Run life-aware counterattack actors and 94 inherited Forge tests
+      - name: Run reinforcement-capable actors and 96 inherited Forge tests
         shell: bash
         run: |
           set -euo pipefail
@@ -117,7 +117,7 @@ jobs:
           echo "Forge Maven exit: $code"
           tail -n 75 "$GITHUB_WORKSPACE/stage10u-evidence/maven.log"
           test "$code" -eq 0
-      - name: Verify exact 96 genuine Forge-native methods with independent XML gate
+      - name: Verify exact 98 genuine Forge-native methods with independent XML gate
         shell: bash
         run: |
           set -euo pipefail
@@ -128,7 +128,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stage11b-life-aware-${{ github.run_id }}-${{ github.run_attempt }}
+          name: stage11c-reinforcements-${{ github.run_id }}-${{ github.run_attempt }}
           path: stage10u-evidence/
           if-no-files-found: warn
           retention-days: 14

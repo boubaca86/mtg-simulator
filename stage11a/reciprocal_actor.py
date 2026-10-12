@@ -108,14 +108,11 @@ for raw in sys.stdin.buffer:
         if record.get('appearance') == 'face_up'
         and record.get('card') == 'Grizzly Bears'
     ]
-    # A visible on-board Bear is already our bounded creature commitment.
-    # Avoid casting an extra Bear before combat: that would change the
-    # opponent's visible table and invalidate the limited defender's
-    # phase-independent one-to-one or menace-block preference. This is an
-    # own-visible-table strategic policy, not referee phase information.
-    if bears:
-        creatures = []
-        # No decklist identity test or hidden outcome-dependent strategy.
+    # Stage11C: do not stop deploying creatures after the first Bear.
+    # Additional Grizzly Bears in our OWN visible hand remain candidates
+    # even if we already control Bears. Forge alone checks priority, costs,
+    # mana, summoning sickness and actual spell legality. This is a
+    # reinforcement preference, not a command to put any card in play.
     targets = [i for i, record in enumerate(view['opponent_table'])
                if record.get('appearance') == 'face_up'
                and record.get('card') == 'Grizzly Bears']
