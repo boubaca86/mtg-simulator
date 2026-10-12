@@ -1,7 +1,7 @@
-name: Stage 11I - Cooperative Two-on-One Defense
+name: Stage 11J - Vanilla Four-Power Combat
 
 # Two external persistent actor processes plus one authoritative Forge referee.
-# Stage11I extends 108 pinned Forge tests with cooperative 2/2+2/2-vs-3/3 blocking preferences, public-only probes and uncurated native full games.
+# Stage11J extends 110 pinned Forge tests with real 4/4 Rumbling Baloth casting and size-aware attacks/blocks in natural 60-card Forge games.
 # Registered 60-card decks, no hand curation, true London opening and 20 life; not full MTG or OS sandbox.
 on:
   push:
@@ -97,7 +97,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 stage10h/test_protocol.py | tee stage10u-evidence/stage10h-protocol.log
-      - name: Run cooperative blocking and 108 inherited Forge tests
+      - name: Run 4/4 Rumbling Baloth combat and 110 inherited Forge tests
         shell: bash
         run: |
           set -euo pipefail
@@ -117,7 +117,7 @@ jobs:
           echo "Forge Maven exit: $code"
           tail -n 75 "$GITHUB_WORKSPACE/stage10u-evidence/maven.log"
           test "$code" -eq 0
-      - name: Verify exact 110 genuine Forge-native methods with independent XML gate
+      - name: Verify exact 112 genuine Forge-native methods with independent XML gate
         shell: bash
         run: |
           set -euo pipefail
@@ -128,7 +128,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stage11i-cooperative-defense-${{ github.run_id }}-${{ github.run_attempt }}
+          name: stage11j-four-power-${{ github.run_id }}-${{ github.run_attempt }}
           path: stage10u-evidence/
           if-no-files-found: warn
           retention-days: 14

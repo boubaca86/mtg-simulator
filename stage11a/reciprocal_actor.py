@@ -30,10 +30,14 @@ LANDS = frozenset(('Forest', 'Island', 'Plains', 'Swamp', 'Mountain', 'Wastes'))
 VANILLA_BEARS = frozenset(('Grizzly Bears', 'Runeclaw Bear', 'Balduvian Bears'))
 # Stage11H: known public vanilla 3/3 for {2}{G}, unlike {1}{G} 2/2s.
 VANILLA_THREES = frozenset(('Centaur Courser',))
-VANILLA_FIGHTERS = VANILLA_BEARS | VANILLA_THREES
+# Stage11J: official vanilla {2}{G}{G} 4/4 extends visible size decisions.
+VANILLA_FOURS = frozenset(('Rumbling Baloth',))
+VANILLA_FIGHTERS = VANILLA_BEARS | VANILLA_THREES | VANILLA_FOURS
 CREATURES = frozenset(('Llanowar Elves',)) | VANILLA_FIGHTERS
 
 def public_power(name):
+    if name in VANILLA_FOURS:
+        return 4
     return 3 if name in VANILLA_THREES else 2
 
 for raw in sys.stdin.buffer:
@@ -110,8 +114,10 @@ for raw in sys.stdin.buffer:
     lands = [i for i, name in enumerate(hand) if name in LANDS]
     lands.sort(key=lambda i: (hand[i] != 'Forest', hand[i] != 'Island', i))
     creatures = [i for i, name in enumerate(hand) if name in CREATURES]
-    creatures.sort(key=lambda i: (hand[i] not in VANILLA_THREES,
-                                  hand[i] not in VANILLA_FIGHTERS, i))
+    # Prefer greater known creature strength when actual mana permits it.
+    # Forge remains solely responsible for paying {2}{G}{G} correctly.
+    creatures.sort(key=lambda i: (-public_power(hand[i])
+                                   if hand[i] in VANILLA_FIGHTERS else 0, i))
     fighters = [
         i for i, record in enumerate(view['own_cards']['table'])
         if record.get('appearance') == 'face_up'
@@ -149,14 +155,17 @@ for raw in sys.stdin.buffer:
     else:
         reserve_count = 0
     reserved = fighters[-reserve_count:] if reserve_count else []
-    # 2/2 attacks risk an unfavourable block from a PUBLIC 3/3;
-    # only Forge knows if that opposing creature can actually block.
-    visible_three = any(view['opponent_table'][i]['card'] in VANILLA_THREES
-                        for i in targets)
+    # Stage11J: do not offer a weaker creature to an obviously stronger
+    # public defender. A 4/4 can profitably attack into a 3/3; a 3/3
+    # should not attack into a visible 4/4 absent other incentives.
+    # True blocker readiness remains entirely private to the referee.
+    public_largest_defender = max(
+        (public_power(view['opponent_table'][i]['card']) for i in targets),
+        default=0)
     active_attacks = [
         i for i in fighters[:len(fighters) - reserve_count]
-        if not visible_three or
-           view['own_cards']['table'][i]['card'] in VANILLA_THREES
+        if public_power(view['own_cards']['table'][i]['card'])
+           >= public_largest_defender
     ][:8]
     # Stage11F: a healthy defender should still offer legal 2/2 blocks.
     # Attack and defense proposals coexist without assuming the phase.
@@ -182,7 +191,7 @@ for raw in sys.stdin.buffer:
     smaller = [i for i in defensive_candidates
                if view['own_cards']['table'][i]['card'] in VANILLA_BEARS]
     stronger = [i for i in defensive_candidates
-                if view['own_cards']['table'][i]['card'] in VANILLA_THREES]
+                if public_power(view['own_cards']['table'][i]['card']) >= 3]
     if life > incoming and not stronger and len(smaller) >= 2:
         for enemy_i in ordered_targets:
             if view['opponent_table'][enemy_i]['card'] not in VANILLA_THREES:

@@ -642,9 +642,11 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 "Balduvian Bears".equals(name);
     }
 
-    /** Stage11H: the distinct vanilla {2}{G} 3/3 is a supported fighter. */
+    /** Stage11J: allow only precisely identified no-ability vanilla
+     * creatures 2/2, 3/3 and 4/4; Forge enforces all casting/attack rules. */
     private static boolean supportedVanillaFighter(String name) {
-        return supportedVanillaBear(name) || "Centaur Courser".equals(name);
+        return supportedVanillaBear(name) || "Centaur Courser".equals(name) ||
+                "Rumbling Baloth".equals(name);
     }
 
     /** No attacker phase, priority, combat IDs or hidden zone details reach
@@ -861,7 +863,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             if(source==null || source.getController()!=controlled ||
                     !controlled.getCardsIn(ZoneType.Battlefield).contains(source) ||
                     !supportedVanillaFighter(source.getName()) ||
-                    damageDealt!=("Centaur Courser".equals(source.getName())?3:2) ||
+                    damageDealt!=("Rumbling Baloth".equals(source.getName())?4:
+                            "Centaur Courser".equals(source.getName())?3:2) ||
                     source.getNetCombatDamage()!=damageDealt ||
                     source.hasKeyword("Trample") ||
                     targets==null || targets.isEmpty() || targets.size()>8) {
@@ -876,8 +879,9 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     throw new SecurityException("unregistered or unsupported combat target");
                 }
             }
-            // Under CR 510.1c-d (2026-09-25) a 2/2 or 3/3 may assign
-            // all combat damage to one of up to eight legal blockers.
+            // Under CR 510.1c-d (2026-09-25) a supported vanilla
+            // 2/2, 3/3 or 4/4 assigns its full real combat damage
+            // to the first Forge-legal blocking creature in the list.
             // The passed-in combat list
             // is referee-authoritative, never chosen by an inherited AI.
             Map<Card,Integer> split=new LinkedHashMap<>();
@@ -6309,5 +6313,153 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     @Test(timeOut=180000)
     public void nativeCooperativeBlockingRightRegisteredFirst() throws Exception {
         verifyNativeCooperativeBlocking(false);
+    }
+
+    /** Stage11J: add a real four-of vanilla {2}{G}{G} 4/4, with no
+     * manipulation of the original privately shuffled sixty-card game. */
+    private Game nativeFourStrengthVanillaGame(boolean leftRegisteredFirst) {
+        Map<String,Integer> counts=new TreeMap<>();
+        counts.put("Forest",40);
+        counts.put("Grizzly Bears",4);
+        counts.put("Runeclaw Bear",4);
+        counts.put("Balduvian Bears",4);
+        counts.put("Centaur Courser",4);
+        counts.put("Rumbling Baloth",4);
+        RegisteredPlayer a=new RegisteredPlayer(mainDeck("11J left",counts))
+                .setPlayer(new LobbyPlayerAi("baloth-left",null));
+        RegisteredPlayer b=new RegisteredPlayer(mainDeck("11J right",counts))
+                .setPlayer(new LobbyPlayerAi("baloth-right",null));
+        List<RegisteredPlayer> registered=new ArrayList<>();
+        registered.add(leftRegisteredFirst?a:b);
+        registered.add(leftRegisteredFirst?b:a);
+        GameRules rules=new GameRules(GameType.Constructed);
+        Match match=new Match(rules,registered,"Stage11J");
+        Game game=new Game(registered,rules,match);
+        frozenMain=new FrozenMain(game);
+        Assert.assertNull(game.getPhaseHandler().getPhase());
+        for(Player player:game.getPlayers()) {
+            Assert.assertEquals(frozenMain.owned(player),counts);
+            Assert.assertEquals(counts.values().stream().mapToInt(Integer::intValue).sum(),60);
+        }
+        return game;
+    }
+
+    /** Stage11J: the actors independently reason about public 2/2, 3/3,
+     * and 4/4 combat strength. All decision probes use copies of visible
+     * own/public JSON and cannot influence real hands, shuffle or life.
+     * Exactly two predeclared natural games run in each registration order.
+     * Forge alone pays mana, casts creatures and resolves native combat. */
+    private void verifyNaturalFourStrengthVanilla(boolean leftRegisteredFirst)
+            throws Exception {
+        int allAttacks=0,allBlocks=0,balothSeen=0;
+        for(int sequence=0;sequence<2;sequence++) {
+            Game game=nativeFourStrengthVanillaGame(leftRegisteredFirst);
+            Player left=game.getPlayers().get(leftRegisteredFirst?0:1);
+            Player right=game.getPlayers().get(leftRegisteredFirst?1:0);
+            try(Actor a=new Actor(5);Actor b=new Actor(5)) {
+                Assert.assertNotEquals(a.process.pid(),b.process.pid(),
+                        "exactly two independent persistent Python actors");
+                ExternalCreatureController ca=attach(game,left,right,a);
+                ExternalCreatureController cb=attach(game,right,left,b);
+                doRealNativeStartForMultiTurn(game,ca,cb);
+                Assert.assertTrue(ca.openingCallbacks>0 && cb.openingCallbacks>0);
+                Assert.assertEquals(left.getLife(),20);
+                Assert.assertEquals(right.getLife(),20);
+                Assert.assertNull(game.getOutcome());
+                Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+                Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+                for(String name:Arrays.asList("Grizzly Bears","Runeclaw Bear",
+                        "Balduvian Bears","Centaur Courser","Rumbling Baloth"))
+                    Assert.assertEquals(countCardsWithName(game,name,ZoneType.Battlefield),0,
+                            "authentic no-fixture starting board");
+                for(int seat=0;seat<2;seat++) {
+                    Actor worker=seat==0?a:b;
+                    Player self=seat==0?left:right;
+                    Player other=seat==0?right:left;
+                    JsonObject view=JsonParser.parseString(observation(self,other))
+                            .getAsJsonObject();
+                    JsonArray hand=new JsonArray();
+                    hand.add("Grizzly Bears");
+                    hand.add("Centaur Courser");
+                    hand.add("Rumbling Baloth");
+                    view.getAsJsonObject("own_cards").add("hand",hand);
+                    JsonArray own=new JsonArray();
+                    JsonArray opponentBoard=new JsonArray();
+                    for(String name:Arrays.asList("Grizzly Bears",
+                            "Centaur Courser","Rumbling Baloth")) {
+                        JsonObject publicRecord=new JsonObject();
+                        publicRecord.addProperty("appearance","face_up");
+                        publicRecord.addProperty("card",name);
+                        own.add(publicRecord.deepCopy());
+                        opponentBoard.add(publicRecord.deepCopy());
+                    }
+                    view.getAsJsonObject("own_cards").add("table",own);
+                    view.add("opponent_table",opponentBoard);
+                    view.getAsJsonObject("life_totals").addProperty("self",20);
+                    view.getAsJsonObject("life_totals").addProperty("opponent",20);
+                    JsonObject plan=worker.ask(view.toString());
+                    Assert.assertEquals(plan.get("intent").getAsString(),"action_plan");
+                    JsonArray casts=plan.getAsJsonArray("creature_hand_indices");
+                    Assert.assertEquals(casts.size(),3);
+                    Assert.assertEquals(casts.get(0).getAsInt(),2,
+                            "4/4 should be highest preferred creature");
+                    Assert.assertEquals(casts.get(1).getAsInt(),1);
+                    Assert.assertEquals(casts.get(2).getAsInt(),0);
+                    JsonArray attacks=plan.getAsJsonArray("attack_table_indices");
+                    Assert.assertEquals(attacks.size(),1,
+                            "do not attack 2/2 or 3/3 into visible 4/4");
+                    Assert.assertEquals(attacks.get(0).getAsInt(),2);
+                    JsonArray blocks=plan.getAsJsonArray("block_pairs");
+                    Assert.assertEquals(blocks.size(),6);
+                    Assert.assertEquals(blocks.get(0).getAsJsonArray().get(0).getAsInt(),2);
+                    Assert.assertEquals(blocks.get(0).getAsJsonArray().get(1).getAsInt(),2);
+                    Assert.assertEquals(blocks.get(1).getAsJsonArray().get(1).getAsInt(),1);
+                    Assert.assertEquals(blocks.get(2).getAsJsonArray().get(1).getAsInt(),0);
+                    // Referee-private life, cards, priority and shuffles are untouched.
+                    Assert.assertEquals(self.getLife(),20);
+                    Assert.assertEquals(fullPhysicalInventory(self),frozenMain.owned(self));
+                }
+                int steps=0;
+                while(!game.isGameOver() && steps++<85000) {
+                    game.getPhaseHandler().mainLoopStep();
+                    for(Player p:Arrays.asList(left,right))
+                        for(Card c:p.getCardsIn(ZoneType.Battlefield))
+                            if("Rumbling Baloth".equals(c.getName())) balothSeen++;
+                }
+                Assert.assertTrue(steps<85000,"native Forge game must terminate");
+                Assert.assertTrue(game.isGameOver());
+                Assert.assertNotNull(game.getOutcome(),"Forge determines winner");
+                Assert.assertFalse(game.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Assert.assertTrue(left.hasLost()!=right.hasLost());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(game.getOutcome().isWinner(winner.getRegisteredPlayer()));
+                Assert.assertTrue(ca.priorityCallbacks>0 && cb.priorityCallbacks>0);
+                Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+                Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+                allAttacks+=ca.attacksAuthorized+cb.attacksAuthorized;
+                allBlocks+=ca.blocksAuthorized+cb.blocksAuthorized;
+                System.out.println("STAGE11J_NATIVE_GAME left_first="+leftRegisteredFirst+
+                        " index="+sequence+" attacks="+
+                        (ca.attacksAuthorized+cb.attacksAuthorized)+
+                        " blocks="+(ca.blocksAuthorized+cb.blocksAuthorized)+
+                        " winner="+winner.getName());
+            }
+        }
+        System.out.println("STAGE11J_NATIVE_COHORT left_first="+leftRegisteredFirst+
+                " games=2 attacks="+allAttacks+" blocks="+allBlocks+
+                " observed_baloth_battlefield_snapshots="+balothSeen);
+        // No lucky hands/seeds; real natural games might omit a particular
+        // creature despite the policy demonstrating legal 4/4 preferences.
+    }
+
+    @Test(timeOut=180000)
+    public void nativeFourStrengthVanillaLeftRegisteredFirst() throws Exception {
+        verifyNaturalFourStrengthVanilla(true);
+    }
+
+    @Test(timeOut=180000)
+    public void nativeFourStrengthVanillaRightRegisteredFirst() throws Exception {
+        verifyNaturalFourStrengthVanilla(false);
     }
 }
