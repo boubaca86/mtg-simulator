@@ -1,7 +1,7 @@
-name: Stage 10V - Two Independent Natural Paid Casts
+name: Stage 10W - Natural Two-Actor Paid Combat
 
 # Two external persistent actor processes plus one authoritative Forge referee.
-# Stage10V extends 82 native Forge tests with two genuine naturally drawn, paid Bears from BOTH external actors.
+# Stage10W extends 84 Forge tests with real legal contested 2/2 combat after both players' natural draws and paid casts.
 # Registered 60-card decks, no hand curation, true London opening and 20 life; not full MTG or OS sandbox.
 on:
   push:
@@ -18,6 +18,7 @@ on:
       - stage10h/test_protocol.py
       - stage10l/adversarial_actor.py
       - stage10o/controlled_delay_actor.py
+      - stage10v/visible_opponent_actor.py
       - forge_tests/Stage10UUncuratedDrawTest.java
       - forge_tests/verify_stage10u_surefire.py
 
@@ -35,6 +36,7 @@ jobs:
       STAGE10G_MENACE_WORKER: ${{ github.workspace }}/stage10e/menace_defense_actor.py
       STAGE10L_ADVERSARIAL_WORKER: ${{ github.workspace }}/stage10l/adversarial_actor.py
       STAGE10O_DELAY_WORKER: ${{ github.workspace }}/stage10o/controlled_delay_actor.py
+      STAGE10W_VISIBLE_OPPONENT_WORKER: ${{ github.workspace }}/stage10v/visible_opponent_actor.py
     steps:
       - name: Checkout feature branch without credentials
         uses: actions/checkout@v4
@@ -70,7 +72,7 @@ jobs:
           test "$(git -C forge-src rev-parse HEAD)" = 4ec5f1a2c32fa90ecb983a72b9eb47aa5c5d7676
           git -C forge-src rev-parse HEAD > stage10u-evidence/forge-sha.txt
           git rev-parse HEAD > stage10u-evidence/feature-sha.txt
-          sha256sum stage9w/opening_hand_actor.py stage10b/action_plan_actor.py stage10d/multi_block_actor.py stage10d/test_protocol.py stage10e/menace_defense_actor.py stage10e/test_protocol.py forge_tests/Stage10UUncuratedDrawTest.java stage10h/test_protocol.py stage10l/adversarial_actor.py stage10o/controlled_delay_actor.py forge_tests/verify_stage10u_surefire.py \
+          sha256sum stage9w/opening_hand_actor.py stage10b/action_plan_actor.py stage10d/multi_block_actor.py stage10d/test_protocol.py stage10e/menace_defense_actor.py stage10e/test_protocol.py forge_tests/Stage10UUncuratedDrawTest.java stage10h/test_protocol.py stage10l/adversarial_actor.py stage10o/controlled_delay_actor.py stage10v/visible_opponent_actor.py forge_tests/verify_stage10u_surefire.py \
             > stage10u-evidence/source-hashes.txt
           test -r "$STAGE10G_WORKER"
           test -r "$STAGE10G_LEGACY_PLAN_WORKER"
@@ -78,6 +80,7 @@ jobs:
           test -r "$STAGE10G_MENACE_WORKER"
           test -r "$STAGE10L_ADVERSARIAL_WORKER"
           test -r "$STAGE10O_DELAY_WORKER"
+          test -r "$STAGE10W_VISIBLE_OPPONENT_WORKER"
           install -m 0644 forge_tests/Stage10UUncuratedDrawTest.java \
             forge-src/forge-gui-desktop/src/test/java/forge/ai/Stage10UUncuratedDrawTest.java
       - name: Verify two-process Stage 10D and Stage 10E actor information contracts
@@ -91,7 +94,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 stage10h/test_protocol.py | tee stage10u-evidence/stage10h-protocol.log
-      - name: Run both independently uncurated paid casts and 82 inherited methods
+      - name: Run native uncurated paid creature combat and 84 inherited methods
         shell: bash
         run: |
           set -euo pipefail
@@ -111,7 +114,7 @@ jobs:
           echo "Forge Maven exit: $code"
           tail -n 75 "$GITHUB_WORKSPACE/stage10u-evidence/maven.log"
           test "$code" -eq 0
-      - name: Verify exact 84 genuine Forge-native methods with independent XML gate
+      - name: Verify exact 86 genuine Forge-native methods with independent XML gate
         shell: bash
         run: |
           set -euo pipefail
@@ -122,7 +125,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stage10v-natural-both-casts-${{ github.run_id }}-${{ github.run_attempt }}
+          name: stage10w-natural-block-combat-${{ github.run_id }}-${{ github.run_attempt }}
           path: stage10u-evidence/
           if-no-files-found: warn
           retention-days: 14
