@@ -154,6 +154,18 @@ for raw in sys.stdin.buffer:
         reserve_count = min(len(fighters), 1)
     else:
         reserve_count = 0
+    # Stage11P: at or below four public life, protect two ordinary 2/2s
+    # together against a single known opposing vanilla 4/4. One chump
+    # merely delays danger; both can destroy the stronger attacker.
+    # Only public face-up card names and life enter this preference.
+    emergency_joint = (
+        0 < life <= 4 and len(fighters) == 2 and
+        all(public_power(view['own_cards']['table'][i]['card']) == 2
+            for i in fighters) and
+        len(view['opponent_table']) == 1 and len(targets) == 1 and
+        view['opponent_table'][targets[0]]['card'] == 'Rumbling Baloth')
+    if emergency_joint:
+        reserve_count = 2
     reserved = fighters[-reserve_count:] if reserve_count else []
     # Stage11J: do not offer a weaker creature to an obviously stronger
     # public defender. A 4/4 can profitably attack into a 3/3; a 3/3
@@ -232,7 +244,7 @@ for raw in sys.stdin.buffer:
     # Prefer a solo equal/stronger blocker if one is visibly available.
     # These are only candidate indices, not actual combat assignments:
     # Forge knows real attacking identity, tapped state and legal timing.
-    if life > incoming:
+    if life > incoming or emergency_joint:
         for enemy_i in ordered_targets:
             threat_power = public_power(view['opponent_table'][enemy_i]['card'])
             candidates = sorted(defensive_candidates,

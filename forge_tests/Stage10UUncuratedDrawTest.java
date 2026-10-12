@@ -7291,4 +7291,126 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             throws Exception {
         verifyNonlethalMixedPressureAndNativeDamage(false);
     }
+
+    /**
+     * Stage11P: emergent 2x2/2 coordinated block against 4/4 at
+     * lethal-life risk. Only publicly visible cards and life guide
+     * the persistent external actor; Forge owns legality, damage,
+     * state-based creature deaths and player outcomes.
+     * A separately created new naturally shuffled Constructed cohort
+     * is verified without life, hand, board or draw manipulation.
+     */
+    private void verifyEmergencyCoordinatedDefense(boolean leftRegisteredFirst)
+            throws Exception {
+        Game fixture=nativeFourStrengthVanillaGame(leftRegisteredFirst);
+        Player seatA=fixture.getPlayers().get(0);
+        Player seatB=fixture.getPlayers().get(1);
+        try(Actor workerA=new Actor(5);Actor workerB=new Actor(5)) {
+            Assert.assertNotEquals(workerA.process.pid(),workerB.process.pid());
+            ExternalCreatureController ca=attach(fixture,seatA,seatB,workerA);
+            ExternalCreatureController cb=attach(fixture,seatB,seatA,workerB);
+            doRealNativeStartForMultiTurn(fixture,ca,cb);
+            Player offense=fixture.getPhaseHandler().getPlayerTurn();
+            Assert.assertNotNull(offense);
+            Player defense=offense==seatA?seatB:seatA;
+            Actor defensiveActor=offense==seatA?workerB:workerA;
+            ExternalCreatureController oc=offense==seatA?ca:cb;
+            ExternalCreatureController dc=offense==seatA?cb:ca;
+            Assert.assertEquals(offense.getLife(),20);
+            Assert.assertEquals(defense.getLife(),20);
+            fixturePlaceRegisteredVanilla(fixture,offense,"Rumbling Baloth");
+            fixturePlaceRegisteredVanilla(fixture,defense,"Grizzly Bears");
+            fixturePlaceRegisteredVanilla(fixture,defense,"Runeclaw Bear");
+            Card source=offense.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->"Rumbling Baloth".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Card first=defense.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->"Grizzly Bears".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Card second=defense.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->"Runeclaw Bear".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            final long sourceId=source.getId();
+            final long firstId=first.getId(),secondId=second.getId();
+            source.setSickness(false); // explicit fixture only
+            Assert.assertEquals(fullPhysicalInventory(offense),
+                    frozenMain.owned(offense));
+            Assert.assertEquals(fullPhysicalInventory(defense),
+                    frozenMain.owned(defense));
+            Assert.assertTrue(defense.setLife(5,null),
+                    "fixture-only public life 5 control observation");
+            JsonObject control=defensiveActor.ask(observation(defense,offense));
+            Assert.assertEquals(control.getAsJsonArray("block_pairs").size(),1,
+                    "at life 5 use old one-reserve policy");
+            Assert.assertTrue(defense.setLife(4,null),
+                    "fixture-only public life 4 urgent observation");
+            JsonObject urgent=defensiveActor.ask(observation(defense,offense));
+            JsonArray pairs=urgent.getAsJsonArray("block_pairs");
+            Assert.assertEquals(pairs.size(),2,
+                    "urgent defense offers TWO physical 2/2 blockers");
+            Assert.assertNotEquals(pairs.get(0).getAsJsonArray().get(0).getAsInt(),
+                    pairs.get(1).getAsJsonArray().get(0).getAsInt());
+            Assert.assertEquals(pairs.get(0).getAsJsonArray().get(1).getAsInt(),
+                    pairs.get(1).getAsJsonArray().get(1).getAsInt());
+            // An unidentifiable face-down permanent invalidates the
+            // single-known-threat emergency assumption; never peek.
+            JsonObject unknown=JsonParser.parseString(
+                    observation(defense,offense)).getAsJsonObject();
+            JsonObject hidden=new JsonObject();
+            hidden.addProperty("appearance","face_down");
+            unknown.getAsJsonArray("opponent_table").add(hidden);
+            Assert.assertEquals(defensiveActor.ask(unknown.toString())
+                    .getAsJsonArray("block_pairs").size(),1);
+            Assert.assertEquals(defense.getLife(),4,
+                    "external actors cannot change referee life");
+            boolean allOriginalsInGraves=false;
+            int steps=0;
+            while(!fixture.isGameOver() && steps++<2500) {
+                fixture.getPhaseHandler().mainLoopStep();
+                if(oc.attacksAuthorized>0 && dc.coordinatedNativeBlocks>0 &&
+                        offense.getCardsIn(ZoneType.Graveyard).stream()
+                                .anyMatch(c->c.getId()==sourceId) &&
+                        defense.getCardsIn(ZoneType.Graveyard).stream()
+                                .anyMatch(c->c.getId()==firstId) &&
+                        defense.getCardsIn(ZoneType.Graveyard).stream()
+                                .anyMatch(c->c.getId()==secondId)) {
+                    allOriginalsInGraves=true;
+                    break;
+                }
+            }
+            Assert.assertTrue(steps<2500,"bounded real native Forge combat");
+            Assert.assertTrue(allOriginalsInGraves,
+                    "Forge resolves actual deaths of 4/4 and both 2/2 blockers");
+            Assert.assertTrue(dc.blocksAuthorized>=2);
+            Assert.assertTrue(oc.refereeSplitDamageAssignments>0);
+            Assert.assertEquals(defense.getLife(),4,
+                    "native fully blocked combat prevents player damage");
+            Assert.assertFalse(fixture.isGameOver());
+            Assert.assertEquals(fullPhysicalInventory(offense),
+                    frozenMain.owned(offense));
+            Assert.assertEquals(fullPhysicalInventory(defense),
+                    frozenMain.owned(defense));
+            System.out.println("STAGE11P_EMERGENCY_FIXTURE left_first="+
+                    leftRegisteredFirst+" actual_blocks="+dc.blocksAuthorized+
+                    " coordinated="+dc.coordinatedNativeBlocks+
+                    " native_splits="+oc.refereeSplitDamageAssignments+
+                    " verified_physical_deaths=3 defender_life="+defense.getLife());
+        }
+        // This existing harness starts FRESH wholly unmodified native
+        // 60-card games on each invocation, not the staged fixture above.
+        // It runs TWO predeclared natural matches per registration order.
+        verifyNaturalFourStrengthVanilla(leftRegisteredFirst);
+        System.out.println("STAGE11P_FRESH_NATURAL_COHORT left_first="+
+                leftRegisteredFirst+" games=2");
+    }
+
+    @Test(timeOut=240000)
+    public void nativeEmergencyJointBlockLeftRegisteredFirst() throws Exception {
+        verifyEmergencyCoordinatedDefense(true);
+    }
+
+    @Test(timeOut=240000)
+    public void nativeEmergencyJointBlockRightRegisteredFirst() throws Exception {
+        verifyEmergencyCoordinatedDefense(false);
+    }
 }
