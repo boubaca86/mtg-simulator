@@ -1349,12 +1349,13 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             "{\"intent\":\"play_land\",\"hand_index\":0.5}",
             "{\"intent\":\"play_land\",\"hand_index\":-1}",
             "{\"intent\":\"pass\",\"opponent_hand\":[]}")) {
+            boolean rejected=false;
             try {
                 validateReply(JsonParser.parseString(candidate).getAsJsonObject());
-                Assert.fail("referee must reject forged payload "+candidate);
             } catch(AssertionError expected) {
-                Assert.assertNotNull(expected.getMessage());
+                rejected=true;
             }
+            Assert.assertTrue(rejected,"FORGED_PAYLOAD_ACCEPTED: "+candidate);
         }
         Assert.assertEquals(active.getCardsIn(ZoneType.Hand).size(),initial);
         Assert.assertEquals(active.getLandsPlayedThisTurn(),0);
@@ -1474,12 +1475,13 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             "{\"intent\":\"cast_creature\",\"hand_index\":\"0\"}",
             "{\"intent\":\"cast_spell\",\"hand_index\":0}",
             "{\"intent\":\"pass\",\"hand_index\":0}")) {
+            boolean rejected=false;
             try {
                 validateReply(JsonParser.parseString(candidate).getAsJsonObject());
-                Assert.fail("forged creature payload accepted "+candidate);
             } catch(AssertionError expected) {
-                Assert.assertNotNull(expected.getMessage());
+                rejected=true;
             }
+            Assert.assertTrue(rejected,"FORGED_PAYLOAD_ACCEPTED: "+candidate);
         }
         JsonObject unsupported=JsonParser.parseString(
             "{\"intent\":\"cast_creature\",\"hand_index\":0}").getAsJsonObject();
@@ -1600,12 +1602,13 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             "{\"intent\":\"attack\",\"table_indices\":[\"0\"]}",
             "{\"intent\":\"attack\",\"table_indices\":[]}",
             "{\"intent\":\"attack\",\"table_indices\":[0,1,2,3,4,5,6,7,8]}")) {
+            boolean rejected=false;
             try {
                 validateReply(JsonParser.parseString(payload).getAsJsonObject());
-                Assert.fail("forged attack accepted: "+payload);
             } catch(AssertionError expected) {
-                Assert.assertNotNull(expected.getMessage());
+                rejected=true;
             }
+            Assert.assertTrue(rejected,"FORGED_PAYLOAD_ACCEPTED: "+payload);
         }
         JsonObject reply=JsonParser.parseString(
             "{\"intent\":\"attack\",\"table_indices\":[0]}").getAsJsonObject();
@@ -5599,7 +5602,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                         "two reserved Bears offer three legal-target fallbacks each");
                 Assert.assertEquals(blocks.get(0).getAsJsonArray().get(0).getAsInt(),1);
                 Assert.assertEquals(blocks.get(0).getAsJsonArray().get(1).getAsInt(),0);
-                Assert.assertEquals(blocks.get(2).getAsJsonArray().get(1).getAsInt(),2);
+                Assert.assertEquals(blocks.get(2).getAsJsonArray().get(1).getAsInt(),1);
                 Assert.assertEquals(blocks.get(3).getAsJsonArray().get(0).getAsInt(),2);
 
                 // Six vs six needs only one blocker; retain two attackers.
@@ -5992,8 +5995,10 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     Assert.assertEquals(blocks.size(),8);
                     Assert.assertEquals(blocks.get(0).getAsJsonArray().get(0).getAsInt(),0);
                     Assert.assertEquals(blocks.get(0).getAsJsonArray().get(1).getAsInt(),0);
-                    Assert.assertEquals(blocks.get(3).getAsJsonArray().get(0).getAsInt(),1);
-                    Assert.assertEquals(blocks.get(3).getAsJsonArray().get(1).getAsInt(),0);
+                    Assert.assertEquals(blocks.get(1).getAsJsonArray().get(0).getAsInt(),1);
+                    Assert.assertEquals(blocks.get(1).getAsJsonArray().get(1).getAsInt(),1);
+                    Assert.assertEquals(blocks.get(2).getAsJsonArray().get(0).getAsInt(),2);
+                    Assert.assertEquals(blocks.get(2).getAsJsonArray().get(1).getAsInt(),2);
                     Assert.assertEquals(self.getLife(),20);
                     Assert.assertEquals(fullPhysicalInventory(self),frozenMain.owned(self));
                 }
@@ -6042,5 +6047,111 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     public void nativeThreeSpeciesVanillaBearCohortRightRegisteredFirst()
             throws Exception {
         verifyNativeThreeSpeciesBearCohort(false);
+    }
+
+    /** Arranged regression fixture, NOT a naturally shuffled full game.
+     * Three ready 2/2s versus three ready 2/2s at one life. The old row-major
+     * preferences assigned every blocker to the first attacker and lost.
+     * Only setup is arranged; Forge declares blocks, deals damage and applies
+     * state-based deaths through its normal phase/priority loop. */
+    @Test(timeOut=120000)
+    public void reservedBlockersCoverThreeAttackersAndPreventNativeLethalDamage()
+            throws Exception {
+        Game game=initAndCreateGame();
+        Player attacker=game.getPlayers().get(1),defender=game.getPlayers().get(0);
+        seedPrivateLibraries(attacker,defender);
+        List<Card> attackers=new ArrayList<>(),blockers=new ArrayList<>();
+        for(String name:Arrays.asList("Grizzly Bears","Runeclaw Bear","Balduvian Bears")) {
+            Card a=addCardToZone(name,attacker,ZoneType.Battlefield);
+            Card b=addCardToZone(name,defender,ZoneType.Battlefield);
+            a.setSickness(false);b.setSickness(false);
+            attackers.add(a);blockers.add(b);
+        }
+        Assert.assertTrue(defender.setLife(1,null));
+        Map<String,Integer> beforeA=fullPhysicalInventory(attacker);
+        Map<String,Integer> beforeD=fullPhysicalInventory(defender);
+        try(Actor a=new Actor(5);Actor d=new Actor(5)) {
+            Assert.assertNotEquals(a.process.pid(),d.process.pid());
+            ExternalCreatureController ac=attach(game,attacker,defender,a);
+            ExternalCreatureController dc=attach(game,defender,attacker,d);
+            boolean witnessedDistinctBlocks=false;
+            int steps=0;
+            while(!game.isGameOver() && steps++<150) {
+                game.getPhaseHandler().mainLoopStep();
+                Combat combat=game.getPhaseHandler().getCombat();
+                if(dc.blocksAuthorized==3 && combat!=null &&
+                        combat.getAttackers().size()==3) {
+                    for(Card threat:attackers) {
+                        Assert.assertEquals(combat.getBlockers(threat).size(),1,
+                                "SPREAD_BLOCKS_REQUIRED: each attacker needs a distinct block");
+                    }
+                    witnessedDistinctBlocks=true;
+                }
+                if(defender.getCardsIn(ZoneType.Graveyard).size()==3 &&
+                        attacker.getCardsIn(ZoneType.Graveyard).size()==3) break;
+            }
+            Assert.assertTrue(witnessedDistinctBlocks,"SPREAD_BLOCKS_REQUIRED: no distinct blocks");
+            Assert.assertEquals(ac.attacksAuthorized,3);
+            Assert.assertEquals(dc.blocksAuthorized,3);
+            Assert.assertEquals(defender.getLife(),1,"all three incoming threats stopped");
+            Assert.assertFalse(game.isGameOver());
+            Assert.assertNull(game.getOutcome());
+            Assert.assertEquals(defender.getCardsIn(ZoneType.Graveyard).size(),3);
+            Assert.assertEquals(attacker.getCardsIn(ZoneType.Graveyard).size(),3);
+            Assert.assertTrue(defender.getCardsIn(ZoneType.Graveyard).containsAll(blockers));
+            Assert.assertTrue(attacker.getCardsIn(ZoneType.Graveyard).containsAll(attackers));
+            Assert.assertEquals(fullPhysicalInventory(attacker),beforeA);
+            Assert.assertEquals(fullPhysicalInventory(defender),beforeD);
+            Assert.assertTrue(ac.refereeDamageAssignments+dc.refereeDamageAssignments>0);
+            System.out.println("STAGE11H_SPREAD blocked_attackers=3 dead_creatures=6 defender_life=1");
+        }
+    }
+
+    /** The actor cannot see tapped/sick state or the current attacker list.
+     * Its rotated fallback must still find a later legal attacker while
+     * Forge rejects the tapped blocker and the two nonattacking targets. */
+    @Test(timeOut=120000)
+    public void spreadBlockFallbackUsesLegalLaterAttackerWithoutPrivateInputs()
+            throws Exception {
+        Game game=initAndCreateGame();
+        Player attacker=game.getPlayers().get(1),defender=game.getPlayers().get(0);
+        seedPrivateLibraries(attacker,defender);
+        List<Card> enemies=new ArrayList<>();
+        for(String name:Arrays.asList("Grizzly Bears","Runeclaw Bear","Balduvian Bears")) {
+            Card enemy=addCardToZone(name,attacker,ZoneType.Battlefield);
+            enemy.setSickness(true);
+            enemies.add(enemy);
+        }
+        enemies.get(2).setSickness(false);
+        Card tapped=addCardToZone("Grizzly Bears",defender,ZoneType.Battlefield);
+        Card ready=addCardToZone("Runeclaw Bear",defender,ZoneType.Battlefield);
+        tapped.setTapped(true);ready.setTapped(false);
+        try(Actor a=new Actor(5);Actor d=new Actor(5)) {
+            Assert.assertNotEquals(a.process.pid(),d.process.pid());
+            ExternalCreatureController ac=attach(game,attacker,defender,a);
+            ExternalCreatureController dc=attach(game,defender,attacker,d);
+            String view=observation(defender,attacker);
+            JsonObject plan=d.ask(view);
+            tapped.setTapped(false);
+            enemies.get(0).setSickness(false);
+            Assert.assertEquals(observation(defender,attacker),view,
+                    "readiness and actual combat state are not actor inputs");
+            Assert.assertEquals(d.ask(view),plan);
+            tapped.setTapped(true);enemies.get(0).setSickness(true);
+            int steps=0;
+            while(!game.isGameOver() && steps++<150 &&
+                    defender.getCardsIn(ZoneType.Graveyard).isEmpty())
+                game.getPhaseHandler().mainLoopStep();
+            Assert.assertEquals(ac.attacksAuthorized,1);
+            Assert.assertEquals(dc.blocksAuthorized,1);
+            Assert.assertTrue(defender.getCardsIn(ZoneType.Graveyard).contains(ready));
+            Assert.assertTrue(attacker.getCardsIn(ZoneType.Graveyard).contains(enemies.get(2)));
+            Assert.assertTrue(defender.getCardsIn(ZoneType.Battlefield).contains(tapped));
+            Assert.assertTrue(attacker.getCardsIn(ZoneType.Battlefield).contains(enemies.get(0)));
+            Assert.assertTrue(attacker.getCardsIn(ZoneType.Battlefield).contains(enemies.get(1)));
+            Assert.assertEquals(defender.getLife(),20);
+            Assert.assertFalse(game.isGameOver());
+            System.out.println("STAGE11H_FALLBACK legal_later_target=true tapped_blocker_rejected=true");
+        }
     }
 }

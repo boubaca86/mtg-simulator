@@ -1,12 +1,13 @@
-name: Stage 11G - Three-Species Vanilla Bear Combat
+name: Stage 11H - Spread Defensive Blocks
 
 # Two external persistent actor processes plus one authoritative Forge referee.
-# Stage11G extends 104 pinned Forge tests with natural four-game cohorts of 48 Forest + four each Grizzly Bears, Runeclaw Bear and Balduvian Bears, with genuine Forge casts, attacks and blocks.
+# Stage11H spreads first-choice blockers across visible threats; 106 inherited methods + two focused Forge regressions.
 # Registered 60-card decks, no hand curation, true London opening and 20 life; not full MTG or OS sandbox.
 on:
   push:
     branches:
       - expert-stage9a-forge-decision-pairs
+      - expert-stage11h-spread-blocks
     paths:
       - .github/workflows/stage10u-uncurated-draw.yml
       - stage9w/opening_hand_actor.py
@@ -22,6 +23,28 @@ on:
       - stage11a/reciprocal_actor.py
       - forge_tests/Stage10UUncuratedDrawTest.java
       - forge_tests/verify_stage10u_surefire.py
+      - forge_tests/stage11h_rejection_integrity.py
+      - forge_tests/test_verify_stage11h_surefire.py
+      - stage11h/**
+  pull_request:
+    paths:
+      - .github/workflows/stage10u-uncurated-draw.yml
+      - stage9w/opening_hand_actor.py
+      - stage10b/action_plan_actor.py
+      - stage10d/multi_block_actor.py
+      - stage10d/test_protocol.py
+      - stage10e/menace_defense_actor.py
+      - stage10e/test_protocol.py
+      - stage10h/test_protocol.py
+      - stage10l/adversarial_actor.py
+      - stage10o/controlled_delay_actor.py
+      - stage10v/visible_opponent_actor.py
+      - stage11a/reciprocal_actor.py
+      - forge_tests/Stage10UUncuratedDrawTest.java
+      - forge_tests/verify_stage10u_surefire.py
+      - forge_tests/stage11h_rejection_integrity.py
+      - forge_tests/test_verify_stage11h_surefire.py
+      - stage11h/**
 
 permissions:
   contents: read
@@ -69,13 +92,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p stage10u-evidence
+          mkdir -p stage11h-evidence
           test "$(git -C forge-src describe --tags --exact-match)" = forge-2.0.15
           test "$(git -C forge-src rev-parse HEAD)" = 4ec5f1a2c32fa90ecb983a72b9eb47aa5c5d7676
-          git -C forge-src rev-parse HEAD > stage10u-evidence/forge-sha.txt
-          git rev-parse HEAD > stage10u-evidence/feature-sha.txt
-          sha256sum stage9w/opening_hand_actor.py stage10b/action_plan_actor.py stage10d/multi_block_actor.py stage10d/test_protocol.py stage10e/menace_defense_actor.py stage10e/test_protocol.py forge_tests/Stage10UUncuratedDrawTest.java stage10h/test_protocol.py stage10l/adversarial_actor.py stage10o/controlled_delay_actor.py stage10v/visible_opponent_actor.py stage11a/reciprocal_actor.py forge_tests/verify_stage10u_surefire.py \
-            > stage10u-evidence/source-hashes.txt
+          git -C forge-src rev-parse HEAD > stage11h-evidence/forge-sha.txt
+          git rev-parse HEAD > stage11h-evidence/feature-sha.txt
+          sha256sum stage9w/opening_hand_actor.py stage10b/action_plan_actor.py stage10d/multi_block_actor.py stage10d/test_protocol.py stage10e/menace_defense_actor.py stage10e/test_protocol.py forge_tests/Stage10UUncuratedDrawTest.java stage10h/test_protocol.py stage10l/adversarial_actor.py stage10o/controlled_delay_actor.py stage10v/visible_opponent_actor.py stage11a/reciprocal_actor.py forge_tests/verify_stage10u_surefire.py forge_tests/stage11h_rejection_integrity.py forge_tests/test_verify_stage11h_surefire.py stage11h/test_protocol.py \
+            > stage11h-evidence/source-hashes.txt
           test -r "$STAGE10G_WORKER"
           test -r "$STAGE10G_LEGACY_PLAN_WORKER"
           test -r "$STAGE10G_DEFENSE_WORKER"
@@ -90,14 +113,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 stage10d/test_protocol.py | tee stage10u-evidence/stage10d-protocol.log
-          python3 stage10e/test_protocol.py | tee stage10u-evidence/stage10e-protocol.log
+          python3 stage10d/test_protocol.py | tee stage11h-evidence/stage10d-protocol.log
+          python3 stage10e/test_protocol.py | tee stage11h-evidence/stage10e-protocol.log
       - name: Verify Stage 10H strict JSON parsing for all four actor types
         shell: bash
         run: |
           set -euo pipefail
-          python3 stage10h/test_protocol.py | tee stage10u-evidence/stage10h-protocol.log
-      - name: Run three-species vanilla combat and 104 inherited Forge tests
+          python3 stage10h/test_protocol.py | tee stage11h-evidence/stage10h-protocol.log
+      - name: Check evidence gate and real-process spread policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest forge_tests.test_verify_stage11h_surefire stage11h.test_protocol -v \
+            2>&1 | tee stage11h-evidence/python-checks.log
+      - name: Run spread-block regressions and 106 inherited Forge tests
         shell: bash
         run: |
           set -euo pipefail
@@ -107,28 +136,35 @@ jobs:
           xvfb-run -a mvn -B -ntp -pl forge-gui-desktop -am test \
             -Dtest=Stage10UUncuratedDrawTest \
             -Dsurefire.failIfNoSpecifiedTests=false \
-            > "$GITHUB_WORKSPACE/stage10u-evidence/maven.log" 2>&1
+            > "$GITHUB_WORKSPACE/stage11h-evidence/maven.log" 2>&1
           code=$?
           set -e
-          echo "$code" > "$GITHUB_WORKSPACE/stage10u-evidence/maven-exit.txt"
+          echo "$code" > "$GITHUB_WORKSPACE/stage11h-evidence/maven-exit.txt"
           if [ -d forge-gui-desktop/target/surefire-reports ]; then
-            cp -R forge-gui-desktop/target/surefire-reports "$GITHUB_WORKSPACE/stage10u-evidence/surefire"
+            cp -R forge-gui-desktop/target/surefire-reports "$GITHUB_WORKSPACE/stage11h-evidence/surefire"
           fi
           echo "Forge Maven exit: $code"
-          tail -n 75 "$GITHUB_WORKSPACE/stage10u-evidence/maven.log"
+          tail -n 75 "$GITHUB_WORKSPACE/stage11h-evidence/maven.log"
           test "$code" -eq 0
-      - name: Verify exact 106 genuine Forge-native methods with independent XML gate
+      - name: Verify exact 108 genuine Forge-native methods with independent XML gate
         shell: bash
         run: |
           set -euo pipefail
           python3 forge_tests/verify_stage10u_surefire.py \
-            --reports stage10u-evidence/surefire \
-            | tee stage10u-evidence/gate.json
+            --reports stage11h-evidence/surefire \
+            | tee stage11h-evidence/gate.json
+      - name: Prove repaired rejection assertions detect a disabled validator
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m forge_tests.stage11h_rejection_integrity \
+            --forge-root forge-src --baseline stage11h-evidence/surefire \
+            --evidence stage11h-evidence/rejection-mutation
       - name: Save build, per-method XML, source hashes and gate result
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stage11g-three-species-${{ github.run_id }}-${{ github.run_attempt }}
-          path: stage10u-evidence/
-          if-no-files-found: warn
+          name: stage11h-spread-blocks-${{ github.run_id }}-${{ github.run_attempt }}
+          path: stage11h-evidence/
+          if-no-files-found: error
           retention-days: 14
