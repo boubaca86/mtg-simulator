@@ -7352,6 +7352,17 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     pairs.get(1).getAsJsonArray().get(0).getAsInt());
             Assert.assertEquals(pairs.get(0).getAsJsonArray().get(1).getAsInt(),
                     pairs.get(1).getAsJsonArray().get(1).getAsInt());
+            // A normal opponent Forest land drop must not suppress
+            // the emergency response: Forest is public and cannot attack.
+            JsonObject withForest=JsonParser.parseString(
+                    observation(defense,offense)).getAsJsonObject();
+            JsonObject forest=new JsonObject();
+            forest.addProperty("appearance","face_up");
+            forest.addProperty("card","Forest");
+            withForest.getAsJsonArray("opponent_table").add(forest);
+            Assert.assertEquals(defensiveActor.ask(withForest.toString())
+                    .getAsJsonArray("block_pairs").size(),2,
+                    "public Forest does not count as a second 4/4 attacker");
             // An unidentifiable face-down permanent invalidates the
             // single-known-threat emergency assumption; never peek.
             JsonObject unknown=JsonParser.parseString(
@@ -7380,7 +7391,15 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             }
             Assert.assertTrue(steps<2500,"bounded real native Forge combat");
             Assert.assertTrue(allOriginalsInGraves,
-                    "Forge resolves actual deaths of 4/4 and both 2/2 blockers");
+                    "Forge actual original deaths expected; steps="+steps+
+                    " attacks="+oc.attacksAuthorized+
+                    " blocks="+dc.blocksAuthorized+
+                    " cooperation="+dc.coordinatedNativeBlocks+
+                    " damage_splits="+oc.refereeSplitDamageAssignments+
+                    " attacker_grave="+offense.getCardsIn(ZoneType.Graveyard).size()+
+                    " defender_grave="+defense.getCardsIn(ZoneType.Graveyard).size()+
+                    " defender_life="+defense.getLife()+
+                    " game_over="+fixture.isGameOver());
             Assert.assertTrue(dc.blocksAuthorized>=2);
             Assert.assertTrue(oc.refereeSplitDamageAssignments>0);
             Assert.assertEquals(defense.getLife(),4,

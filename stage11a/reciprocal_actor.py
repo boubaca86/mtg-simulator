@@ -162,8 +162,11 @@ for raw in sys.stdin.buffer:
         0 < life <= 4 and len(fighters) == 2 and
         all(public_power(view['own_cards']['table'][i]['card']) == 2
             for i in fighters) and
-        len(view['opponent_table']) == 1 and len(targets) == 1 and
-        view['opponent_table'][targets[0]]['card'] == 'Rumbling Baloth')
+        len(targets) == 1 and
+        view['opponent_table'][targets[0]]['card'] == 'Rumbling Baloth' and
+        all(record.get('appearance') == 'face_up' and
+            record.get('card') in ('Rumbling Baloth', 'Forest')
+            for record in view['opponent_table']))
     if emergency_joint:
         reserve_count = 2
     reserved = fighters[-reserve_count:] if reserve_count else []
