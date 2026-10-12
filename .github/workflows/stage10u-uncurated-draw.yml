@@ -1,7 +1,7 @@
-name: Stage 10U - Uncurated Native Opening Hands
+name: Stage 10V - Two Independent Natural Paid Casts
 
 # Two external persistent actor processes plus one authoritative Forge referee.
-# Stage10U verifies shuffled native opening hands and naturally drawn paid Grizzly Bears.
+# Stage10V extends 82 native Forge tests with two genuine naturally drawn, paid Bears from BOTH external actors.
 # Registered 60-card decks, no hand curation, true London opening and 20 life; not full MTG or OS sandbox.
 on:
   push:
@@ -91,7 +91,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 stage10h/test_protocol.py | tee stage10u-evidence/stage10h-protocol.log
-      - name: Run uncurated native draw to paid creature and 80 inherited methods
+      - name: Run both independently uncurated paid casts and 82 inherited methods
         shell: bash
         run: |
           set -euo pipefail
@@ -111,7 +111,7 @@ jobs:
           echo "Forge Maven exit: $code"
           tail -n 75 "$GITHUB_WORKSPACE/stage10u-evidence/maven.log"
           test "$code" -eq 0
-      - name: Verify exact 82 genuine Forge-native methods with independent XML gate
+      - name: Verify exact 84 genuine Forge-native methods with independent XML gate
         shell: bash
         run: |
           set -euo pipefail
@@ -122,7 +122,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stage10u-uncurated-draw-${{ github.run_id }}-${{ github.run_attempt }}
+          name: stage10v-natural-both-casts-${{ github.run_id }}-${{ github.run_attempt }}
           path: stage10u-evidence/
           if-no-files-found: warn
           retention-days: 14
