@@ -22,7 +22,7 @@ class Stage11HEvidenceTests(unittest.TestCase):
 
     def test_exact_named_execution_passes(self):
         self.write()
-        self.assertEqual(verify(self.folder)["executed_methods"], 108)
+        self.assertEqual(verify(self.folder)["executed_methods"], 114)
 
     def test_missing_or_empty_reports_fail(self):
         for folder in (self.folder, self.folder / "absent"):

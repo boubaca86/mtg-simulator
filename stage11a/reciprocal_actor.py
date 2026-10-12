@@ -28,7 +28,11 @@ def _strict_json_float(token):
 LANDS = frozenset(('Forest', 'Island', 'Plains', 'Swamp', 'Mountain', 'Wastes'))
 # Three DISTINCT vanilla 1G 2/2 card names, at most four copies each.
 VANILLA_BEARS = frozenset(('Grizzly Bears', 'Runeclaw Bear', 'Balduvian Bears'))
-CREATURES = frozenset(('Llanowar Elves',)) | VANILLA_BEARS
+# Stage11I: bounded printed-card knowledge, consulted only for own/revealed
+# names. No card database, opponent deck inference or hidden state is loaded.
+VANILLA_POWER = {name: 2 for name in VANILLA_BEARS}
+VANILLA_POWER['Centaur Courser'] = 3
+CREATURES = frozenset(('Llanowar Elves',)) | frozenset(VANILLA_POWER)
 
 for raw in sys.stdin.buffer:
     if len(raw) > 16384:
@@ -104,11 +108,12 @@ for raw in sys.stdin.buffer:
     lands = [i for i, name in enumerate(hand) if name in LANDS]
     lands.sort(key=lambda i: (hand[i] != 'Forest', hand[i] != 'Island', i))
     creatures = [i for i, name in enumerate(hand) if name in CREATURES]
-    creatures.sort(key=lambda i: (hand[i] not in VANILLA_BEARS, i))
-    bears = [
+    # Prefer the larger body if affordable; Forge can try a cheaper fallback.
+    creatures.sort(key=lambda i: (-VANILLA_POWER.get(hand[i], 1), i))
+    combatants = [
         i for i, record in enumerate(view['own_cards']['table'])
         if record.get('appearance') == 'face_up'
-        and record.get('card') in VANILLA_BEARS
+        and record.get('card') in VANILLA_POWER
     ]
     # Stage11C: do not stop deploying creatures after the first Bear.
     # Additional Grizzly Bears in our OWN visible hand remain candidates
@@ -117,17 +122,21 @@ for raw in sys.stdin.buffer:
     # reinforcement preference, not a command to put any card in play.
     targets = [i for i, record in enumerate(view['opponent_table'])
                if record.get('appearance') == 'face_up'
-               and record.get('card') in VANILLA_BEARS]
-    # Stage11D: when PUBLIC opposing 2/2 Bears could deal lethal damage,
-    # hold back the minimum number of our 2/2 Bears which, IF each legally
-    # blocks one attacker, could prevent it. Attacking would tap a Bear and
+               and record.get('card') in VANILLA_POWER]
+    # Prefer stopping the largest visible printed threat. This remains a
+    # printed-power estimate, not information about modifiers or readiness.
+    targets.sort(key=lambda i: (-VANILLA_POWER[view['opponent_table'][i]['card']], i))
+    threat_damage = [VANILLA_POWER[view['opponent_table'][i]['card']] for i in targets]
+    # Stage11D/I: when visible opposing creatures could deal lethal damage,
+    # hold back enough combatants which, IF each legally blocks one of the
+    # largest threats, could prevent it. Attacking would tap a creature and
     # make it unavailable for ordinary blocks on the opponent's next turn
     # (CR 508.1f, 509.1a). All legality, timing, tap/sickness and actual
     # attacker selection remain Forge-private and referee-authoritative.
     # This is a conservative estimate: visible Bears may not attack, and
     # some of our own Bears might be unable to block. Do not pretend the
     # observation exposes readiness, hidden abilities, or combat state.
-    incoming = 2 * len(targets)
+    incoming = sum(threat_damage)
     life = view['life_totals']['self']
     # Stage11E: prepare ONE untapped reserve a full 2/2 trade earlier.
     # When life is up to four ABOVE a visible single-swing threat, keeping
@@ -135,13 +144,19 @@ for raw in sys.stdin.buffer:
     # This uses only public life and visible Bears, never hidden readiness,
     # draw order or referee phase; Forge remains the sole legal arbiter.
     if 0 < life <= incoming:
-        reserve_count = min(len(bears), (incoming - life) // 2 + 1)
+        reserve_count = 0
+        remaining = incoming
+        for damage in threat_damage[:len(combatants)]:
+            reserve_count += 1
+            remaining -= damage
+            if remaining < life:
+                break
     elif targets and 0 < life <= incoming + 4:
-        reserve_count = min(len(bears), 1)
+        reserve_count = min(len(combatants), 1)
     else:
         reserve_count = 0
-    reserved = bears[-reserve_count:] if reserve_count else []
-    active_attacks = bears[:len(bears) - reserve_count][:8]
+    reserved = combatants[-reserve_count:] if reserve_count else []
+    active_attacks = combatants[:len(combatants) - reserve_count][:8]
     # Stage11F: a healthy defender should still offer legal 2/2 blocks.
     # Attack and defense proposals coexist without assuming the phase.
     # A creature may have attacked already (and be tapped), so ONLY Forge
@@ -149,7 +164,7 @@ for raw in sys.stdin.buffer:
     # Candidate fallbacks let one untapped Bear try each publicly visible
     # enemy Bear; no actor receives the private actual-attacker list.
     # The trusted referee enforces distinct blockers and the eight-pair cap.
-    defensive_candidates = reserved if reserve_count else bears
+    defensive_candidates = reserved if reserve_count else combatants
     block_pairs = []
     # Stage11H: offer distinct first-choice targets before alternatives.
     # A row-major Cartesian product made Forge commit every blocker to the
