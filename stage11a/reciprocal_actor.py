@@ -154,14 +154,22 @@ for raw in sys.stdin.buffer:
         reserve_count = min(len(fighters), 1)
     else:
         reserve_count = 0
-    # Stage11P: at or below four public life, protect two ordinary 2/2s
-    # together against a single known opposing vanilla 4/4. One chump
-    # merely delays danger; both can destroy the stronger attacker.
-    # Only public face-up card names and life enter this preference.
+    # Stage11Q: preserve Stage11P's 2/2+2/2 emergency trade, and
+    # additionally coordinate a 3/3+2/2 (or two 3/3s) against one
+    # public ordinary vanilla 4/4 at life <=4. Their combined
+    # visible power is lethal to 4/4, while each individual blocker
+    # is weaker. A 3/3+2/2 pair will normally lose only ONE blocker:
+    # Forge's attacker chooses the legal damage division, so never
+    # presume WHICH one dies. The two Python actors receive NO
+    # secret status, phase, actual attacker or other referee state.
+    # Known Forest lands do not threaten; any unknown/facedown
+    # permanent conservatively disables this exclusive-threat rule.
     emergency_joint = (
         0 < life <= 4 and len(fighters) == 2 and
-        all(public_power(view['own_cards']['table'][i]['card']) == 2
+        all(2 <= public_power(view['own_cards']['table'][i]['card']) < 4
             for i in fighters) and
+        sum(public_power(view['own_cards']['table'][i]['card'])
+            for i in fighters) >= 4 and
         len(targets) == 1 and
         view['opponent_table'][targets[0]]['card'] == 'Rumbling Baloth' and
         all(record.get('appearance') == 'face_up' and
