@@ -3274,8 +3274,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         }
     }
 
-    /** Two blockers: all two damage goes to the first legal target.
-     * Unexpected third blocker/damage value is denied before mutation. */
+    /** Two or three legal vanilla blockers: two damage to first target.
+     * Unregistered targets and invalid damage remain denied without mutation. */
     @Test(timeOut=120000)
     public void refereeAllocatesTwoBlockersAndRejectsUnsupportedWithoutInheritedAi() throws Exception {
         Game game=nativeSixtyCardRegisteredGame();
@@ -3305,13 +3305,19 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             Assert.assertEquals(allocation.get(blockers.get(0)),Integer.valueOf(2));
             Assert.assertFalse(allocation.containsKey(blockers.get(1)));
             Assert.assertEquals(ac.refereeDamageAssignments,1);
+            Map<Card,Integer> three=ac.assignCombatDamage(source,blockers,null,2,defender,false);
+            Assert.assertEquals(three.size(),1);
+            Assert.assertEquals(three.get(blockers.get(0)),Integer.valueOf(2));
+            Assert.assertEquals(ac.refereeDamageAssignments,2);
+            CardCollection unregistered=new CardCollection();
+            unregistered.add(source); // own creature cannot be enemy combat target
             int rejections=0;
-            try {ac.assignCombatDamage(source,blockers,null,2,defender,false);}
+            try {ac.assignCombatDamage(source,unregistered,null,2,defender,false);}
             catch(SecurityException expected){rejections++;}
             try {ac.assignCombatDamage(source,pair,null,3,defender,false);}
             catch(SecurityException expected){rejections++;}
             Assert.assertEquals(rejections,2);
-            Assert.assertEquals(ac.refereeDamageAssignments,1,
+            Assert.assertEquals(ac.refereeDamageAssignments,2,
                     "invalid requests must not consume trusted assignments");
             Assert.assertEquals(dc.refereeDamageAssignments,0);
             Assert.assertEquals(attacker.getLife(),beforeA);
