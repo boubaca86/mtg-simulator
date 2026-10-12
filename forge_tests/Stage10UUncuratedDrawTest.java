@@ -388,7 +388,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         }
         Actor(int mode,String testScript,String actorMode) throws Exception {
             String script=testScript!=null ? testScript :
-                    System.getenv(mode==3 ? "STAGE10G_MENACE_WORKER" :
+                    System.getenv(mode==4 ? "STAGE10W_VISIBLE_OPPONENT_WORKER" :
+                    mode==3 ? "STAGE10G_MENACE_WORKER" :
                     mode==2 ? "STAGE10G_DEFENSE_WORKER" :
                     mode==1 ? "STAGE10G_LEGACY_PLAN_WORKER" : "STAGE10G_WORKER");
             Assert.assertNotNull(script, "CI must define an actor worker path");
@@ -4726,5 +4727,103 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     public void nativeBothUncuratedPlayersPayAndResolveBearsRightRegisteredFirst()
             throws Exception {
         verifyTwoNativeUncuratedPaidCasts(false);
+    }
+
+    /**
+     * Stage10W integration: distinct uncurated, persistent Python actors;
+     * attacker declares a Bear only after its OPPONENT's face-up Bear is
+     * publicly visible. Defender prefers a legal 1:1 block. The test never
+     * arranges a hand, deals a Bear, edits life, seeds a board, or reads a
+     * hidden library to make either actor's decisions. Native Forge handles
+     * draws, casting costs, priority, combat, and simultaneous lethal damage.
+     */
+    private void verifyUncuratedContestedNativeCombat(boolean attackerRegisteredFirst)
+            throws Exception {
+        Game game=nativeTwoNaturallyPaidBearGame(attackerRegisteredFirst);
+        Player attacker=game.getPlayers().get(attackerRegisteredFirst?0:1);
+        Player defender=game.getPlayers().get(attackerRegisteredFirst?1:0);
+        try(Actor aggressive=new Actor(4);Actor guarding=new Actor(2)) {
+            Assert.assertNotEquals(aggressive.process.pid(),guarding.process.pid(),
+                    "distinct persistent external Python operating-system actors");
+            ExternalCreatureController ca=attach(game,attacker,defender,aggressive);
+            ExternalCreatureController cb=attach(game,defender,attacker,guarding);
+            doRealNativeStartForMultiTurn(game,ca,cb);
+            Assert.assertTrue(ca.openingCallbacks>0 && cb.openingCallbacks>0);
+            Assert.assertEquals(attacker.getLife(),20);
+            Assert.assertEquals(defender.getLife(),20);
+            Assert.assertTrue(game.getStack().isEmpty());
+            Assert.assertEquals(countCardsWithName(game,"Grizzly Bears",ZoneType.Battlefield),0,
+                    "both physically shuffled hands and boards remain uncurated");
+            Assert.assertEquals(fullPhysicalInventory(attacker),frozenMain.owned(attacker));
+            Assert.assertEquals(fullPhysicalInventory(defender),frozenMain.owned(defender));
+            boolean attackerPaid=false,defenderPaid=false;
+            boolean attackerResolved=false,defenderResolved=false;
+            boolean realBlockSeen=false,realBothDead=false;
+            int steps=0;
+            while(!game.isGameOver() && steps++<25000) {
+                game.getPhaseHandler().mainLoopStep();
+                if(!game.getStack().isEmpty()) {
+                    int attackerTapped=0,defenderTapped=0;
+                    for(Card c:attacker.getCardsIn(ZoneType.Battlefield))
+                        if(c.isLand() && c.isTapped()) attackerTapped++;
+                    for(Card c:defender.getCardsIn(ZoneType.Battlefield))
+                        if(c.isLand() && c.isTapped()) defenderTapped++;
+                    if(attackerTapped>=2 && basicLandCountOnBattlefield(attacker)>=2)
+                        attackerPaid=true;
+                    if(defenderTapped>=2 && basicLandCountOnBattlefield(defender)>=2)
+                        defenderPaid=true;
+                }
+                for(Card c:attacker.getCardsIn(ZoneType.Battlefield))
+                    if("Grizzly Bears".equals(c.getName())) attackerResolved=true;
+                for(Card c:defender.getCardsIn(ZoneType.Battlefield))
+                    if("Grizzly Bears".equals(c.getName())) defenderResolved=true;
+                if(cb.blocksAuthorized>0) realBlockSeen=true;
+                if(countDeadBears(attacker)>0 && countDeadBears(defender)>0) {
+                    realBothDead=true;
+                    break;
+                }
+            }
+            Assert.assertTrue(steps<25000,"bounded native two-player shuffled game");
+            Assert.assertTrue(attackerPaid && defenderPaid,
+                    "both actors genuinely spend Forge mana on actual creature spells");
+            Assert.assertTrue(attackerResolved && defenderResolved,
+                    "both Bears must actually resolve from uncurated registered hands");
+            Assert.assertTrue(realBlockSeen && realBothDead,
+                    "a Forge-legal defending block causes both real Bears to die");
+            Assert.assertTrue(ca.attackCallbacks>0 && cb.blockerCallbacks>0);
+            Assert.assertTrue(cb.blocksAuthorized>0);
+            Assert.assertTrue(ca.refereeDamageAssignments+cb.refereeDamageAssignments>0,
+                    "authoritative Forge referee assigns the combat damage");
+            Assert.assertEquals(attacker.getLife(),20,"block prevents attacker life loss");
+            Assert.assertEquals(defender.getLife(),20,"block prevents defender life loss");
+            Assert.assertFalse(game.isGameOver());
+            Assert.assertNull(game.getOutcome());
+            Assert.assertEquals(fullPhysicalInventory(attacker),frozenMain.owned(attacker),
+                    "attacking deck conserved including native graveyard");
+            Assert.assertEquals(fullPhysicalInventory(defender),frozenMain.owned(defender),
+                    "defending deck conserved including native graveyard");
+            Assert.assertTrue(aggressive.process.isAlive() && guarding.process.isAlive());
+            for(JsonObject view:Arrays.asList(
+                    JsonParser.parseString(observation(attacker,defender)).getAsJsonObject(),
+                    JsonParser.parseString(observation(defender,attacker)).getAsJsonObject())) {
+                Assert.assertEquals(view.size(),4);
+                for(String denied:Arrays.asList("opponent_hand","library_order",
+                        "library_top","turn","phase","priority","stack")) {
+                    Assert.assertFalse(view.has(denied));
+                }
+            }
+        }
+    }
+
+    @Test(timeOut=120000)
+    public void nativeUncuratedPaidBearsContestedCombatAttackerRegisteredFirst()
+            throws Exception {
+        verifyUncuratedContestedNativeCombat(true);
+    }
+
+    @Test(timeOut=120000)
+    public void nativeUncuratedPaidBearsContestedCombatDefenderRegisteredFirst()
+            throws Exception {
+        verifyUncuratedContestedNativeCombat(false);
     }
 }
