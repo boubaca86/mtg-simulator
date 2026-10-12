@@ -4826,4 +4826,118 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             throws Exception {
         verifyUncuratedContestedNativeCombat(false);
     }
+
+    /**
+     * Stage10X: native two-round re-deployment after the first mutual death.
+     * Both actors continue from the SAME real match state and their own
+     * private shuffled hands; no reset, card seeding, hand swaps, life
+     * fixture, hidden library inspection, or new actor process is permitted.
+     * Both independent external processes remain persistent throughout.
+     *
+     * The attacker commits only when a face-up enemy Bear is observable;
+     * the defender independently requests one Forge-legal block. A dead Bear
+     * cannot attack or block again, so two death milestones for BOTH owners
+     * require two genuinely different creatures and combat damage steps.
+     */
+    private void verifyTwoSuccessiveNaturalBlocks(boolean attackerRegisteredFirst)
+            throws Exception {
+        Game game=nativeTwoNaturallyPaidBearGame(attackerRegisteredFirst);
+        Player attacker=game.getPlayers().get(attackerRegisteredFirst?0:1);
+        Player defender=game.getPlayers().get(attackerRegisteredFirst?1:0);
+        try(Actor aggressive=new Actor(4);Actor guarding=new Actor(2)) {
+            Assert.assertNotEquals(aggressive.process.pid(),guarding.process.pid());
+            ExternalCreatureController ca=attach(game,attacker,defender,aggressive);
+            ExternalCreatureController cb=attach(game,defender,attacker,guarding);
+            doRealNativeStartForMultiTurn(game,ca,cb);
+            Assert.assertTrue(ca.openingCallbacks>0 && cb.openingCallbacks>0);
+            Assert.assertEquals(attacker.getLife(),20);
+            Assert.assertEquals(defender.getLife(),20);
+            Assert.assertEquals(countDeadBears(attacker),0);
+            Assert.assertEquals(countDeadBears(defender),0);
+            Assert.assertEquals(countCardsWithName(game,"Grizzly Bears",
+                    ZoneType.Battlefield),0);
+            Assert.assertEquals(fullPhysicalInventory(attacker),frozenMain.owned(attacker));
+            Assert.assertEquals(fullPhysicalInventory(defender),frozenMain.owned(defender));
+            int steps=0,firstDeathTurn=-1,secondDeathTurn=-1,deathMilestones=0;
+            int priorDeadAttacker=0,priorDeadDefender=0;
+            boolean attackerPaid=false,defenderPaid=false;
+            while(!game.isGameOver() && steps++<50000 && deathMilestones<2) {
+                game.getPhaseHandler().mainLoopStep();
+                if(!game.getStack().isEmpty()) {
+                    int attackerTapped=0,defenderTapped=0;
+                    for(Card c:attacker.getCardsIn(ZoneType.Battlefield))
+                        if(c.isLand() && c.isTapped()) attackerTapped++;
+                    for(Card c:defender.getCardsIn(ZoneType.Battlefield))
+                        if(c.isLand() && c.isTapped()) defenderTapped++;
+                    if(attackerTapped>=2 && basicLandCountOnBattlefield(attacker)>=2)
+                        attackerPaid=true;
+                    if(defenderTapped>=2 && basicLandCountOnBattlefield(defender)>=2)
+                        defenderPaid=true;
+                }
+                int deadA=countDeadBears(attacker),deadD=countDeadBears(defender);
+                Assert.assertTrue(deadA>=priorDeadAttacker && deadD>=priorDeadDefender,
+                        "native graveyards must not lose either physical dead Bear");
+                Assert.assertEquals(deadA,deadD,
+                        "each 2/2-versus-2/2 Forge combat must kill one per player");
+                Assert.assertTrue(deadA<=2,
+                        "test detects exactly the first two mutual combats");
+                if(deadA>priorDeadAttacker) {
+                    Assert.assertEquals(deadA,priorDeadAttacker+1,
+                            "each death milestone must be a distinct combat");
+                    deathMilestones++;
+                    int actualTurn=game.getPhaseHandler().getTurn();
+                    if(deathMilestones==1) firstDeathTurn=actualTurn;
+                    if(deathMilestones==2) secondDeathTurn=actualTurn;
+                    Assert.assertEquals(attacker.getLife(),20);
+                    Assert.assertEquals(defender.getLife(),20);
+                    Assert.assertEquals(fullPhysicalInventory(attacker),frozenMain.owned(attacker));
+                    Assert.assertEquals(fullPhysicalInventory(defender),frozenMain.owned(defender));
+                }
+                priorDeadAttacker=deadA;
+                priorDeadDefender=deadD;
+            }
+            Assert.assertTrue(steps<50000,"bounded natural multi-turn match");
+            Assert.assertEquals(deathMilestones,2,
+                    "two successive natural-draw, paid-cast legal blocks required");
+            Assert.assertTrue(firstDeathTurn>=0 && secondDeathTurn>firstDeathTurn,
+                    "separate Forge turns required; no duplicate damage tick");
+            Assert.assertTrue(attackerPaid && defenderPaid,
+                    "each actor must pay genuine Forge mana for original Bears");
+            Assert.assertTrue(ca.attackCallbacks>=2 && cb.blockerCallbacks>=2);
+            Assert.assertTrue(cb.blocksAuthorized>=2,
+                    "defender must authorize two legal blocks on separate turns");
+            Assert.assertTrue(ca.refereeDamageAssignments+cb.refereeDamageAssignments>=2,
+                    "both combat-damage steps use the authoritative Forge referee");
+            Assert.assertEquals(countDeadBears(attacker),2);
+            Assert.assertEquals(countDeadBears(defender),2);
+            Assert.assertEquals(attacker.getLife(),20);
+            Assert.assertEquals(defender.getLife(),20);
+            Assert.assertFalse(game.isGameOver());
+            Assert.assertNull(game.getOutcome(),"no fabricated game outcome");
+            Assert.assertEquals(fullPhysicalInventory(attacker),frozenMain.owned(attacker));
+            Assert.assertEquals(fullPhysicalInventory(defender),frozenMain.owned(defender));
+            Assert.assertTrue(aggressive.process.isAlive() && guarding.process.isAlive());
+            for(JsonObject view:Arrays.asList(
+                    JsonParser.parseString(observation(attacker,defender)).getAsJsonObject(),
+                    JsonParser.parseString(observation(defender,attacker)).getAsJsonObject())) {
+                Assert.assertEquals(view.size(),4);
+                for(String denied:Arrays.asList("opponent_hand","library_order",
+                        "library_top","turn","phase","priority","stack")) {
+                    Assert.assertFalse(view.has(denied));
+                }
+            }
+        }
+    }
+
+    @Test(timeOut=120000)
+    public void nativeTwoSuccessiveUncuratedBlocksAttackerRegisteredFirst()
+            throws Exception {
+        verifyTwoSuccessiveNaturalBlocks(true);
+    }
+
+    @Test(timeOut=120000)
+    public void nativeTwoSuccessiveUncuratedBlocksDefenderRegisteredFirst()
+            throws Exception {
+        verifyTwoSuccessiveNaturalBlocks(false);
+    }
 }
