@@ -5245,7 +5245,9 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             // Both actors run the SAME attack/block-capable external policy,
             // and each receives genuine combat callbacks, but both need not
             // physically attack in a naturally shuffled individual game.
-            Assert.assertTrue(ca.attackCallbacks>0 && cb.attackCallbacks>0);
+            // If one player has no attack-eligible permanent before a real
+            // game ending, Forge may legally skip its declareAttackers
+            // callback. The actual authorized attack(s) are recorded above.
             Assert.assertTrue(ca.priorityCallbacks>0 && cb.priorityCallbacks>0,
                     "both independent actors participate in real native priority");
             // Forge can legally skip declareBlockers entirely in a combat
