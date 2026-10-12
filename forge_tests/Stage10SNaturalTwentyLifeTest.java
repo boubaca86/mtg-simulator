@@ -50,7 +50,7 @@ import java.util.concurrent.TimeUnit;
  * Actors request a basic-land play, a named vanilla/mana creature cast, or pass.
  * The referee alone decides legality, mana payment, priority and stack resolution.
  */
-public final class Stage10SNaturalTwentyLifeTest extends AITest {
+public class Stage10SNaturalTwentyLifeTest extends AITest {
     /** Referee-owned immutable starting deck counts: never derived from live zones. */
     private FrozenMain frozenMain;
 
@@ -293,7 +293,7 @@ public final class Stage10SNaturalTwentyLifeTest extends AITest {
         return millis;
     }
 
-    private static String exchangeActorRequestWithOneDeadline(
+    protected static String exchangeActorRequestWithOneDeadline(
             BufferedWriter writer,
             BufferedReader reader,
             java.util.concurrent.ExecutorService ioTasks,
@@ -345,7 +345,7 @@ public final class Stage10SNaturalTwentyLifeTest extends AITest {
         }
     }
 
-    private static JsonObject parseStrictActorReply(String raw) {
+    protected static JsonObject parseStrictActorReply(String raw) {
         if(raw==null || raw.length()>=2048 ||
                 raw.getBytes(StandardCharsets.UTF_8).length>=2048) {
             throw new SecurityException("oversized or missing actor reply");
@@ -363,7 +363,7 @@ public final class Stage10SNaturalTwentyLifeTest extends AITest {
         }
     }
 
-    private static final class Actor implements AutoCloseable {
+    protected static final class Actor implements AutoCloseable {
         final Process process;
         final BufferedReader reader;
         final BufferedWriter writer;
@@ -507,7 +507,7 @@ public final class Stage10SNaturalTwentyLifeTest extends AITest {
     }
 
     /** Allowlist is built on REFEREE side directly from authentic Forge state. */
-    private String observation(Player self, Player other) {
+    protected String observation(Player self, Player other) {
         JsonObject result = new JsonObject();
         result.addProperty("objective","Win the game under referee-enforced Magic rules");
         JsonObject own = new JsonObject();
@@ -801,7 +801,7 @@ public final class Stage10SNaturalTwentyLifeTest extends AITest {
      * callbacks; when Forge asks for priority, this override MUST consult
      * the independent process, NEVER AiController's full-information policy.
      */
-    private final class ExternalCreatureController extends PlayerControllerAi {
+    protected class ExternalCreatureController extends PlayerControllerAi {
         final Actor subprocess;
         final Player controlled;
         final Player opponent;
@@ -2535,7 +2535,7 @@ public final class Stage10SNaturalTwentyLifeTest extends AITest {
         }
     }
 
-    private void doRealNativeStartForMultiTurn(Game game,
+    protected void doRealNativeStartForMultiTurn(Game game,
             ExternalCreatureController first,ExternalCreatureController second) {
         first.enableOwnHandOpening();
         second.enableOwnHandOpening();
@@ -4056,7 +4056,7 @@ public final class Stage10SNaturalTwentyLifeTest extends AITest {
      * mulligans and normal turns; the referee only stages that registered Bear
      * and two registered Forests in OWN opening hand to isolate gameplay.
      */
-    private Game nativeRegisteredTwoCombatGame() {
+    protected Game nativeRegisteredTwoCombatGame() {
         Map<String,Integer> attack=new TreeMap<>();
         attack.put("Forest",39);
         attack.put("Island",20);
