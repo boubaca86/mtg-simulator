@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail closed unless exactly one hundred and fourteen real Forge Stage11B TestNG methods ran and passed."""
+"""Fail closed unless exactly one hundred and sixteen real Forge Stage11B TestNG methods ran and passed."""
 import argparse
 import json
 import sys
@@ -122,6 +122,8 @@ EXPECTED = {
     "nativeFourStrengthVanillaRightRegisteredFirst",
     "nativeGeneralCooperationLeftRegisteredFirst",
     "nativeGeneralCooperationRightRegisteredFirst",
+    "nativeDamageDivisionLeftRegisteredFirst",
+    "nativeDamageDivisionRightRegisteredFirst",
 }
 
 def verify(folder: Path) -> dict:
@@ -146,7 +148,7 @@ def verify(folder: Path) -> dict:
         if problems:
             raise ValueError(f"test failed or skipped: {name}")
     return {"gate":"PASS","executed_methods":len(EXPECTED),
-            "scope":"Pinned Forge native combat with two external actors: actual delayed and prompt external Python actors under shared I/O budget, native registered mana-paid creature, multi-turn cumulative combat and genuine 20-life-to-zero Forge victory, both actors paid casts and legal blockers across native turns, natural uncurated private opening hands and first paid creature spell, plus two independent uncurated players' genuine paid creature spells and naturally cast 2/2 versus 2/2 block/combat deaths and two successive genuine independently paid block combats across distinct turns, and native uncurated shuffled opening through entire real 20-life combat victory in both registration orders, plus complete 20-life game where two independently casting/blocking actors reach authentic Forge library-depletion loss, and two symmetric independently attacking/blocking player actors play to one real Forge winner, plus public-life-aware counterattack/block preferences and reinforcement-after-first-creature and proactive early-risk holdback, healthy reactive block-target fallbacks, three separate legal four-of vanilla 2/2 creature names in natural full 60-card games, plus public-only 3/3 vs 2/2 unequal combat tactics and cooperative two-2/2-versus-3/3 blocking and native vanilla 4/4-vs-3/3-vs-2/2 combat plus general two-weaker-on-one-stronger legal-block policy and referee-native joint block counts, and lethal-risk reserve-attacker policies verified by both independent processes during naturally shuffled Forge games with real player combat damage, lethal/nonlethal game outcome, inherited backpressure, framing, damage, first-strike, menace and privacy regressions",
+            "scope":"Pinned Forge native combat with two external actors: actual delayed and prompt external Python actors under shared I/O budget, native registered mana-paid creature, multi-turn cumulative combat and genuine 20-life-to-zero Forge victory, both actors paid casts and legal blockers across native turns, natural uncurated private opening hands and first paid creature spell, plus two independent uncurated players' genuine paid creature spells and naturally cast 2/2 versus 2/2 block/combat deaths and two successive genuine independently paid block combats across distinct turns, and native uncurated shuffled opening through entire real 20-life combat victory in both registration orders, plus complete 20-life game where two independently casting/blocking actors reach authentic Forge library-depletion loss, and two symmetric independently attacking/blocking player actors play to one real Forge winner, plus public-life-aware counterattack/block preferences and reinforcement-after-first-creature and proactive early-risk holdback, healthy reactive block-target fallbacks, three separate legal four-of vanilla 2/2 creature names in natural full 60-card games, plus public-only 3/3 vs 2/2 unequal combat tactics and cooperative two-2/2-versus-3/3 blocking and native vanilla 4/4-vs-3/3-vs-2/2 combat plus general two-weaker-on-one-stronger legal-block policy and referee-native joint block counts plus native trusted 4/4 multi-blocker 2+2 lethal split assignments, and lethal-risk reserve-attacker policies verified by both independent processes during naturally shuffled Forge games with real player combat damage, lethal/nonlethal game outcome, inherited backpressure, framing, damage, first-strike, menace and privacy regressions",
             "full_magic_game":False}
 
 if __name__ == "__main__":

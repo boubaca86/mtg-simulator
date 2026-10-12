@@ -856,6 +856,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         /** Stage10G: the trusted referee assigns simple combat damage.
          * Never delegate this decision to PlayerControllerAi or the actor IPC. */
         int refereeDamageAssignments=0;
+        int refereeSplitDamageAssignments=0;
         @Override
         public Map<Card,Integer> assignCombatDamage(Card source,
                 CardCollectionView targets,CardCollectionView remaining,
@@ -879,14 +880,29 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     throw new SecurityException("unregistered or unsupported combat target");
                 }
             }
-            // Under CR 510.1c-d (2026-09-25) a supported vanilla
-            // 2/2, 3/3 or 4/4 assigns its full real combat damage
-            // to the first Forge-legal blocking creature in the list.
-            // The passed-in combat list
-            // is referee-authoritative, never chosen by an inherited AI.
+            // Stage11L. CR 510.1c-d (2026-09-25): after blockers are
+            // declared a creature may divide damage among ALL legal
+            // blockers. On the passed-in Forge-owned legal target list,
+            // spend just enough on each creature to kill it, then assign
+            // any leftover damage to the first. E.g. 4/4 vs two 2/2:
+            // assign 2+2, rather than obsolete 4+0.
+            // This decision stays inside the trusted referee process;
+            // no combat/private state is sent to the actor subprocess.
             Map<Card,Integer> split=new LinkedHashMap<>();
-            split.put(targets.get(0),damageDealt);
+            int damageLeft=damageDealt;
+            for(Card target:targets) {
+                if(damageLeft<=0) break;
+                int assigned=Math.min(damageLeft,
+                        Math.max(1,target.getNetToughness()));
+                split.put(target,assigned);
+                damageLeft-=assigned;
+            }
+            if(damageLeft>0) {
+                Card first=targets.get(0);
+                split.put(first,split.get(first)+damageLeft);
+            }
             refereeDamageAssignments++;
+            if(split.size()>1) refereeSplitDamageAssignments++;
             return split;
         }
 
@@ -6611,5 +6627,173 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     @Test(timeOut=180000)
     public void nativeGeneralCooperationRightRegisteredFirst() throws Exception {
         verifyNativeGeneralCooperation(false);
+    }
+
+    /** Stage11L: only for an EXPLICIT deterministic referee fixture.
+     * The original registered physical card is moved from own hand/library.
+     * This function MUST NEVER be used in the uncurated natural cohorts. */
+    private void fixturePlaceRegisteredVanilla(Game game,Player owner,String name) {
+        Card found=null;
+        for(ZoneType zone:Arrays.asList(ZoneType.Library,ZoneType.Hand)) {
+            for(Card c:owner.getCardsIn(zone)) {
+                if(name.equals(c.getName())) {found=c;break;}
+            }
+            if(found!=null) break;
+        }
+        Assert.assertNotNull(found,"registered card must exist: "+name);
+        Assert.assertTrue(supportedVanillaFighter(found.getName()));
+        Assert.assertNotNull(game.getAction().moveToPlay(found,null,
+                forge.game.ability.AbilityKey.newMap()));
+    }
+
+    /**
+     * Stage11L gameplay: 4/4 vs two 2/2s assigns 2+2 and a 3/3 vs two
+     * 2/2s assigns 2+1, following CR 510.1c-d. These first decisions are
+     * EXPLICIT registered-card fixtures testing the authoritative referee,
+     * NOT claims about natural combat deaths. Then two fresh fully random
+     * 60-card games in each registration order test native integration.
+     * Each game uses exactly two separate persistent external Python AIs.
+     */
+    private void verifyRefereeMultiTargetDamageSplit(boolean leftRegisteredFirst)
+            throws Exception {
+        Game fixture=nativeFourStrengthVanillaGame(leftRegisteredFirst);
+        Player attack=fixture.getPlayers().get(leftRegisteredFirst?0:1);
+        Player defense=fixture.getPlayers().get(leftRegisteredFirst?1:0);
+        try(Actor workerA=new Actor(5);Actor workerD=new Actor(5)) {
+            Assert.assertNotEquals(workerA.process.pid(),workerD.process.pid());
+            ExternalCreatureController ca=attach(fixture,attack,defense,workerA);
+            ExternalCreatureController cd=attach(fixture,defense,attack,workerD);
+            doRealNativeStartForMultiTurn(fixture,ca,cd);
+            Assert.assertEquals(attack.getLife(),20);
+            Assert.assertEquals(defense.getLife(),20);
+            fixturePlaceRegisteredVanilla(fixture,attack,"Rumbling Baloth");
+            fixturePlaceRegisteredVanilla(fixture,attack,"Centaur Courser");
+            fixturePlaceRegisteredVanilla(fixture,defense,"Grizzly Bears");
+            fixturePlaceRegisteredVanilla(fixture,defense,"Runeclaw Bear");
+            fixturePlaceRegisteredVanilla(fixture,defense,"Centaur Courser");
+            Card four=attack.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->"Rumbling Baloth".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Card three=attack.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->"Centaur Courser".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Card bearA=defense.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->"Grizzly Bears".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Card bearB=defense.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->"Runeclaw Bear".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Card defenderThree=defense.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->"Centaur Courser".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            CardCollection twoBears=new CardCollection();
+            twoBears.add(bearA);
+            twoBears.add(bearB);
+            Map<Card,Integer> balanced=ca.assignCombatDamage(four,twoBears,
+                    null,4,defense,false);
+            Assert.assertEquals(balanced.size(),2,
+                    "4/4 damage should be divided across two legal 2/2 blockers");
+            Assert.assertEquals(balanced.get(bearA),Integer.valueOf(2));
+            Assert.assertEquals(balanced.get(bearB),Integer.valueOf(2));
+            Assert.assertEquals(balanced.values().stream()
+                    .mapToInt(Integer::intValue).sum(),4);
+            Map<Card,Integer> asymmetric=ca.assignCombatDamage(three,twoBears,
+                    null,3,defense,false);
+            Assert.assertEquals(asymmetric.size(),2);
+            Assert.assertEquals(asymmetric.get(bearA),Integer.valueOf(2));
+            Assert.assertEquals(asymmetric.get(bearB),Integer.valueOf(1));
+            CardCollection mixed=new CardCollection();
+            mixed.add(defenderThree);
+            mixed.add(bearA);
+            Map<Card,Integer> mixedSplit=ca.assignCombatDamage(four,mixed,
+                    null,4,defense,false);
+            Assert.assertEquals(mixedSplit.size(),2);
+            Assert.assertEquals(mixedSplit.get(defenderThree),Integer.valueOf(3));
+            Assert.assertEquals(mixedSplit.get(bearA),Integer.valueOf(1));
+            Assert.assertEquals(ca.refereeDamageAssignments,3);
+            Assert.assertEquals(ca.refereeSplitDamageAssignments,3);
+            CardCollection unregistered=new CardCollection();
+            unregistered.add(four);
+            int rejected=0;
+            try {ca.assignCombatDamage(four,unregistered,null,4,defense,false);}
+            catch(SecurityException expected) {rejected++;}
+            try {ca.assignCombatDamage(four,twoBears,null,3,defense,false);}
+            catch(SecurityException expected) {rejected++;}
+            Assert.assertEquals(rejected,2,"invalid combat allocation remains denied");
+            Assert.assertEquals(ca.refereeDamageAssignments,3);
+            Assert.assertEquals(ca.refereeSplitDamageAssignments,3);
+            Assert.assertEquals(cd.refereeDamageAssignments,0);
+            Assert.assertEquals(fullPhysicalInventory(attack),frozenMain.owned(attack));
+            Assert.assertEquals(fullPhysicalInventory(defense),frozenMain.owned(defense));
+            Assert.assertEquals(attack.getLife(),20);
+            Assert.assertEquals(defense.getLife(),20);
+            Assert.assertFalse(observation(attack,defense).contains("\"phase\""));
+            Assert.assertFalse(observation(defense,attack).contains("\"stack\""));
+            System.out.println("STAGE11L_FIXTURE left_first="+leftRegisteredFirst+
+                    " assigned_both_two_bears="+balanced.size()+
+                    " distributed_damage=4 actual_fixture_combat_resolutions=0");
+        }
+
+        int actualAttacks=0,actualBlocks=0,actualDamageSplits=0;
+        for(int sequence=0;sequence<2;sequence++) {
+            Game game=nativeFourStrengthVanillaGame(leftRegisteredFirst);
+            Player left=game.getPlayers().get(leftRegisteredFirst?0:1);
+            Player right=game.getPlayers().get(leftRegisteredFirst?1:0);
+            try(Actor actorL=new Actor(5);Actor actorR=new Actor(5)) {
+                Assert.assertNotEquals(actorL.process.pid(),actorR.process.pid());
+                ExternalCreatureController ca=attach(game,left,right,actorL);
+                ExternalCreatureController cb=attach(game,right,left,actorR);
+                doRealNativeStartForMultiTurn(game,ca,cb);
+                Assert.assertTrue(ca.openingCallbacks>0 && cb.openingCallbacks>0);
+                Assert.assertEquals(left.getLife(),20);
+                Assert.assertEquals(right.getLife(),20);
+                Assert.assertNull(game.getOutcome());
+                Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+                Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+                for(String name:Arrays.asList("Grizzly Bears","Runeclaw Bear",
+                        "Balduvian Bears","Centaur Courser","Rumbling Baloth"))
+                    Assert.assertEquals(countCardsWithName(game,name,ZoneType.Battlefield),0);
+                int steps=0;
+                while(!game.isGameOver() && steps++<85000)
+                    game.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(steps<85000,"full native shuffled game terminates");
+                Assert.assertTrue(game.isGameOver());
+                Assert.assertNotNull(game.getOutcome(),"only Forge determines winner");
+                Assert.assertFalse(game.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Assert.assertTrue(left.hasLost()!=right.hasLost());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(game.getOutcome().isWinner(winner.getRegisteredPlayer()));
+                Assert.assertTrue(ca.priorityCallbacks>0 && cb.priorityCallbacks>0);
+                Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+                Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+                int attacks=ca.attacksAuthorized+cb.attacksAuthorized;
+                int blocks=ca.blocksAuthorized+cb.blocksAuthorized;
+                int splits=ca.refereeSplitDamageAssignments+
+                        cb.refereeSplitDamageAssignments;
+                actualAttacks+=attacks;
+                actualBlocks+=blocks;
+                actualDamageSplits+=splits;
+                System.out.println("STAGE11L_NATIVE_GAME left_first="+leftRegisteredFirst+
+                        " sequence="+sequence+" native_attacks="+attacks+
+                        " accepted_blocks="+blocks+" native_damage_splits="+splits+
+                        " winner="+winner.getName());
+            }
+        }
+        System.out.println("STAGE11L_NATIVE_COHORT left_first="+leftRegisteredFirst+
+                " actual_attacks="+actualAttacks+" accepted_blocks="+actualBlocks+
+                " native_damage_splits="+actualDamageSplits+" games=2");
+        // Genuine uncurated hands may contain zero native multiple-block combats.
+        // Never use probe/fixture assertions to claim those outcomes occurred.
+    }
+
+    @Test(timeOut=180000)
+    public void nativeDamageDivisionLeftRegisteredFirst() throws Exception {
+        verifyRefereeMultiTargetDamageSplit(true);
+    }
+
+    @Test(timeOut=180000)
+    public void nativeDamageDivisionRightRegisteredFirst() throws Exception {
+        verifyRefereeMultiTargetDamageSplit(false);
     }
 }
