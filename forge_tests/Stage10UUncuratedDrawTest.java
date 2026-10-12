@@ -7340,8 +7340,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             Assert.assertTrue(defense.setLife(5,null),
                     "fixture-only public life 5 control observation");
             JsonObject control=defensiveActor.ask(observation(defense,offense));
-            Assert.assertEquals(control.getAsJsonArray("block_pairs").size(),1,
-                    "at life 5 use old one-reserve policy");
+            Assert.assertEquals(control.getAsJsonArray("block_pairs").size(),0,
+                    "at life 5, the existing healthy-life policy declines an outmatched 2/2 chump");
             Assert.assertTrue(defense.setLife(4,null),
                     "fixture-only public life 4 urgent observation");
             JsonObject urgent=defensiveActor.ask(observation(defense,offense));
