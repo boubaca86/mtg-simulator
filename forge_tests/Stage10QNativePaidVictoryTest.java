@@ -3990,7 +3990,10 @@ public final class Stage10QNativePaidVictoryTest extends AITest {
                 }
                 if(defender.getLife()<testOnlyDefenderLife) {
                     realCombatSeen=true;
-                    break;
+                    // Combat sets life immediately; Forge checks CR 704.5a
+                    // at its next normal priority/state-based-action checkpoint.
+                    // Do not invent a game-over call or short-circuit that step.
+                    if(!shouldBeLethal || game.isGameOver()) break;
                 }
             }
             Assert.assertTrue(steps<850,"bounded native match, not fabricated turns");
