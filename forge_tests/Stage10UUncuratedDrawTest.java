@@ -7040,6 +7040,18 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             Assert.assertEquals(lethal.getAsJsonArray(
                     "attack_table_indices").size(),3,
                     "3x2/2 forces at least four unblocked vanilla damage");
+            // SYNTHETIC public observation only: an unknown face-down
+            // permanent might be a legal extra blocker. Never derive its
+            // card name or falsely guarantee lethal through it.
+            JsonObject unknown=JsonParser.parseString(
+                    observation(offense,defense)).getAsJsonObject();
+            JsonObject faceDown=new JsonObject();
+            faceDown.addProperty("appearance","face_down");
+            unknown.getAsJsonArray("opponent_table").add(faceDown);
+            JsonObject unknownPlan=offensiveWorker.ask(unknown.toString());
+            Assert.assertEquals(unknownPlan.getAsJsonArray(
+                    "attack_table_indices").size(),0,
+                    "unknown additional blocker must cancel numerical guarantee");
             Assert.assertEquals(defensiveWorker.ask(observation(defense,offense))
                     .get("intent").getAsString(),"action_plan");
             Assert.assertFalse(observation(offense,defense).contains(

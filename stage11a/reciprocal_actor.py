@@ -181,7 +181,10 @@ for raw in sys.stdin.buffer:
     unblocked_strengths = sorted(
         (public_power(view['own_cards']['table'][i]['card'])
          for i in candidate_attackers), reverse=True)
-    possible_blockers = len(targets)
+    # Face-down and unrecognized visible permanents are not assumed
+    # incapable of blocking. Count ALL public opposing table entries as
+    # potential blockers; their secret identities are never requested.
+    possible_blockers = len(view['opponent_table'])
     guaranteed_unblocked = sum(unblocked_strengths[possible_blockers:])
     if (0 < opposing_life <= guaranteed_unblocked
             and len(candidate_attackers) <= 8):
