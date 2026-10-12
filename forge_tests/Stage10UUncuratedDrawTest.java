@@ -7483,8 +7483,9 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             Assert.assertTrue(defense.setLife(5,null),
                     "fixture-only healthy control life 5");
             JsonObject healthy=defenderActor.ask(observation(defense,offense));
-            Assert.assertEquals(healthy.getAsJsonArray("block_pairs").size(),2,
-                    "healthy Stage11K 3/3+2/2 cooperation remains available");
+            Assert.assertEquals(healthy.getAsJsonArray("block_pairs").size(),0,
+                    "at 5 life the prior early-reserve policy holds one blocker"+
+                    " and makes NO insufficient solo block proposal");
             Assert.assertTrue(defense.setLife(4,null),
                     "fixture-only public urgent life 4");
             JsonObject urgent=defenderActor.ask(observation(defense,offense));
