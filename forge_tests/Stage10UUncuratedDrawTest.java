@@ -750,6 +750,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         // Stage12B: mandatory non-targeting ETB draw, resolved by native Forge.
         if(!"Llanowar Elves".equals(creature.getName()) &&
            !"Elvish Visionary".equals(creature.getName()) &&
+           !"Scryb Sprites".equals(creature.getName()) &&
            !supportedVanillaFighter(creature.getName())) return null;
         for(SpellAbility sa:creature.getSpellAbilities()) {
             if(!sa.isSpell() || sa.usesTargeting() || sa.getSubAbility()!=null) continue;
@@ -774,7 +775,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 if(n<0 || n>=self.getCardsIn(ZoneType.Battlefield).size()) continue;
                 Card card=self.getCardsIn(ZoneType.Battlefield).get(n);
                 if(card.getController()==self && !card.isFaceDown() &&
-                        supportedVanillaFighter(card.getName()) &&
+                        (supportedVanillaFighter(card.getName()) ||
+                         "Scryb Sprites".equals(card.getName())) &&
                         CombatUtil.canAttack(card,defender) &&
                         CombatUtil.getAttackCost(self.getGame(),card,defender)==null) {
                     authorized.add(n);
@@ -799,7 +801,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             if(n<0 || n>=table.size()) return;
             Card c=table.get(n);
             if(c.getController()!=self || c.isFaceDown() ||
-               !supportedVanillaFighter(c.getName()) ||
+               !(supportedVanillaFighter(c.getName()) ||
+                 "Scryb Sprites".equals(c.getName())) ||
                !CombatUtil.canAttack(c,defender) ||
                CombatUtil.getAttackCost(game,c,defender)!=null) return;
             approved.add(c);
@@ -9489,6 +9492,193 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     @Test(timeOut=240000)
     public void nativeVisionaryEtbPrivateDrawRightRegisteredFirst() throws Exception {
         verifyVisionaryEtbAndNaturalGames(false);
+    }
+
+
+    /** Stage12C: one printed flying 1/1 versus one printed grounded 4/4.
+     * This controlled fixture moves only original registered physical cards;
+     * the actor actually casts Sprites by paying a real Forest, and native
+     * Forge validates combat, evasion, and unblocked player damage.
+     * Two separate natural 60-card games per seat are never curated. */
+    private Game nativeFlyingEvasionGame(boolean leftRegisteredFirst) {
+        Map<String,Integer> counts=new TreeMap<>();
+        counts.put("Forest",40);
+        counts.put("Scryb Sprites",4);
+        counts.put("Rumbling Baloth",4);
+        counts.put("Grizzly Bears",4);
+        counts.put("Llanowar Elves",4);
+        counts.put("Elvish Visionary",4);
+        Assert.assertEquals(counts.values().stream().mapToInt(Integer::intValue).sum(),60);
+        RegisteredPlayer left=new RegisteredPlayer(mainDeck("12C left",counts))
+                .setPlayer(new LobbyPlayerAi("flying-left",null));
+        RegisteredPlayer right=new RegisteredPlayer(mainDeck("12C right",counts))
+                .setPlayer(new LobbyPlayerAi("flying-right",null));
+        List<RegisteredPlayer> registered=new ArrayList<>();
+        registered.add(leftRegisteredFirst?left:right);
+        registered.add(leftRegisteredFirst?right:left);
+        GameRules rules=new GameRules(GameType.Constructed);
+        Match match=new Match(rules,registered,"Stage12C");
+        Game game=new Game(registered,rules,match);
+        frozenMain=new FrozenMain(game);
+        Assert.assertNull(game.getPhaseHandler().getPhase());
+        for(Player p:game.getPlayers()) Assert.assertEquals(frozenMain.owned(p),counts);
+        return game;
+    }
+
+    private void verifyNativeFlyingEvasionAndNaturalGames(boolean leftRegisteredFirst)
+            throws Exception {
+        Game fixture=nativeFlyingEvasionGame(leftRegisteredFirst);
+        Player p0=fixture.getPlayers().get(0),p1=fixture.getPlayers().get(1);
+        try(Actor worker0=new Actor(5);Actor worker1=new Actor(5)) {
+            Assert.assertNotEquals(worker0.process.pid(),worker1.process.pid());
+            ExternalCreatureController c0=attach(fixture,p0,p1,worker0);
+            ExternalCreatureController c1=attach(fixture,p1,p0,worker1);
+            doRealNativeStartForMultiTurn(fixture,c0,c1);
+            Player attacker=fixture.getStartingPlayer();
+            Player defender=attacker==p0?p1:p0;
+            Actor actor=attacker==p0?worker0:worker1;
+            ExternalCreatureController ac=attacker==p0?c0:c1;
+            ExternalCreatureController dc=attacker==p0?c1:c0;
+            // CONTROLLED PHYSICAL FIXTURE ONLY: return opening hands to
+            // original owners' libraries; natural games below do none of this.
+            for(Player player:Arrays.asList(attacker,defender)) {
+                for(Card c:new ArrayList<Card>(player.getCardsIn(ZoneType.Hand)))
+                    Assert.assertNotNull(fixture.getAction().moveToBottomOfLibrary(c,null));
+            }
+            // Keep the defender's original registered flying cards at the
+            // bottom in this fixture only, preventing an unrelated flying
+            // draw from making the grounded-evasion scenario ambiguous.
+            for(Card c:new ArrayList<Card>(defender.getCardsIn(ZoneType.Library))) {
+                if("Scryb Sprites".equals(c.getName()))
+                    Assert.assertNotNull(fixture.getAction().moveToBottomOfLibrary(c,null));
+            }
+            Card baloth=defender.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Rumbling Baloth".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToPlay(baloth,null,
+                    forge.game.ability.AbilityKey.newMap()));
+            baloth.setTapped(false);
+            Card forest=attacker.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Forest".equals(c.getName())).findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToPlay(forest,null,
+                    forge.game.ability.AbilityKey.newMap()));
+            forest.setTapped(false);
+            Card sprite=attacker.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Scryb Sprites".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToHand(sprite,null));
+            Assert.assertEquals(attacker.getCardsIn(ZoneType.Hand).size(),1);
+            Assert.assertTrue(sprite.hasKeyword("Flying"));
+            Assert.assertFalse(baloth.hasKeyword("Flying"));
+            Assert.assertFalse(baloth.hasKeyword("Reach"));
+            Assert.assertFalse(CombatUtil.canBlock(sprite,baloth),
+                    "printed grounded Baloth cannot block printed flying Sprites");
+            Assert.assertEquals(fullPhysicalInventory(attacker),frozenMain.owned(attacker));
+            Assert.assertEquals(fullPhysicalInventory(defender),frozenMain.owned(defender));
+            String view=observation(attacker,defender);
+            JsonObject before=actor.ask(view);
+            Assert.assertEquals(before.get("intent").getAsString(),"action_plan");
+            Assert.assertEquals(before.getAsJsonArray("creature_hand_indices").get(0)
+                    .getAsInt(),0);
+            Assert.assertFalse(view.contains("\"phase\""));
+            Assert.assertFalse(view.contains("\"priority\""));
+            Assert.assertFalse(view.contains("\"opponent_hand\""));
+            Assert.assertFalse(view.contains("\"library_top\""));
+            defender.shuffle(null);
+            Assert.assertEquals(observation(attacker,defender),view,
+                    "opponent's hidden shuffled order never changes the actor view");
+            Assert.assertEquals(actor.ask(view),before);
+            boolean nativePaid=false,publicFlyingPreference=false;
+            boolean nativeAttack=false,realUnblockedDamage=false;
+            int steps=0;
+            while(!fixture.isGameOver() && steps++<3000) {
+                // Explicit fixture-only readiness: even if Baloth attacked
+                // on the preceding turn, it is an UNTAPPED possible blocker
+                // for the real Flying combat. Never done in natural games.
+                if(attacker.getCardsIn(ZoneType.Battlefield).contains(sprite) &&
+                        fixture.getPhaseHandler().getPlayerTurn()==attacker &&
+                        baloth.isTapped()) baloth.setTapped(false);
+                fixture.getPhaseHandler().mainLoopStep();
+                if(attacker.getCardsIn(ZoneType.Battlefield).contains(sprite)) {
+                    if(forest.isTapped()) nativePaid=true;
+                    if(!baloth.isTapped() && !publicFlyingPreference) {
+                        JsonObject preference=actor.ask(observation(attacker,defender));
+                        JsonArray attacks=preference.getAsJsonArray("attack_table_indices");
+                        int spriteIndex=attacker.getCardsIn(ZoneType.Battlefield).indexOf(sprite);
+                        for(JsonElement entry:attacks) {
+                            if(entry.getAsInt()==spriteIndex) publicFlyingPreference=true;
+                        }
+                    }
+                }
+                nativeAttack |= ac.attacksAuthorized>0;
+                if(nativeAttack && defender.getLife()==19) {
+                    realUnblockedDamage=true;break;
+                }
+            }
+            Assert.assertTrue(steps<3000,"native cast and real combat must finish");
+            Assert.assertTrue(nativePaid,"original Forest must pay printed {G} cast");
+            Assert.assertTrue(publicFlyingPreference,
+                    "external actor must prefer Flying 1/1 past grounded 4/4");
+            Assert.assertTrue(nativeAttack,"native Forge must declare the flyer attacker");
+            Assert.assertTrue(realUnblockedDamage,"real Forge combat deals one player damage");
+            Assert.assertEquals(defender.getLife(),19);
+            Assert.assertTrue(defender.getCardsIn(ZoneType.Battlefield).contains(baloth));
+            Assert.assertTrue(attacker.getCardsIn(ZoneType.Battlefield).contains(sprite));
+            Assert.assertFalse(baloth.isTapped(),
+                    "grounded Baloth was a ready but illegal Flying blocker");
+            Assert.assertEquals(dc.blocksAuthorized,0);
+            Assert.assertEquals(fullPhysicalInventory(attacker),frozenMain.owned(attacker));
+            Assert.assertEquals(fullPhysicalInventory(defender),frozenMain.owned(defender));
+            Assert.assertTrue(worker0.process.isAlive() && worker1.process.isAlive());
+            System.out.println("STAGE12C_CONTROLLED_PRINTED_FLYING left_first="+
+                    leftRegisteredFirst+" paid_cast=true native_unblocked_damage=1");
+        }
+        // Two independent untouched original 60-card naturally shuffled
+        // complete games per seat; no seed choice, mulligan or hand changes.
+        for(int sequence=0;sequence<2;sequence++) {
+            Game natural=nativeFlyingEvasionGame(leftRegisteredFirst);
+            Player left=natural.getPlayers().get(leftRegisteredFirst?0:1);
+            Player right=natural.getPlayers().get(leftRegisteredFirst?1:0);
+            try(Actor workerL=new Actor(5);Actor workerR=new Actor(5)) {
+                Assert.assertNotEquals(workerL.process.pid(),workerR.process.pid());
+                ExternalCreatureController lc=attach(natural,left,right,workerL);
+                ExternalCreatureController rc=attach(natural,right,left,workerR);
+                doRealNativeStartForMultiTurn(natural,lc,rc);
+                Assert.assertEquals(left.getLife(),20);
+                Assert.assertEquals(right.getLife(),20);
+                Assert.assertTrue(lc.openingCallbacks>0 && rc.openingCallbacks>0);
+                for(Player p:Arrays.asList(left,right)) {
+                    Assert.assertTrue(p.getCardsIn(ZoneType.Battlefield).isEmpty());
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                }
+                int steps=0;
+                while(!natural.isGameOver() && steps++<85000)
+                    natural.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(steps<85000,"natural full game must finish");
+                Assert.assertTrue(natural.isGameOver());
+                Assert.assertNotNull(natural.getOutcome());
+                Assert.assertFalse(natural.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(natural.getOutcome().isWinner(winner.getRegisteredPlayer()));
+                for(Player p:Arrays.asList(left,right))
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                Assert.assertTrue(workerL.process.isAlive() && workerR.process.isAlive());
+                System.out.println("STAGE12C_NATURAL_FLYING left_first="+
+                        leftRegisteredFirst+" sequence="+sequence+
+                        " winner="+winner.getName());
+            }
+        }
+    }
+
+    @Test(timeOut=240000)
+    public void nativePrintedFlyingEvasionLeftRegisteredFirst() throws Exception {
+        verifyNativeFlyingEvasionAndNaturalGames(true);
+    }
+
+    @Test(timeOut=240000)
+    public void nativePrintedFlyingEvasionRightRegisteredFirst() throws Exception {
+        verifyNativeFlyingEvasionAndNaturalGames(false);
     }
 
 }

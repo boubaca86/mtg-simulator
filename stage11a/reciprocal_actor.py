@@ -34,7 +34,8 @@ VANILLA_THREES = frozenset(('Centaur Courser',))
 VANILLA_FOURS = frozenset(('Rumbling Baloth',))
 VANILLA_FIGHTERS = VANILLA_BEARS | VANILLA_THREES | VANILLA_FOURS
 DRAW_CREATURES = frozenset(('Elvish Visionary',))
-CREATURES = frozenset(('Llanowar Elves',)) | VANILLA_FIGHTERS | DRAW_CREATURES
+FLYING_CREATURES = frozenset(('Scryb Sprites',))
+CREATURES = frozenset(('Llanowar Elves',)) | VANILLA_FIGHTERS | DRAW_CREATURES | FLYING_CREATURES
 
 def public_power(name):
     if name in VANILLA_FOURS:
@@ -154,6 +155,12 @@ for raw in sys.stdin.buffer:
         if record.get('appearance') == 'face_up'
         and record.get('card') in VANILLA_FIGHTERS
     ]
+    # Stage12C: a real printed 1/1 Flying creature can evade even a
+    # grounded visible 4/4. No readiness/phase/tap status is inferred.
+    # Forge decides actual legal attacks and CR 702.9b blocking restrictions.
+    flyers = [i for i, record in enumerate(view['own_cards']['table'])
+              if record.get('appearance') == 'face_up'
+              and record.get('card') in FLYING_CREATURES]
     # Stage11C: do not stop deploying creatures after the first Bear.
     # Additional Grizzly Bears in our OWN visible hand remain candidates
     # even if we already control Bears. Forge alone checks priority, costs,
@@ -230,6 +237,16 @@ for raw in sys.stdin.buffer:
         if public_power(view['own_cards']['table'][i]['card'])
            >= public_largest_defender
     ][:8]
+    # Stage12C: the grounded 4/4 is NOT a legal blocker for Scryb Sprites.
+    # Only grant this preference if every visible opponent permanent is
+    # an identified printed grounded creature or ordinary basic land.
+    # Unknown/facedown and any known flying creature disable the inference.
+    known_grounded = (VANILLA_FIGHTERS | DRAW_CREATURES |
+                      frozenset(('Llanowar Elves',)) | LANDS)
+    if all(record.get('appearance') == 'face_up'
+           and record.get('card') in known_grounded
+           for record in view['opponent_table']):
+        active_attacks.extend(flyers[:max(0, 8 - len(active_attacks))])
     # Stage11N: CR 508.1 / 509.1a. A vanilla defender can normally
     # block ONE attacker. Even if every own creature is smaller than
     # the largest visible blocker, a numerical attack can be lethal:
