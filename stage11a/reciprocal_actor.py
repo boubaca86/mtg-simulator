@@ -364,6 +364,23 @@ for raw in sys.stdin.buffer:
     if two_lane_bear_elf:
         block_pairs.extend([[fighters[0], ordered_targets[0]],
                             [elves[0], ordered_targets[1]]])
+    # Stage11Y: when two distinct known vanilla 2/2 creatures could
+    # deliver lethal at own life 1 or 2, spend TWO real registered
+    # Llanowar Elves as separate emergency chump blockers. Preferences
+    # only: Forge alone checks which creatures actually attacked, tap
+    # state, legal blocks, combat damage, deaths and player survival.
+    # Unknown and face-down public permanents disable this narrow plan.
+    two_lane_double_elf = (
+        0 < life <= 2 and not fighters and len(elves) == 2
+        and len(targets) == 2
+        and all(view['opponent_table'][i]['card'] in VANILLA_BEARS
+                for i in targets)
+        and all(record.get('appearance') == 'face_up'
+                and record.get('card') in (VANILLA_BEARS | LANDS | {'Llanowar Elves'})
+                for record in view['opponent_table']))
+    if two_lane_double_elf:
+        block_pairs.extend([[elves[0], ordered_targets[0]],
+                            [elves[1], ordered_targets[1]]])
     if two_lane_emergency:
         strong = next(i for i in defensive_candidates
                       if public_power(view['own_cards']['table'][i]['card']) == 4)
