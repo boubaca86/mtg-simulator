@@ -381,6 +381,21 @@ for raw in sys.stdin.buffer:
     if two_lane_double_elf:
         block_pairs.extend([[elves[0], ordered_targets[0]],
                             [elves[1], ordered_targets[1]]])
+    # Stage11Z: TWO 1/1 Elves can kill ONE known attacking vanilla 2/2
+    # by simultaneously dealing 1+1 combat damage. A single Elf would
+    # only chump. This is a public-only emergency BLOCK PREFERENCE.
+    # Forge alone validates legal untapped blockers, damage and deaths.
+    # Do not infer any unknown or face-down opposing permanent's identity.
+    emergency_double_elf_trade = (
+        0 < life <= 2 and not fighters and len(elves) == 2
+        and len(targets) == 1
+        and view['opponent_table'][targets[0]]['card'] in VANILLA_BEARS
+        and all(record.get('appearance') == 'face_up'
+                and record.get('card') in (VANILLA_BEARS | LANDS | {'Llanowar Elves'})
+                for record in view['opponent_table']))
+    if emergency_double_elf_trade:
+        block_pairs.extend([[elves[0], targets[0]],
+                            [elves[1], targets[0]]])
     if two_lane_emergency:
         strong = next(i for i in defensive_candidates
                       if public_power(view['own_cards']['table'][i]['card']) == 4)
