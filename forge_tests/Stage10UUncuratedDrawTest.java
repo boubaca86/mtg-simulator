@@ -814,6 +814,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         final Player controlled;
         final Player opponent;
         int priorityCallbacks = 0;
+        // Explicit arranged combat fixtures only. Natural games keep false.
+        boolean fixturePassPriority = false;
         ExternalCreatureController(Game game,Player self,Player other,Actor worker) {
             super(game,self,self.getController().getLobbyPlayer());
             subprocess=worker;
@@ -826,6 +828,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 String view=observation(controlled,opponent);
                 JsonObject response=subprocess.ask(view);
                 priorityCallbacks++;
+                if(fixturePassPriority) return null;
                 SpellAbility requested;
                 if ("action_plan".equals(response.get("intent").getAsString())) {
                     requested=refereeAuthorizePlan(controlled,response);
@@ -8415,16 +8418,16 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     .getAsJsonObject().has("phase"));
             Assert.assertFalse(JsonParser.parseString(observation(offense,defense))
                     .getAsJsonObject().has("stack"));
-            // Explicit fixture ONLY: test this exact public combat board.
-            // Random opening-hand main-phase casts (for example a second
-            // Elf) otherwise change the policy's single-threat premise
-            // before blockers are declared. Natural games below keep
-            // their complete unmodified phase progression.
+            // Explicit fixture ONLY: keep this declared combat board.
+            // Both workers still receive the same projection and choose
+            // their native attacks/blocks. Priority passes prevent random
+            // opening-hand casts changing the single-threat premise.
+            // Forge must initialize and advance every combat phase itself.
             String combatView=observation(defense,offense);
-            fixture.getPhaseHandler().devModeSet(PhaseType.COMBAT_BEGIN,offense);
-            fixture.getPhaseHandler().onStackResolved();
+            oc.fixturePassPriority=true;
+            dc.fixturePassPriority=true;
             Assert.assertEquals(observation(defense,offense),combatView,
-                    "referee-only fixture timing never enters the actor view");
+                    "fixture priority control never enters the actor view");
             boolean actualChump=false;
             int steps=0;
             while(!fixture.isGameOver() && steps++<2500) {

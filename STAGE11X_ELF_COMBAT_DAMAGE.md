@@ -14,9 +14,12 @@ The other 136 methods passed.
 The subsequent whitelist repair in run [38338273277](https://github.com/boubaca86/mtg-simulator/actions/runs/38338273277)
 left one fixture failing with zero accepted blocks. Its arranged board was
 allowed to change through random opening-hand main-phase plays before the
-asserted combat. The fixture now enters the native combat sequence directly
-after arrangement and verifies that this referee-only phase setup does not
-change the actor observation. The separate natural games retain every phase.
+asserted combat. The fixture now makes both controllers pass priority during the arranged
+combat while continuing to ask the independent actors for native attacks and
+blocks. Forge initializes and advances every phase itself. This fixture-only
+control is absent from observations; natural games retain normal action
+selection. An initial PR run exposed that jumping directly to combat skipped
+Forge initialization; that approach was removed rather than bypassing Forge.
 
 The latest Stage 11W repair now accepts Llanowar Elves as a damage source and
 recipient alongside the existing five named vanilla creatures. Stage 11X builds
