@@ -8358,6 +8358,10 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     .filter(c->"Grizzly Bears".equals(c.getName()))
                     .findFirst().orElseThrow();
             bear.setSickness(false); // controlled fixture ONLY
+            // Fixture-only physical readiness; CR 509.1a forbids tapped blockers.
+            // No such intervention occurs in either natural 60-card cohort.
+            elf.setTapped(false);
+            Assert.assertFalse(elf.isTapped(),"registered fixture Elf must be untapped");
             final long bearId=bear.getId(),elfId=elf.getId();
             Assert.assertTrue(defense.getCardsIn(ZoneType.Battlefield).stream()
                     .anyMatch(c->c.getId()==elfId));
@@ -8399,6 +8403,15 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             Assert.assertEquals(defenderWorker.ask(unknown.toString())
                     .getAsJsonArray("block_pairs").size(),0,
                     "unknown faceup opposing body never guessed harmless");
+            JsonObject extraElf=JsonParser.parseString(
+                    observation(defense,offense)).getAsJsonObject();
+            JsonObject publicElf=new JsonObject();
+            publicElf.addProperty("appearance","face_up");
+            publicElf.addProperty("card","Llanowar Elves");
+            extraElf.getAsJsonArray("opponent_table").add(publicElf);
+            Assert.assertEquals(defenderWorker.ask(extraElf.toString())
+                    .getAsJsonArray("block_pairs").size(),1,
+                    "visible opposing nonattacking mana Elf must not suppress lethal Bear block");
             Assert.assertEquals(defense.getLife(),2,
                     "public probes never change trusted Forge life");
             Assert.assertFalse(JsonParser.parseString(observation(defense,offense))
@@ -8423,6 +8436,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     "Forge must approve block, kill original 1/1 and preserve 2 life;"+
                     " attacks="+oc.attacksAuthorized+
                     " blocks="+dc.blocksAuthorized+
+                    " blocker_callbacks="+dc.blockerCallbacks+
+                    " elf_tapped="+elf.isTapped()+
                     " defender_life="+defense.getLife());
             Assert.assertFalse(fixture.isGameOver(),"survived actual chump block");
             Assert.assertEquals(fullPhysicalInventory(offense),
