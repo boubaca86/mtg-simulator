@@ -33,7 +33,8 @@ VANILLA_THREES = frozenset(('Centaur Courser',))
 # Stage11J: official vanilla {2}{G}{G} 4/4 extends visible size decisions.
 VANILLA_FOURS = frozenset(('Rumbling Baloth',))
 VANILLA_FIGHTERS = VANILLA_BEARS | VANILLA_THREES | VANILLA_FOURS
-CREATURES = frozenset(('Llanowar Elves',)) | VANILLA_FIGHTERS
+DRAW_CREATURES = frozenset(('Elvish Visionary',))
+CREATURES = frozenset(('Llanowar Elves',)) | VANILLA_FIGHTERS | DRAW_CREATURES
 
 def public_power(name):
     if name in VANILLA_FOURS:
@@ -103,6 +104,33 @@ def own_hand_order(hand):
     return sorted(range(len(hand)), key=score)
 
 
+def opening_bottom_order(hand):
+    # Protect one cheap, payable supported creature and its actual basic
+    # mana sources. Every prefix outside that group can be bottomed while
+    # retaining the complete group; the referee alone chooses prefix size.
+    costs = {'Llanowar Elves': (1, 1), 'Centaur Courser': (3, 1),
+             'Rumbling Baloth': (4, 2)}
+    costs.update({name: (2, 1) for name in VANILLA_BEARS | DRAW_CREATURES})
+    lands = sorted((i for i, name in enumerate(hand) if name in LANDS),
+                   key=lambda i: (hand[i] != 'Forest', i))
+    forests = sum(hand[i] == 'Forest' for i in lands)
+    payable = [i for i, name in enumerate(hand) if name in costs
+               and costs[name][0] <= len(lands) and costs[name][1] <= forests]
+    if not payable:
+        return own_hand_order(hand)
+    creature = min(payable, key=lambda i: (costs[hand[i]][0], i))
+    retained = set(lands[:costs[hand[creature]][0]]) | {creature}
+    def score(i):
+        if i in retained:
+            return (3, 0, i)
+        if hand[i] not in LANDS and hand[i] not in costs:
+            return (0, 0, i)
+        if hand[i] in LANDS:
+            return (1, 0, i)
+        return (2, -costs[hand[i]][0], i)
+    return sorted(range(len(hand)), key=score)
+
+
 while True:
     raw = sys.stdin.buffer.readline(16385)
     if not raw:
@@ -130,16 +158,7 @@ while True:
         # permutation and uses its own rules to choose how many to bottom.
         lands = sum(1 for name in hand if name in LANDS)
         keep = len(hand) <= 1 or 2 <= lands <= 5
-        # First choose redundant duplicate cards, then excess creatures,
-        # then lands; stable ordering breaks ties without any hidden inputs.
-        def bottom_score(index):
-            name = hand[index]
-            if name in LANDS:
-                return (2, index)
-            if name in CREATURES:
-                return (1, index)
-            return (0, index)
-        bottom_priority = sorted(range(len(hand)), key=bottom_score)
+        bottom_priority = opening_bottom_order(hand)
         print(json.dumps({
             'intent': 'opening_hand',
             'keep': keep,
@@ -155,8 +174,14 @@ while True:
     creatures = [i for i, name in enumerate(hand) if name in CREATURES]
     # Prefer greater known creature strength when actual mana permits it.
     # Forge remains solely responsible for paying {2}{G}{G} correctly.
-    creatures.sort(key=lambda i: (-public_power(hand[i])
-                                   if hand[i] in VANILLA_FIGHTERS else 0, i))
+    # Stage12B: a genuine {1}{G} Elvish Visionary replaces itself on
+    # entering via a mandatory Forge-resolved draw. At <=3 own hand cards,
+    # prefer it over another 2-mana creature to replenish resources.
+    # This is only a candidate order; Forge alone checks legal casting,
+    # pays mana, puts the triggered ability on the stack and draws.
+    creatures.sort(key=lambda i: (
+        0 if len(hand) <= 3 and hand[i] in DRAW_CREATURES else 1,
+        -public_power(hand[i]) if hand[i] in VANILLA_FIGHTERS else 0, i))
     fighters = [
         i for i, record in enumerate(view['own_cards']['table'])
         if record.get('appearance') == 'face_up'
@@ -403,6 +428,38 @@ while True:
     if two_lane_bear_elf:
         block_pairs.extend([[fighters[0], ordered_targets[0]],
                             [elves[0], ordered_targets[1]]])
+    # Stage11Y: when two distinct known vanilla 2/2 creatures could
+    # deliver lethal at own life 1 or 2, spend TWO real registered
+    # Llanowar Elves as separate emergency chump blockers. Preferences
+    # only: Forge alone checks which creatures actually attacked, tap
+    # state, legal blocks, combat damage, deaths and player survival.
+    # Unknown and face-down public permanents disable this narrow plan.
+    two_lane_double_elf = (
+        0 < life <= 2 and not fighters and len(elves) == 2
+        and len(targets) == 2
+        and all(view['opponent_table'][i]['card'] in VANILLA_BEARS
+                for i in targets)
+        and all(record.get('appearance') == 'face_up'
+                and record.get('card') in (VANILLA_BEARS | LANDS | {'Llanowar Elves'})
+                for record in view['opponent_table']))
+    if two_lane_double_elf:
+        block_pairs.extend([[elves[0], ordered_targets[0]],
+                            [elves[1], ordered_targets[1]]])
+    # Stage11Z: TWO 1/1 Elves can kill ONE known attacking vanilla 2/2
+    # by simultaneously dealing 1+1 combat damage. A single Elf would
+    # only chump. This is a public-only emergency BLOCK PREFERENCE.
+    # Forge alone validates legal untapped blockers, damage and deaths.
+    # Do not infer any unknown or face-down opposing permanent's identity.
+    emergency_double_elf_trade = (
+        0 < life <= 2 and not fighters and len(elves) == 2
+        and len(targets) == 1
+        and view['opponent_table'][targets[0]]['card'] in VANILLA_BEARS
+        and all(record.get('appearance') == 'face_up'
+                and record.get('card') in (VANILLA_BEARS | LANDS | {'Llanowar Elves'})
+                for record in view['opponent_table']))
+    if emergency_double_elf_trade:
+        block_pairs.extend([[elves[0], targets[0]],
+                            [elves[1], targets[0]]])
     if two_lane_emergency:
         strong = next(i for i in defensive_candidates
                       if public_power(view['own_cards']['table'][i]['card']) == 4)

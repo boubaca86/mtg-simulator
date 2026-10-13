@@ -1,7 +1,7 @@
-name: Stage 11Y - Own-Hand Cleanup Integration
+name: Stage 12C - Mana-Preserving London Bottoms
 
 # Two external persistent actor processes plus one authoritative Forge referee.
-# Stage11Y adds bounded own-hand cleanup with eight native cases and 144 inherited methods.
+# Stage12C preserves a payable opening creature, with four native cases and 160 inherited methods.
 # Inherited uncurated natural matches remain separate from arranged regressions.
 # Registered 60-card decks, no hand curation, true London opening and 20 life; not full MTG or OS sandbox.
 on:
@@ -10,6 +10,7 @@ on:
       - expert-stage9a-forge-decision-pairs
       - expert-stage11x-elf-combat-damage
       - expert-stage11y-own-hand-cleanup
+      - expert-stage12c-mana-preserving-mulligans
     paths:
       - .github/workflows/stage10u-uncurated-draw.yml
       - stage9w/opening_hand_actor.py
@@ -29,6 +30,7 @@ on:
       - forge_tests/test_verify_stage11o_surefire.py
       - stage11x/**
       - stage11y/**
+      - stage12c/**
 
   pull_request:
     paths:
@@ -44,6 +46,7 @@ on:
       - stage11a/**
       - stage11x/**
       - stage11y/**
+      - stage12c/**
       - forge_tests/Stage10UUncuratedDrawTest.java
       - forge_tests/verify_stage10u_surefire.py
       - forge_tests/stage11o_rejection_integrity.py
@@ -100,7 +103,7 @@ jobs:
           test "$(git -C forge-src rev-parse HEAD)" = 4ec5f1a2c32fa90ecb983a72b9eb47aa5c5d7676
           git -C forge-src rev-parse HEAD > stage10u-evidence/forge-sha.txt
           git rev-parse HEAD > stage10u-evidence/feature-sha.txt
-          sha256sum stage9w/opening_hand_actor.py stage10b/action_plan_actor.py stage10d/multi_block_actor.py stage10d/test_protocol.py stage10e/menace_defense_actor.py stage10e/test_protocol.py forge_tests/Stage10UUncuratedDrawTest.java stage10h/test_protocol.py stage10l/adversarial_actor.py stage10o/controlled_delay_actor.py stage10v/visible_opponent_actor.py stage11a/reciprocal_actor.py forge_tests/verify_stage10u_surefire.py forge_tests/stage11o_rejection_integrity.py forge_tests/test_verify_stage11o_surefire.py stage11y/test_protocol.py \
+          sha256sum stage9w/opening_hand_actor.py stage10b/action_plan_actor.py stage10d/multi_block_actor.py stage10d/test_protocol.py stage10e/menace_defense_actor.py stage10e/test_protocol.py forge_tests/Stage10UUncuratedDrawTest.java stage10h/test_protocol.py stage10l/adversarial_actor.py stage10o/controlled_delay_actor.py stage10v/visible_opponent_actor.py stage11a/reciprocal_actor.py forge_tests/verify_stage10u_surefire.py forge_tests/stage11o_rejection_integrity.py forge_tests/test_verify_stage11o_surefire.py stage11y/test_protocol.py stage12c/test_protocol.py \
             > stage10u-evidence/source-hashes.txt
           test -r "$STAGE10G_WORKER"
           test -r "$STAGE10G_LEGACY_PLAN_WORKER"
@@ -123,13 +126,13 @@ jobs:
         run: |
           set -euo pipefail
           python3 stage10h/test_protocol.py | tee stage10u-evidence/stage10h-protocol.log
-      - name: Verify cleanup protocol, privacy and rejection-integrity checks
+      - name: Verify opening and cleanup protocols, privacy and rejection integrity
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m unittest -v stage11y.test_protocol forge_tests.test_verify_stage11o_surefire 2>&1 \
-            | tee stage10u-evidence/stage11y-python-tests.log
-      - name: Run eight cleanup cases and 144 inherited Forge tests
+          python3 -m unittest -v stage12c.test_protocol stage11y.test_protocol forge_tests.test_verify_stage11o_surefire 2>&1 \
+            | tee stage10u-evidence/stage12c-python-tests.log
+      - name: Run four London retention cases and 160 inherited Forge tests
         shell: bash
         run: |
           set -euo pipefail
@@ -148,9 +151,9 @@ jobs:
           fi
           echo "Forge Maven exit: $code"
           tail -n 75 "$GITHUB_WORKSPACE/stage10u-evidence/maven.log"
-          python3 -c 'import os; from pathlib import Path; print("\n".join(line for line in (Path(os.environ["GITHUB_WORKSPACE"]) / "stage10u-evidence/maven.log").read_text().splitlines() if line.startswith(("STAGE11W_", "STAGE11X_", "STAGE11Y_"))))'
+          python3 -c 'import os; from pathlib import Path; print("\n".join(line for line in (Path(os.environ["GITHUB_WORKSPACE"]) / "stage10u-evidence/maven.log").read_text().splitlines() if line.startswith(("STAGE11W_", "STAGE11X_", "STAGE11Y_", "STAGE11Z_", "STAGE12A_", "STAGE12B_", "STAGE12C_"))))'
           test "$code" -eq 0
-      - name: Verify exact 152 genuine Forge-native methods with independent XML gate
+      - name: Verify exact 164 genuine Forge-native methods with independent XML gate
         shell: bash
         run: |
           set -euo pipefail
@@ -170,7 +173,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stage11y-own-hand-cleanup-${{ github.run_id }}-${{ github.run_attempt }}
+          name: stage12c-mana-preserving-mulligans-${{ github.run_id }}-${{ github.run_attempt }}
           path: stage10u-evidence/
           if-no-files-found: warn
           retention-days: 14

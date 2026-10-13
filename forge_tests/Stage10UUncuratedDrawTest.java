@@ -747,7 +747,9 @@ public final class Stage10UUncuratedDrawTest extends AITest {
            !self.canCastSorcery() || !game.getStack().isEmpty()) return null;
         Card creature=self.getCardsIn(ZoneType.Hand).get(index);
         if(creature.getOwner()!=self || creature.isFaceDown() || !creature.isCreature()) return null;
+        // Stage12B: mandatory non-targeting ETB draw, resolved by native Forge.
         if(!"Llanowar Elves".equals(creature.getName()) &&
+           !"Elvish Visionary".equals(creature.getName()) &&
            !supportedVanillaFighter(creature.getName())) return null;
         for(SpellAbility sa:creature.getSpellAbilities()) {
             if(!sa.isSpell() || sa.usesTargeting() || sa.getSubAbility()!=null) continue;
@@ -1077,6 +1079,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 throw new SecurityException("stage11y: own-hand actor failed",ex);
             }
         }
+
 
         @Override
         public PlayerZone chooseStartingHand(List<PlayerZone> zones) {
@@ -9313,4 +9316,890 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     @Test(timeOut=240000)
     public void nativeTwoLaneBearElfRightRegisteredFirst()
             throws Exception {verifyTwoLaneBearAndElf(false);}
+
+    /** Controlled registered-deck fixture only; natural cohorts remain separate. */
+    private Game stage12cOpeningFixture(boolean mixedColors) {
+        Map<String,Integer> own=new TreeMap<>();
+        if(mixedColors) {
+            own.put("Forest",24);own.put("Island",10);own.put("Mountain",10);
+            own.put("Swamp",10);own.put("Rumbling Baloth",4);own.put("Counterspell",2);
+        } else {
+            own.put("Forest",52);own.put("Grizzly Bears",4);own.put("Centaur Courser",4);
+        }
+        List<RegisteredPlayer> players=new ArrayList<>();
+        players.add(new RegisteredPlayer(mainDeck("12C opening",own))
+                .setPlayer(new LobbyPlayerAi("opening-player",null)));
+        players.add(new RegisteredPlayer(mainDeck("12C peer",
+                Collections.singletonMap("Island",60)))
+                .setPlayer(new LobbyPlayerAi("opening-peer",null)));
+        GameRules rules=new GameRules(GameType.Constructed);
+        Match match=new Match(rules,players,"Stage12C");
+        Game game=new Game(players,rules,match);
+        frozenMain=new FrozenMain(game);
+        game.setAge(GameStage.Mulligan);
+        for(Player player:game.getPlayers()) {
+            seedWholeRegisteredLibrary(player);
+            Assert.assertEquals(fullPhysicalInventory(player),frozenMain.owned(player));
+            Assert.assertEquals(player.getCardsIn(ZoneType.Library).size(),60);
+        }
+        return game;
+    }
+
+    private static List<Long> stage12cCardIds(Iterable<Card> cards) {
+        List<Long> ids=new ArrayList<>();
+        for(Card card:cards) ids.add((long)card.getId());
+        return ids;
+    }
+
+    /** Explicitly arrange original registered cards, never fabricate replacements. */
+    private List<Card> stage12cArrangeOpening(Player self,boolean mixedColors) {
+        List<String> names=mixedColors ?
+                Arrays.asList("Forest","Forest","Island","Mountain","Swamp",
+                        "Rumbling Baloth","Counterspell") :
+                Arrays.asList("Forest","Forest","Forest","Forest","Forest",
+                        "Grizzly Bears","Centaur Courser");
+        List<Card> remainder=new ArrayList<>(self.getCardsIn(ZoneType.Library));
+        List<Card> opening=new ArrayList<>();
+        for(String name:names) {
+            Card found=remainder.stream().filter(c->name.equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertSame(found.getOwner(),self);
+            Assert.assertTrue(remainder.remove(found));
+            opening.add(found);
+        }
+        List<Card> ordered=new ArrayList<>(opening);ordered.addAll(remainder);
+        self.getZone(ZoneType.Library).setCards(ordered);
+        Assert.assertEquals(fullPhysicalInventory(self),frozenMain.owned(self));
+        Assert.assertEquals(ordered.size(),60);
+        return opening;
+    }
+
+    private void stage12cApplyNativeLondon(Player self,ExternalCreatureController controller,
+            List<Card> opening,int count,int[] expectedOrder) {
+        Assert.assertTrue(self.getCardsIn(ZoneType.Hand).isEmpty());
+        List<Card> before=new ArrayList<>(self.getCardsIn(ZoneType.Library));
+        List<Long> expectedLibrary=stage12cCardIds(before.subList(7,before.size()));
+        Set<Long> bottomed=new HashSet<>();
+        for(int i=0;i<count;i++) {
+            long id=opening.get(expectedOrder[i]).getId();
+            expectedLibrary.add(id);bottomed.add(id);
+        }
+        List<Long> expectedHand=new ArrayList<>();
+        for(Card card:opening)
+            if(!bottomed.contains((long)card.getId())) expectedHand.add((long)card.getId());
+        controller.enableOwnHandOpening();
+        int callbacks=controller.openingCallbacks;
+        // Fixed referee return count is an ARRANGED test condition. The real
+        // pinned LondonMulligan draws, asks the controller and moves each card.
+        // Natural Match.startGame cohorts retain Forge's own mulligan counter.
+        new forge.game.mulligan.LondonMulligan(self,false) {
+            @Override public int tuckCardsDuringMulligan() {return count;}
+        }.mulliganDraw();
+        Assert.assertEquals(controller.openingCallbacks,callbacks+1);
+        Assert.assertEquals(stage12cCardIds(self.getCardsIn(ZoneType.Hand)),expectedHand);
+        Assert.assertEquals(stage12cCardIds(self.getCardsIn(ZoneType.Library)),expectedLibrary);
+        Assert.assertEquals(self.getCardsIn(ZoneType.Hand).size(),7-count);
+        Assert.assertEquals(self.getCardsIn(ZoneType.Library).size(),53+count);
+        Assert.assertEquals(fullPhysicalInventory(self),frozenMain.owned(self));
+        Assert.assertEquals(self.getLife(),20);
+        Assert.assertFalse(self.getGame().isGameOver());
+        Assert.assertNull(self.getGame().getOutcome());
+    }
+
+    @Test(timeOut=120000)
+    public void stage12cIndependentOpeningWorkersIgnorePrivateWorlds() throws Exception {
+        Game game=stage12cOpeningFixture(false);
+        Player self=game.getPlayers().get(0),other=game.getPlayers().get(1);
+        stage12cArrangeOpening(self,false);
+        self.drawCards(7);
+        try(Actor a=new Actor(5);Actor b=new Actor(5)) {
+            Assert.assertNotEquals(a.process.pid(),b.process.pid());
+            String visible=observation(self,other);
+            JsonObject expected=a.askOpening(visible);
+            Assert.assertEquals(expected.getAsJsonArray("bottom_priority").toString(),
+                    "[2,3,4,6,0,1,5]");
+            Assert.assertTrue(expected.get("keep").getAsBoolean());
+            Assert.assertEquals(b.askOpening(visible),expected);
+            for(int i=0;i<3;i++) {
+                other.drawCards(1);other.shuffle(null);self.shuffle(null);
+                Assert.assertEquals(observation(self,other),visible,
+                        "opponent hand and both library orders remain private");
+                Assert.assertEquals(a.askOpening(observation(self,other)),expected);
+                Assert.assertEquals(b.askOpening(observation(self,other)),expected);
+            }
+            Assert.assertEquals(fullPhysicalInventory(self),frozenMain.owned(self));
+            Assert.assertEquals(fullPhysicalInventory(other),frozenMain.owned(other));
+            Assert.assertTrue(a.process.isAlive() && b.process.isAlive());
+            System.out.println("STAGE12C_PRIVATE_OPENING workers=2 hidden_worlds=3 same_reply=true");
+        }
+    }
+
+    @Test(timeOut=120000)
+    public void stage12cNativeLondonBottomsEveryPrefixUsingOriginalCards() throws Exception {
+        for(int count=0;count<=7;count++) {
+            Game game=stage12cOpeningFixture(false);
+            Player self=game.getPlayers().get(0),other=game.getPlayers().get(1);
+            List<Card> opening=stage12cArrangeOpening(self,false);
+            try(Actor a=new Actor(5);Actor b=new Actor(5)) {
+                Assert.assertNotEquals(a.process.pid(),b.process.pid());
+                ExternalCreatureController ac=attach(game,self,other,a);
+                attach(game,other,self,b);
+                stage12cApplyNativeLondon(self,ac,opening,count,new int[]{2,3,4,6,0,1,5});
+                if(count<=4) {
+                    List<Long> hand=stage12cCardIds(self.getCardsIn(ZoneType.Hand));
+                    for(int index:new int[]{0,1,5})
+                        Assert.assertTrue(hand.contains((long)opening.get(index).getId()),
+                                "two original Forests and the original Bear survive every safe prefix");
+                }
+                Assert.assertTrue(a.process.isAlive() && b.process.isAlive());
+                System.out.println("STAGE12C_LONDON_PREFIX bottom="+count+
+                        " hand="+(7-count)+" original_order_verified=true");
+            }
+        }
+    }
+
+    @Test(timeOut=120000)
+    public void stage12cNativeLondonRetainsTwoGreenSourcesForBaloth() throws Exception {
+        for(int count=0;count<=2;count++) {
+            Game game=stage12cOpeningFixture(true);
+            Player self=game.getPlayers().get(0),other=game.getPlayers().get(1);
+            List<Card> opening=stage12cArrangeOpening(self,true);
+            try(Actor a=new Actor(5);Actor b=new Actor(5)) {
+                Assert.assertNotEquals(a.process.pid(),b.process.pid());
+                ExternalCreatureController ac=attach(game,self,other,a);
+                attach(game,other,self,b);
+                stage12cApplyNativeLondon(self,ac,opening,count,new int[]{6,4,0,1,2,3,5});
+                List<Long> hand=stage12cCardIds(self.getCardsIn(ZoneType.Hand));
+                for(int index:new int[]{0,1,2,3,5})
+                    Assert.assertTrue(hand.contains((long)opening.get(index).getId()));
+                Assert.assertTrue(a.process.isAlive() && b.process.isAlive());
+                System.out.println("STAGE12C_GREEN_SOURCES bottom="+count+
+                        " retained_forests=2 retained_basics=4 original_baloth=true");
+            }
+        }
+    }
+
+    @Test(timeOut=120000)
+    public void stage12cRetainedOpeningBearCastsThroughNativeTurnAndMana() throws Exception {
+        Game game=stage12cOpeningFixture(false);
+        Player self=game.getPlayers().get(0),other=game.getPlayers().get(1);
+        List<Card> opening=stage12cArrangeOpening(self,false);
+        long bearId=opening.get(5).getId();
+        try(Actor a=new Actor(5);Actor b=new Actor(5)) {
+            Assert.assertNotEquals(a.process.pid(),b.process.pid());
+            ExternalCreatureController ac=attach(game,self,other,a);
+            ExternalCreatureController bc=attach(game,other,self,b);
+            stage12cApplyNativeLondon(self,ac,opening,4,new int[]{2,3,4,6,0,1,5});
+            Assert.assertTrue(self.getCardsIn(ZoneType.Battlefield).isEmpty());
+            game.setAge(GameStage.Play);
+            game.setStartingPlayer(self);
+            game.getPhaseHandler().setupFirstTurn(self,null);
+            boolean paid=false,resolved=false;
+            int steps=0;
+            while(!game.isGameOver() && steps++<1500 && !resolved) {
+                game.getPhaseHandler().mainLoopStep();
+                if(!game.getStack().isEmpty() &&
+                        game.getStack().peekAbility().getHostCard().getId()==bearId) {
+                    int tapped=0;
+                    for(Card card:self.getCardsIn(ZoneType.Battlefield))
+                        if("Forest".equals(card.getName()) && card.isTapped()) tapped++;
+                    if(tapped>=2) paid=true;
+                }
+                resolved=self.getCardsIn(ZoneType.Battlefield).stream()
+                        .anyMatch(c->c.getId()==bearId);
+            }
+            Assert.assertTrue(steps<1500 && paid && resolved,
+                    "retained original Bear must pay real mana and resolve through native turns");
+            Assert.assertFalse(game.isGameOver());
+            Assert.assertTrue(ac.priorityCallbacks>0 && bc.priorityCallbacks>0);
+            Assert.assertEquals(fullPhysicalInventory(self),frozenMain.owned(self));
+            Assert.assertEquals(fullPhysicalInventory(other),frozenMain.owned(other));
+            Assert.assertEquals(self.getLife(),20);Assert.assertEquals(other.getLife(),20);
+            Assert.assertTrue(a.process.isAlive() && b.process.isAlive());
+            System.out.println("STAGE12C_RETAINED_CAST kept_hand=3 original_bear=true paid_forests=2 native_turns=true");
+        }
+    }
+
+    /** Stage11Y: exactly ONE strategic choice: at life two, two
+     * independently registered 1/1 Llanowar Elves must block TWO
+     * different known attacking 2/2 creatures. Only the labelled
+     * CONTROLLED fixture sets board/life/readiness. No natural deck,
+     * draw, mulligan or life/starting-board curation is permitted. */
+    private void verifyDoubleLlanowarEmergency(boolean leftRegisteredFirst)
+            throws Exception {
+        Game fixture=nativeElfEmergencyGame(leftRegisteredFirst);
+        Player seatA=fixture.getPlayers().get(0);
+        Player seatB=fixture.getPlayers().get(1);
+        try(Actor workerA=new Actor(5); Actor workerB=new Actor(5)) {
+            Assert.assertNotEquals(workerA.process.pid(),workerB.process.pid(),
+                    "players must be two independent persistent external OS processes");
+            ExternalCreatureController ca=attach(fixture,seatA,seatB,workerA);
+            ExternalCreatureController cb=attach(fixture,seatB,seatA,workerB);
+            doRealNativeStartForMultiTurn(fixture,ca,cb);
+            Player offense=fixture.getPhaseHandler().getPlayerTurn();
+            Assert.assertNotNull(offense);
+            Player defense=offense==seatA?seatB:seatA;
+            Actor defenderWorker=offense==seatA?workerB:workerA;
+            ExternalCreatureController oc=offense==seatA?ca:cb;
+            ExternalCreatureController dc=offense==seatA?cb:ca;
+            // Hold this arranged combat board stable; natural cohorts remain unchanged.
+            oc.fixturePassPriority=true;dc.fixturePassPriority=true;
+            Assert.assertEquals(offense.getLife(),20);
+            Assert.assertEquals(defense.getLife(),20);
+            fixturePlaceRegisteredVanilla(fixture,offense,"Grizzly Bears");
+            fixturePlaceRegisteredVanilla(fixture,offense,"Runeclaw Bear");
+            List<Card> elves=new ArrayList<>();
+            for(int n=0;n<2;n++) {
+                Card physicalElf=null;
+                for(ZoneType zone:Arrays.asList(ZoneType.Hand,ZoneType.Library)) {
+                    for(Card c:defense.getCardsIn(zone))
+                        if("Llanowar Elves".equals(c.getName())) {
+                            physicalElf=c;
+                            break;
+                        }
+                    if(physicalElf!=null) break;
+                }
+                Assert.assertNotNull(physicalElf,
+                        "two distinct original deck-registered physical Elves");
+                Assert.assertNotNull(fixture.getAction().moveToPlay(physicalElf,null,
+                        forge.game.ability.AbilityKey.newMap()),
+                        "explicit controlled physical battlefield placement");
+                physicalElf.setTapped(false); // controlled fixture ONLY
+                Assert.assertFalse(physicalElf.isTapped(),
+                        "CR 509.1a: only untapped blockers can be declared");
+                elves.add(physicalElf);
+            }
+            Assert.assertNotEquals(elves.get(0).getId(),elves.get(1).getId());
+            List<Card> attackers=new ArrayList<>();
+            for(Card c:offense.getCardsIn(ZoneType.Battlefield))
+                if("Grizzly Bears".equals(c.getName()) ||
+                        "Runeclaw Bear".equals(c.getName())) attackers.add(c);
+            Assert.assertEquals(attackers.size(),2);
+            for(Card c:attackers) c.setSickness(false); // controlled fixture
+            Set<Long> attackerIds=new HashSet<>();
+            for(Card c:attackers) attackerIds.add(Long.valueOf(c.getId()));
+            long firstElfId=elves.get(0).getId();
+            long secondElfId=elves.get(1).getId();
+            Assert.assertEquals(fullPhysicalInventory(offense),frozenMain.owned(offense));
+            Assert.assertEquals(fullPhysicalInventory(defense),frozenMain.owned(defense));
+            Assert.assertTrue(defense.setLife(3,null),
+                    "controlled nonlethal baseline only");
+            Assert.assertEquals(defenderWorker.ask(observation(defense,offense))
+                    .getAsJsonArray("block_pairs").size(),0,
+                    "do not expend two mana creatures before lethal danger");
+            Assert.assertTrue(defense.setLife(2,null),
+                    "controlled lethal threshold; natural games retain 20 life");
+            JsonObject decision=defenderWorker.ask(observation(defense,offense));
+            Assert.assertEquals(decision.get("intent").getAsString(),"action_plan");
+            JsonArray pairs=decision.getAsJsonArray("block_pairs");
+            Assert.assertEquals(pairs.size(),2,
+                    "exactly two disjoint emergency Elf block preferences");
+            Set<Integer> ownIndices=new HashSet<>();
+            Set<Integer> enemyIndices=new HashSet<>();
+            for(int n=0;n<2;n++) {
+                JsonArray pair=pairs.get(n).getAsJsonArray();
+                int own=pair.get(0).getAsInt(), enemy=pair.get(1).getAsInt();
+                Assert.assertTrue(ownIndices.add(Integer.valueOf(own)));
+                Assert.assertTrue(enemyIndices.add(Integer.valueOf(enemy)));
+                Assert.assertEquals(defense.getCardsIn(ZoneType.Battlefield)
+                        .get(own).getName(),"Llanowar Elves");
+                Assert.assertTrue(Arrays.asList("Grizzly Bears","Runeclaw Bear")
+                        .contains(offense.getCardsIn(ZoneType.Battlefield)
+                                .get(enemy).getName()));
+            }
+            for(boolean faceDown:new boolean[]{true,false}) {
+                JsonObject privacy=JsonParser.parseString(
+                        observation(defense,offense)).getAsJsonObject();
+                JsonObject suspicious=new JsonObject();
+                suspicious.addProperty("appearance",faceDown?"face_down":"face_up");
+                if(!faceDown) suspicious.addProperty("card","Unsupported Creature");
+                privacy.getAsJsonArray("opponent_table").add(suspicious);
+                Assert.assertEquals(defenderWorker.ask(privacy.toString())
+                        .getAsJsonArray("block_pairs").size(),0,
+                        "unknown or face-down information cannot be treated as vanilla");
+            }
+            JsonObject safeView=JsonParser.parseString(
+                    observation(defense,offense)).getAsJsonObject();
+            Assert.assertFalse(safeView.has("phase"));
+            Assert.assertFalse(safeView.has("priority"));
+            Assert.assertFalse(safeView.has("library_top"));
+            Assert.assertFalse(safeView.has("opponent_hand"));
+            Assert.assertFalse(safeView.has("stack"));
+            boolean survived=false;
+            int steps=0;
+            while(!fixture.isGameOver() && steps++<2500) {
+                fixture.getPhaseHandler().mainLoopStep();
+                int livingBears=0;
+                for(Card c:offense.getCardsIn(ZoneType.Battlefield))
+                    if(attackerIds.contains(Long.valueOf(c.getId()))) livingBears++;
+                boolean firstDead=defense.getCardsIn(ZoneType.Graveyard).stream()
+                        .anyMatch(c->c.getId()==firstElfId);
+                boolean secondDead=defense.getCardsIn(ZoneType.Graveyard).stream()
+                        .anyMatch(c->c.getId()==secondElfId);
+                if(oc.attacksAuthorized>=2 && dc.blocksAuthorized>=2 &&
+                        livingBears==2 && firstDead && secondDead &&
+                        defense.getLife()==2) {
+                    survived=true;
+                    break;
+                }
+            }
+            Assert.assertTrue(steps<2500,"bounded genuine Forge combat");
+            Assert.assertTrue(survived,
+                    "native Forge must approve two distinct Elf chumps, kill both Elves,"+
+                    " preserve both attacking Bears, and leave defender at two life;"+
+                    " attacks="+oc.attacksAuthorized+
+                    " blocks="+dc.blocksAuthorized+
+                    " callbacks="+dc.blockerCallbacks+
+                    " elf1_tapped="+elves.get(0).isTapped()+
+                    " elf2_tapped="+elves.get(1).isTapped()+
+                    " defender_life="+defense.getLife());
+            Assert.assertFalse(fixture.isGameOver());
+            Assert.assertEquals(fullPhysicalInventory(offense),frozenMain.owned(offense));
+            Assert.assertEquals(fullPhysicalInventory(defense),frozenMain.owned(defense));
+            System.out.println("STAGE11Y_DOUBLE_ELF_FIXTURE left_first="+
+                    leftRegisteredFirst+" attacks="+oc.attacksAuthorized+
+                    " blocks="+dc.blocksAuthorized+
+                    " defender_life="+defense.getLife());
+        }
+        // TWO genuinely independent uncurated, naturally shuffled 60-card
+        // complete Forge games per registered seating order, without seed,
+        // hand, initial board, library, mulligan or natural-life intervention.
+        for(int sequence=0;sequence<2;sequence++) {
+            Game natural=nativeElfEmergencyGame(leftRegisteredFirst);
+            Player left=natural.getPlayers().get(leftRegisteredFirst?0:1);
+            Player right=natural.getPlayers().get(leftRegisteredFirst?1:0);
+            try(Actor actorL=new Actor(5);Actor actorR=new Actor(5)) {
+                Assert.assertNotEquals(actorL.process.pid(),actorR.process.pid());
+                ExternalCreatureController lc=attach(natural,left,right,actorL);
+                ExternalCreatureController rc=attach(natural,right,left,actorR);
+                doRealNativeStartForMultiTurn(natural,lc,rc);
+                Assert.assertEquals(left.getLife(),20);
+                Assert.assertEquals(right.getLife(),20);
+                Assert.assertTrue(lc.openingCallbacks>0 && rc.openingCallbacks>0);
+                Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+                Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+                for(String name:Arrays.asList("Grizzly Bears","Runeclaw Bear",
+                        "Balduvian Bears","Centaur Courser","Llanowar Elves"))
+                    Assert.assertEquals(countCardsWithName(natural,name,
+                            ZoneType.Battlefield),0,"uncurated natural board");
+                int steps=0;
+                while(!natural.isGameOver() && steps++<85000)
+                    natural.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(steps<85000,"bounded full natural game");
+                Assert.assertTrue(natural.isGameOver());
+                Assert.assertNotNull(natural.getOutcome());
+                Assert.assertFalse(natural.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(natural.getOutcome().isWinner(
+                        winner.getRegisteredPlayer()));
+                Assert.assertTrue(lc.priorityCallbacks>0 && rc.priorityCallbacks>0);
+                Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+                Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+                System.out.println("STAGE11Y_NATURAL_UNCURATED_GAME left_first="+
+                        leftRegisteredFirst+" game="+sequence+
+                        " attacks="+(lc.attacksAuthorized+rc.attacksAuthorized)+
+                        " blocks="+(lc.blocksAuthorized+rc.blocksAuthorized)+
+                        " winner="+winner.getName());
+            }
+        }
+    }
+
+    @Test(timeOut=240000)
+    public void nativeDoubleElfEmergencyLeftRegisteredFirst()
+            throws Exception {verifyDoubleLlanowarEmergency(true);}
+
+    @Test(timeOut=240000)
+    public void nativeDoubleElfEmergencyRightRegisteredFirst()
+            throws Exception {verifyDoubleLlanowarEmergency(false);}
+
+
+    /** Stage11Z: one distinct tactical behavior. TWO physical original
+     * 1/1 Llanowar Elves block ONE real attacking vanilla 2/2 at life2,
+     * kill it by simultaneous native damage, and save the player.
+     * Only CONTROLLED fixtures modify board/life/readiness. */
+    private void verifyTwoElfCooperativeTrade(boolean leftRegisteredFirst)
+            throws Exception {
+        Game fixture=nativeElfEmergencyGame(leftRegisteredFirst);
+        Player seatA=fixture.getPlayers().get(0);
+        Player seatB=fixture.getPlayers().get(1);
+        try(Actor workerA=new Actor(5);Actor workerB=new Actor(5)) {
+            Assert.assertNotEquals(workerA.process.pid(),workerB.process.pid(),
+                    "two persistent independent external Python actors");
+            ExternalCreatureController ca=attach(fixture,seatA,seatB,workerA);
+            ExternalCreatureController cb=attach(fixture,seatB,seatA,workerB);
+            doRealNativeStartForMultiTurn(fixture,ca,cb);
+            Player offense=fixture.getPhaseHandler().getPlayerTurn();
+            Assert.assertNotNull(offense);
+            Player defense=offense==seatA?seatB:seatA;
+            Actor defenderActor=offense==seatA?workerB:workerA;
+            ExternalCreatureController oc=offense==seatA?ca:cb;
+            ExternalCreatureController dc=offense==seatA?cb:ca;
+            // Hold this arranged combat board stable; natural cohorts remain unchanged.
+            oc.fixturePassPriority=true;dc.fixturePassPriority=true;
+            Assert.assertEquals(offense.getLife(),20);
+            Assert.assertEquals(defense.getLife(),20);
+            fixturePlaceRegisteredVanilla(fixture,offense,"Grizzly Bears");
+            Card bear=offense.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->"Grizzly Bears".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            bear.setSickness(false); // controlled fixture only
+            long bearId=bear.getId();
+            List<Card> elves=new ArrayList<>();
+            for(int n=0;n<2;n++) {
+                Card elf=null;
+                for(ZoneType zone:Arrays.asList(ZoneType.Hand,ZoneType.Library)) {
+                    for(Card c:defense.getCardsIn(zone))
+                        if("Llanowar Elves".equals(c.getName())) {
+                            elf=c;break;
+                        }
+                    if(elf!=null) break;
+                }
+                Assert.assertNotNull(elf,"distinct original deck-registered Elf");
+                Assert.assertNotNull(fixture.getAction().moveToPlay(elf,null,
+                        forge.game.ability.AbilityKey.newMap()));
+                elf.setTapped(false); // controlled fixture only, CR 509.1a
+                Assert.assertFalse(elf.isTapped());
+                elves.add(elf);
+            }
+            long elf1Id=elves.get(0).getId(),elf2Id=elves.get(1).getId();
+            Assert.assertNotEquals(elf1Id,elf2Id);
+            Assert.assertEquals(fullPhysicalInventory(offense),frozenMain.owned(offense));
+            Assert.assertEquals(fullPhysicalInventory(defense),frozenMain.owned(defense));
+            Assert.assertTrue(defense.setLife(3,null),"fixture-only baseline");
+            Assert.assertEquals(defenderActor.ask(observation(defense,offense))
+                    .getAsJsonArray("block_pairs").size(),0,
+                    "do not sacrifice two mana creatures before lethal danger");
+            Assert.assertTrue(defense.setLife(2,null),"fixture-only lethal threshold");
+            JsonArray pairs=defenderActor.ask(observation(defense,offense))
+                    .getAsJsonArray("block_pairs");
+            Assert.assertEquals(pairs.size(),2,
+                    "two distinct Elves must target the SAME threatening 2/2");
+            JsonArray p0=pairs.get(0).getAsJsonArray();
+            JsonArray p1=pairs.get(1).getAsJsonArray();
+            Assert.assertNotEquals(p0.get(0).getAsInt(),p1.get(0).getAsInt());
+            Assert.assertEquals(p0.get(1).getAsInt(),p1.get(1).getAsInt());
+            for(int n=0;n<2;n++) {
+                JsonArray pair=pairs.get(n).getAsJsonArray();
+                Assert.assertEquals(defense.getCardsIn(ZoneType.Battlefield)
+                        .get(pair.get(0).getAsInt()).getName(),"Llanowar Elves");
+                Assert.assertEquals(offense.getCardsIn(ZoneType.Battlefield)
+                        .get(pair.get(1).getAsInt()).getName(),"Grizzly Bears");
+            }
+            JsonObject landView=JsonParser.parseString(
+                    observation(defense,offense)).getAsJsonObject();
+            JsonObject forest=new JsonObject();
+            forest.addProperty("appearance","face_up");
+            forest.addProperty("card","Forest");
+            landView.getAsJsonArray("opponent_table").add(forest);
+            Assert.assertEquals(defenderActor.ask(landView.toString())
+                    .getAsJsonArray("block_pairs").size(),2,
+                    "known basic Forest cannot attack");
+            for(boolean facedown:new boolean[]{true,false}) {
+                JsonObject guarded=JsonParser.parseString(
+                        observation(defense,offense)).getAsJsonObject();
+                JsonObject suspicious=new JsonObject();
+                suspicious.addProperty("appearance",facedown?"face_down":"face_up");
+                if(!facedown) suspicious.addProperty("card","Unsupported Creature");
+                guarded.getAsJsonArray("opponent_table").add(suspicious);
+                Assert.assertEquals(defenderActor.ask(guarded.toString())
+                        .getAsJsonArray("block_pairs").size(),0,
+                        "unknown/facedown cards cannot be assumed harmless");
+            }
+            JsonObject view=JsonParser.parseString(
+                    observation(defense,offense)).getAsJsonObject();
+            for(String forbidden:Arrays.asList("phase","turn","priority","stack",
+                    "opponent_hand","opponent_library","library_top"))
+                Assert.assertFalse(view.has(forbidden));
+            boolean realTrade=false;
+            int steps=0;
+            while(!fixture.isGameOver() && steps++<2500) {
+                fixture.getPhaseHandler().mainLoopStep();
+                boolean bearDead=offense.getCardsIn(ZoneType.Graveyard).stream()
+                        .anyMatch(c->c.getId()==bearId);
+                boolean elf1Dead=defense.getCardsIn(ZoneType.Graveyard).stream()
+                        .anyMatch(c->c.getId()==elf1Id);
+                boolean elf2Dead=defense.getCardsIn(ZoneType.Graveyard).stream()
+                        .anyMatch(c->c.getId()==elf2Id);
+                if(oc.attacksAuthorized>=1 && dc.blocksAuthorized>=2 &&
+                        oc.refereeSplitDamageAssignments>0 &&
+                        bearDead && elf1Dead && elf2Dead && defense.getLife()==2) {
+                    realTrade=true;break;
+                }
+            }
+            Assert.assertTrue(steps<2500,"bounded native Forge combat");
+            Assert.assertTrue(realTrade,
+                    "native Forge must resolve 2x1/1 on one 2/2: both legal"+
+                    " blockers, all original creature deaths, player survival;"+
+                    " attacks="+oc.attacksAuthorized+
+                    " blocks="+dc.blocksAuthorized+
+                    " callbacks="+dc.blockerCallbacks+
+                    " splits="+oc.refereeSplitDamageAssignments+
+                    " elf1_tapped="+elves.get(0).isTapped()+
+                    " elf2_tapped="+elves.get(1).isTapped()+
+                    " defender_life="+defense.getLife());
+            Assert.assertFalse(fixture.isGameOver());
+            Assert.assertEquals(fullPhysicalInventory(offense),frozenMain.owned(offense));
+            Assert.assertEquals(fullPhysicalInventory(defense),frozenMain.owned(defense));
+            System.out.println("STAGE11Z_COOPERATIVE_ELF_TRADE left_first="+
+                    leftRegisteredFirst+" blocks="+dc.blocksAuthorized+
+                    " native_splits="+oc.refereeSplitDamageAssignments+
+                    " defender_life="+defense.getLife());
+        }
+        // Two INDEPENDENT natural 60-card full games per seat order.
+        // Never curate initial hand, deck, shuffle, mulligan, board, life,
+        // draws, seed, or select only favorable game results.
+        for(int sequence=0;sequence<2;sequence++) {
+            Game natural=nativeElfEmergencyGame(leftRegisteredFirst);
+            Player left=natural.getPlayers().get(leftRegisteredFirst?0:1);
+            Player right=natural.getPlayers().get(leftRegisteredFirst?1:0);
+            try(Actor actorL=new Actor(5);Actor actorR=new Actor(5)) {
+                Assert.assertNotEquals(actorL.process.pid(),actorR.process.pid());
+                ExternalCreatureController lc=attach(natural,left,right,actorL);
+                ExternalCreatureController rc=attach(natural,right,left,actorR);
+                doRealNativeStartForMultiTurn(natural,lc,rc);
+                Assert.assertEquals(left.getLife(),20);
+                Assert.assertEquals(right.getLife(),20);
+                Assert.assertTrue(lc.openingCallbacks>0 && rc.openingCallbacks>0);
+                Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+                Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+                for(String name:Arrays.asList("Grizzly Bears","Runeclaw Bear",
+                        "Balduvian Bears","Centaur Courser","Llanowar Elves"))
+                    Assert.assertEquals(countCardsWithName(natural,name,
+                            ZoneType.Battlefield),0,"natural board never curated");
+                int steps=0;
+                while(!natural.isGameOver() && steps++<85000)
+                    natural.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(steps<85000,"natural full game terminates");
+                Assert.assertTrue(natural.isGameOver());
+                Assert.assertNotNull(natural.getOutcome());
+                Assert.assertFalse(natural.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(natural.getOutcome().isWinner(
+                        winner.getRegisteredPlayer()));
+                Assert.assertTrue(lc.priorityCallbacks>0 && rc.priorityCallbacks>0);
+                Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+                Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+                System.out.println("STAGE11Z_NATURAL_UNCURATED_GAME left_first="+
+                        leftRegisteredFirst+" game="+sequence+
+                        " attacks="+(lc.attacksAuthorized+rc.attacksAuthorized)+
+                        " blocks="+(lc.blocksAuthorized+rc.blocksAuthorized)+
+                        " winner="+winner.getName());
+            }
+        }
+    }
+
+    @Test(timeOut=240000)
+    public void nativeTwoElfCooperativeTradeLeftRegisteredFirst()
+            throws Exception {verifyTwoElfCooperativeTrade(true);}
+
+    @Test(timeOut=240000)
+    public void nativeTwoElfCooperativeTradeRightRegisteredFirst()
+            throws Exception {verifyTwoElfCooperativeTrade(false);}
+
+
+    /** Stage12A: explicit physical cleanup fixture and two independent,
+     * untouched registered 60-card complete natural games per seat order.
+     * Card movements in the controlled fixture are from original deck
+     * objects, NEVER manufactured/duplicated cards. Forge owns cleanup. */
+    private void verifyRegisteredNativeCleanup(boolean leftRegisteredFirst)
+            throws Exception {
+        Game controlled=nativeElfEmergencyGame(leftRegisteredFirst);
+        Player a=controlled.getPlayers().get(0);
+        Player b=controlled.getPlayers().get(1);
+        try(Actor actorA=new Actor(5); Actor actorB=new Actor(5)) {
+            Assert.assertNotEquals(actorA.process.pid(),actorB.process.pid());
+            ExternalCreatureController ca=attach(controlled,a,b,actorA);
+            ExternalCreatureController cb=attach(controlled,b,a,actorB);
+            doRealNativeStartForMultiTurn(controlled,ca,cb);
+            Player self=controlled.getPhaseHandler().getPlayerTurn();
+            Player other=self==a?b:a;
+            Actor worker=self==a?actorA:actorB;
+            ExternalCreatureController controller=self==a?ca:cb;
+            int maximum=leftRegisteredFirst?7:5; // CONTROLLED fixture only
+            // Real original deck and native mulligan precede fixture changes.
+            while(self.getCardsIn(ZoneType.Hand).size()<9) {
+                Card actual=self.getCardsIn(ZoneType.Library).stream()
+                        .filter(c->"Forest".equals(c.getName()))
+                        .findFirst().orElseThrow();
+                Assert.assertNotNull(controlled.getAction().moveToHand(actual,null));
+            }
+            Assert.assertEquals(self.getCardsIn(ZoneType.Hand).size(),9);
+            Assert.assertEquals(fullPhysicalInventory(self),frozenMain.owned(self));
+            Assert.assertEquals(fullPhysicalInventory(other),frozenMain.owned(other));
+            JsonObject visible=JsonParser.parseString(
+                    observation(self,other)).getAsJsonObject();
+            Assert.assertFalse(visible.has("phase"));
+            Assert.assertFalse(visible.has("priority"));
+            Assert.assertFalse(visible.has("library_top"));
+            Assert.assertFalse(visible.has("opponent_hand"));
+            Assert.assertFalse(visible.has("stack"));
+            JsonObject ranked=askHandOrder(worker,visible.toString());
+            Assert.assertEquals(ranked.get("intent").getAsString(),"hand_order");
+            Assert.assertEquals(ranked.getAsJsonArray("hand_priority").size(),9);
+            JsonObject hiddenChange=visible.deepCopy();
+            JsonObject down=new JsonObject();
+            down.addProperty("appearance","face_down");
+            hiddenChange.getAsJsonArray("opponent_table").add(down);
+            Assert.assertEquals(askHandOrder(worker,hiddenChange.toString()),ranked,
+                    "own-hand ranking must not depend on hidden or opposing state");
+            // Fixture phase change is explicit and never used for natural games.
+            self.setMaxHandSize(maximum);
+            controlled.getPhaseHandler().devModeSet(PhaseType.CLEANUP,self);
+            CardCollection snapshot=new CardCollection(self.getCardsIn(ZoneType.Hand));
+            int excess=9-maximum;
+            for(int wrong:new int[]{-1,0,excess+1}) {
+                try {
+                    controller.chooseCardsToDiscardToMaximumHandSize(wrong);
+                    Assert.fail("invalid cleanup count accepted");
+                } catch(SecurityException expected) { /* deny before mutation */ }
+            }
+            Assert.assertEquals(controller.cleanupChoices,0);
+            CardCollection selected=new CardCollection(
+                    controller.chooseCardsToDiscardToMaximumHandSize(excess));
+            Assert.assertEquals(selected.size(),excess);
+            Assert.assertEquals(self.getCardsIn(ZoneType.Hand).size(),9,
+                    "actor only chooses; Forge alone moves original cards");
+            Assert.assertTrue(self.getCardsIn(ZoneType.Graveyard).stream()
+                    .noneMatch(c->selected.contains(c)));
+            for(Card chosen:selected) {
+                Assert.assertTrue(snapshot.stream().anyMatch(c->c==chosen));
+                Assert.assertEquals(chosen.getOwner(),self);
+            }
+            // Real native cleanup from end step uses the same untouched physical hand.
+            controlled.getPhaseHandler().devModeSet(PhaseType.END_OF_TURN,self);
+            controlled.getPhaseHandler().onStackResolved();
+            int steps=0;
+            while(controller.cleanupChoices<2 && !controlled.isGameOver() && steps++<90)
+                controlled.getPhaseHandler().mainLoopStep();
+            Assert.assertTrue(steps<90,"native cleanup must finish");
+            Assert.assertEquals(controller.cleanupChoices,2);
+            Assert.assertEquals(self.getCardsIn(ZoneType.Hand).size(),maximum);
+            Assert.assertEquals(self.getCardsIn(ZoneType.Graveyard).size(),excess);
+            for(Card discarded:controller.cleanupSelected) {
+                Assert.assertTrue(self.getCardsIn(ZoneType.Graveyard).stream()
+                        .anyMatch(c->c.getId()==discarded.getId()));
+            }
+            Assert.assertEquals(fullPhysicalInventory(self),frozenMain.owned(self));
+            Assert.assertEquals(fullPhysicalInventory(other),frozenMain.owned(other));
+            System.out.println("STAGE12A_REGISTERED_CLEANUP left_first="+
+                    leftRegisteredFirst+" maximum="+maximum+
+                    " actual_discards="+excess);
+        }
+        // Independent untouched natural games: no hand/board/life curation,
+        // no seed selection, no early abort or selected reroll.
+        for(int sequence=0;sequence<2;sequence++) {
+            Game natural=nativeElfEmergencyGame(leftRegisteredFirst);
+            Player left=natural.getPlayers().get(leftRegisteredFirst?0:1);
+            Player right=natural.getPlayers().get(leftRegisteredFirst?1:0);
+            try(Actor al=new Actor(5);Actor ar=new Actor(5)) {
+                Assert.assertNotEquals(al.process.pid(),ar.process.pid());
+                ExternalCreatureController lc=attach(natural,left,right,al);
+                ExternalCreatureController rc=attach(natural,right,left,ar);
+                doRealNativeStartForMultiTurn(natural,lc,rc);
+                Assert.assertEquals(left.getLife(),20);
+                Assert.assertEquals(right.getLife(),20);
+                Assert.assertTrue(lc.openingCallbacks>0 && rc.openingCallbacks>0);
+                for(Player p:Arrays.asList(left,right))
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                int steps=0;
+                while(!natural.isGameOver() && steps++<85000)
+                    natural.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(steps<85000,"native game must complete naturally");
+                Assert.assertTrue(natural.isGameOver());
+                Assert.assertNotNull(natural.getOutcome());
+                Assert.assertFalse(natural.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(natural.getOutcome().isWinner(winner.getRegisteredPlayer()));
+                for(Player p:Arrays.asList(left,right))
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                System.out.println("STAGE12A_NATURAL_GAME left_first="+leftRegisteredFirst+
+                        " game="+sequence+" cleanup_choices="+
+                        (lc.cleanupChoices+rc.cleanupChoices)+
+                        " winner="+winner.getName());
+            }
+        }
+    }
+
+    @Test(timeOut=240000)
+    public void nativeOwnHandCleanupRegisteredLeftRegisteredFirst() throws Exception {
+        verifyRegisteredNativeCleanup(true);
+    }
+
+    @Test(timeOut=240000)
+    public void nativeOwnHandCleanupRegisteredRightRegisteredFirst() throws Exception {
+        verifyRegisteredNativeCleanup(false);
+    }
+
+
+    /** Stage12B: independent, registered, exactly 60-card deck with
+     * four real {1}{G} Elvish Visionary creatures and four real Llanowar.
+     * Natural cohorts have no modified starting hand, life, deck or draws. */
+    private Game nativeVisionaryGame(boolean leftRegisteredFirst) {
+        Map<String,Integer> counts=new TreeMap<>();
+        counts.put("Forest",40);
+        counts.put("Grizzly Bears",4);
+        counts.put("Runeclaw Bear",4);
+        counts.put("Balduvian Bears",4);
+        counts.put("Llanowar Elves",4);
+        counts.put("Elvish Visionary",4);
+        Assert.assertEquals(counts.values().stream().mapToInt(Integer::intValue).sum(),60);
+        RegisteredPlayer a=new RegisteredPlayer(mainDeck("12B left",counts))
+                .setPlayer(new LobbyPlayerAi("visionary-left",null));
+        RegisteredPlayer b=new RegisteredPlayer(mainDeck("12B right",counts))
+                .setPlayer(new LobbyPlayerAi("visionary-right",null));
+        List<RegisteredPlayer> registered=new ArrayList<>();
+        registered.add(leftRegisteredFirst?a:b);
+        registered.add(leftRegisteredFirst?b:a);
+        GameRules rules=new GameRules(GameType.Constructed);
+        Match match=new Match(rules,registered,"Stage12B");
+        Game game=new Game(registered,rules,match);
+        frozenMain=new FrozenMain(game);
+        Assert.assertNull(game.getPhaseHandler().getPhase());
+        for(Player p:game.getPlayers()) Assert.assertEquals(frozenMain.owned(p),counts);
+        return game;
+    }
+
+    /** Explicit controlled physical fixture: only the two original Forests
+     * are placed on the battlefield, and the caster's hand is arranged
+     * from its own registered physical cards. No fake mana, cast or draw.
+     * The actual first-turn main phase, paid casting, triggered ability
+     * and one private library-to-hand draw all execute in native Forge. */
+    private void verifyVisionaryEtbAndNaturalGames(boolean leftRegisteredFirst)
+            throws Exception {
+        Game fixture=nativeVisionaryGame(leftRegisteredFirst);
+        Player seatA=fixture.getPlayers().get(0);
+        Player seatB=fixture.getPlayers().get(1);
+        try(Actor workerA=new Actor(5);Actor workerB=new Actor(5)) {
+            Assert.assertNotEquals(workerA.process.pid(),workerB.process.pid());
+            ExternalCreatureController ca=attach(fixture,seatA,seatB,workerA);
+            ExternalCreatureController cb=attach(fixture,seatB,seatA,workerB);
+            doRealNativeStartForMultiTurn(fixture,ca,cb);
+            Player caster=fixture.getStartingPlayer();
+            Player opponent=caster==seatA?seatB:seatA;
+            Actor casterWorker=caster==seatA?workerA:workerB;
+            ExternalCreatureController casterController=caster==seatA?ca:cb;
+            // CONTROLLED FIXTURE ONLY: restore all opening-hand cards to
+            // their owner's library, then select two distinct registered
+            // Forests and two original registered competing creature spells.
+            for(Card c:new ArrayList<Card>(caster.getCardsIn(ZoneType.Hand))) {
+                Assert.assertNotNull(fixture.getAction().moveToBottomOfLibrary(c,null));
+            }
+            List<Card> physicalForests=new ArrayList<>();
+            for(int i=0;i<2;i++) {
+                Card forest=caster.getCardsIn(ZoneType.Library).stream()
+                        .filter(c->"Forest".equals(c.getName()))
+                        .findFirst().orElseThrow();
+                Assert.assertNotNull(fixture.getAction().moveToPlay(forest,null,
+                        forge.game.ability.AbilityKey.newMap()));
+                forest.setTapped(false);
+                physicalForests.add(forest);
+            }
+            for(String name:Arrays.asList("Grizzly Bears","Elvish Visionary")) {
+                Card actual=caster.getCardsIn(ZoneType.Library).stream()
+                        .filter(c->name.equals(c.getName())).findFirst().orElseThrow();
+                Assert.assertNotNull(fixture.getAction().moveToHand(actual,null));
+            }
+            Assert.assertEquals(caster.getCardsIn(ZoneType.Hand).size(),2);
+            Assert.assertEquals(basicLandCountOnBattlefield(caster),2);
+            Assert.assertEquals(fullPhysicalInventory(caster),frozenMain.owned(caster));
+            Assert.assertEquals(fullPhysicalInventory(opponent),frozenMain.owned(opponent));
+            String projected=observation(caster,opponent);
+            JsonObject proposed=casterWorker.ask(projected);
+            Assert.assertEquals(proposed.get("intent").getAsString(),"action_plan");
+            JsonArray candidate=proposed.getAsJsonArray("creature_hand_indices");
+            Assert.assertEquals(candidate.size(),2);
+            Assert.assertEquals(caster.getCardsIn(ZoneType.Hand)
+                    .get(candidate.get(0).getAsInt()).getName(),"Elvish Visionary",
+                    "low own hand prioritizes native draw creature over vanilla Bear");
+            Assert.assertFalse(projected.contains("\"phase\""));
+            Assert.assertFalse(projected.contains("\"stack\""));
+            Assert.assertFalse(projected.contains("\"library_top\""));
+            Assert.assertFalse(projected.contains("\"opponent_hand\""));
+            // Only a public-only observation is supplied; shuffling the
+            // opponent's private library cannot change the actor's plan.
+            opponent.shuffle(null);
+            Assert.assertEquals(observation(caster,opponent),projected);
+            Assert.assertEquals(casterWorker.ask(projected),proposed);
+            int libraryBefore=caster.getCardsIn(ZoneType.Library).size();
+            int priorityBefore=casterController.priorityCallbacks;
+            boolean realEtbDraw=false;
+            int steps=0;
+            while(!fixture.isGameOver() && steps++<1200) {
+                fixture.getPhaseHandler().mainLoopStep();
+                boolean visionaryOnBoard=caster.getCardsIn(ZoneType.Battlefield)
+                        .stream().anyMatch(c->"Elvish Visionary".equals(c.getName()));
+                if(visionaryOnBoard &&
+                        caster.getCardsIn(ZoneType.Library).size()==libraryBefore-1 &&
+                        fixture.getStack().isEmpty()) {
+                    realEtbDraw=true;break;
+                }
+            }
+            Assert.assertTrue(steps<1200,"bounded genuine native casting and ETB draw");
+            Assert.assertTrue(realEtbDraw,
+                    "Forge must pay two Forest mana, cast Visionary and draw exactly one card");
+            Assert.assertTrue(casterController.priorityCallbacks>priorityBefore);
+            Assert.assertTrue(physicalForests.stream().allMatch(Card::isTapped),
+                    "both original Forests must be tapped to pay actual {1}{G}");
+            Assert.assertEquals(caster.getCardsIn(ZoneType.Hand).size(),2,
+                    "one Visionary left hand and exactly one private drawn card replaced it");
+            Assert.assertEquals(caster.getLife(),20);
+            Assert.assertEquals(opponent.getLife(),20);
+            Assert.assertEquals(fullPhysicalInventory(caster),frozenMain.owned(caster));
+            Assert.assertEquals(fullPhysicalInventory(opponent),frozenMain.owned(opponent));
+            Assert.assertTrue(workerA.process.isAlive() && workerB.process.isAlive());
+            System.out.println("STAGE12B_CONTROLLED_VISIONARY left_first="+leftRegisteredFirst+
+                    " native_paid_cast=true etb_private_draw=1");
+        }
+        // Two independent, untouched naturally shuffled original 60-card
+        // complete games per seat. NO fixture cards, forced mulligans,
+        // life modifications, lucky-seed selection or truncated outcomes.
+        for(int sequence=0;sequence<2;sequence++) {
+            Game natural=nativeVisionaryGame(leftRegisteredFirst);
+            Player left=natural.getPlayers().get(leftRegisteredFirst?0:1);
+            Player right=natural.getPlayers().get(leftRegisteredFirst?1:0);
+            try(Actor workerL=new Actor(5);Actor workerR=new Actor(5)) {
+                Assert.assertNotEquals(workerL.process.pid(),workerR.process.pid());
+                ExternalCreatureController lc=attach(natural,left,right,workerL);
+                ExternalCreatureController rc=attach(natural,right,left,workerR);
+                doRealNativeStartForMultiTurn(natural,lc,rc);
+                Assert.assertEquals(left.getLife(),20);
+                Assert.assertEquals(right.getLife(),20);
+                Assert.assertTrue(lc.openingCallbacks>0 && rc.openingCallbacks>0);
+                for(Player p:Arrays.asList(left,right)) {
+                    Assert.assertTrue(p.getCardsIn(ZoneType.Battlefield).isEmpty());
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                }
+                int steps=0;
+                while(!natural.isGameOver() && steps++<85000)
+                    natural.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(steps<85000,"full natural game must terminate");
+                Assert.assertTrue(natural.isGameOver());
+                Assert.assertNotNull(natural.getOutcome());
+                Assert.assertFalse(natural.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(natural.getOutcome().isWinner(winner.getRegisteredPlayer()));
+                for(Player p:Arrays.asList(left,right))
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                Assert.assertTrue(workerL.process.isAlive() && workerR.process.isAlive());
+                System.out.println("STAGE12B_NATURAL_VISIONARY left_first="+
+                        leftRegisteredFirst+" sequence="+sequence+
+                        " winner="+winner.getName());
+            }
+        }
+    }
+
+    @Test(timeOut=240000)
+    public void nativeVisionaryEtbPrivateDrawLeftRegisteredFirst() throws Exception {
+        verifyVisionaryEtbAndNaturalGames(true);
+    }
+
+    @Test(timeOut=240000)
+    public void nativeVisionaryEtbPrivateDrawRightRegisteredFirst() throws Exception {
+        verifyVisionaryEtbAndNaturalGames(false);
+    }
+
 }
