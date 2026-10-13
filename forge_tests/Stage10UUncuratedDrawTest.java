@@ -9593,29 +9593,42 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             boolean nativeFlyingRestriction=false;
             boolean nativeAttack=false,realUnblockedDamage=false;
             int steps=0, spriteBattlefieldSamples=0, untappedBalothSamples=0;
+            Card liveSprite=null, liveBaloth=null;
             while(!fixture.isGameOver() && steps++<3000) {
                 // Explicit fixture-only readiness: even if Baloth attacked
                 // on the preceding turn, it is an UNTAPPED possible blocker
                 // for the real Flying combat. Never done in natural games.
-                if(attacker.getCardsIn(ZoneType.Battlefield).contains(sprite) &&
+                // Forge can create a new current Card state on zone changes.
+                // Match the original physical ID, then query the LIVE battlefield
+                // instances: a stale hand Card cannot supply active Flying statics.
+                liveBaloth=defender.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->c.getId()==baloth.getId())
+                        .findFirst().orElse(null);
+                if(liveBaloth!=null &&
                         fixture.getPhaseHandler().getPlayerTurn()==attacker &&
-                        baloth.isTapped()) baloth.setTapped(false);
+                        liveBaloth.isTapped()) liveBaloth.setTapped(false);
                 fixture.getPhaseHandler().mainLoopStep();
-                if(attacker.getCardsIn(ZoneType.Battlefield).contains(sprite)) {
+                liveSprite=attacker.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->c.getId()==sprite.getId())
+                        .findFirst().orElse(null);
+                liveBaloth=defender.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->c.getId()==baloth.getId())
+                        .findFirst().orElse(null);
+                if(liveSprite!=null && liveBaloth!=null) {
                     spriteBattlefieldSamples++;
-                    if(!baloth.isTapped()) untappedBalothSamples++;
+                    if(!liveBaloth.isTapped()) untappedBalothSamples++;
                     if(forest.isTapped()) nativePaid=true;
                     // Test the PRINTED evasion rule itself, not the
                     // unrelated readiness of the defending creature.
                     // The nextTurn form ignores tapped status, so this
                     // cannot accidentally pass because Baloth attacked.
                     nativeFlyingRestriction |=
-                            StaticAbilityCantAttackBlock.cantBlockBy(sprite,baloth)
-                            && !CombatUtil.canBlock(sprite,baloth,true);
-                    if(!baloth.isTapped() && !publicFlyingPreference) {
+                            StaticAbilityCantAttackBlock.cantBlockBy(liveSprite,liveBaloth)
+                            && !CombatUtil.canBlock(liveSprite,liveBaloth,true);
+                    if(!liveBaloth.isTapped() && !publicFlyingPreference) {
                         JsonObject preference=actor.ask(observation(attacker,defender));
                         JsonArray attacks=preference.getAsJsonArray("attack_table_indices");
-                        int spriteIndex=attacker.getCardsIn(ZoneType.Battlefield).indexOf(sprite);
+                        int spriteIndex=attacker.getCardsIn(ZoneType.Battlefield).indexOf(liveSprite);
                         for(JsonElement entry:attacks) {
                             if(entry.getAsInt()==spriteIndex) publicFlyingPreference=true;
                         }
@@ -9633,11 +9646,13 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     " ready="+untappedBalothSamples+" steps="+steps+
                     " paid="+nativePaid+" attacker_turn="+
                     (fixture.getPhaseHandler().getPlayerTurn()==attacker)+
-                    " sprite_zone="+sprite.getZone().getZoneType()+
-                    " baloth_tapped="+baloth.isTapped()+
-                    " flying="+sprite.hasKeyword("Flying")+
-                    " direct_static="+StaticAbilityCantAttackBlock.cantBlockBy(sprite,baloth)+
-                    " nextturn_canblock="+CombatUtil.canBlock(sprite,baloth,true)+
+                    " sprite_zone="+(liveSprite==null?"not_in_play":liveSprite.getZone().getZoneType())+
+                    " baloth_tapped="+(liveBaloth!=null && liveBaloth.isTapped())+
+                    " flying="+(liveSprite!=null && liveSprite.hasKeyword("Flying"))+
+                    " direct_static="+(liveSprite!=null && liveBaloth!=null &&
+                            StaticAbilityCantAttackBlock.cantBlockBy(liveSprite,liveBaloth))+
+                    " nextturn_canblock="+(liveSprite!=null && liveBaloth!=null &&
+                            CombatUtil.canBlock(liveSprite,liveBaloth,true))+
                     " attack_callbacks="+ac.attackCallbacks+
                     " attacks_authorized="+ac.attacksAuthorized+
                     " defender_life="+defender.getLife());
@@ -9648,7 +9663,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             Assert.assertEquals(defender.getLife(),19);
             Assert.assertTrue(defender.getCardsIn(ZoneType.Battlefield).contains(baloth));
             Assert.assertTrue(attacker.getCardsIn(ZoneType.Battlefield).contains(sprite));
-            Assert.assertFalse(baloth.isTapped(),
+            Assert.assertNotNull(liveBaloth,"registered Baloth remains physically on battlefield");
+            Assert.assertFalse(liveBaloth.isTapped(),
                     "grounded Baloth was a ready but illegal Flying blocker");
             Assert.assertEquals(dc.blocksAuthorized,0);
             Assert.assertEquals(fullPhysicalInventory(attacker),frozenMain.owned(attacker));
