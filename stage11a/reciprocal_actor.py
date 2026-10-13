@@ -341,7 +341,7 @@ for raw in sys.stdin.buffer:
         and len(elves) == 1 and len(targets) == 1
         and view['opponent_table'][targets[0]]['card'] in VANILLA_BEARS
         and all(record.get('appearance') == 'face_up'
-                and record.get('card') in (VANILLA_BEARS | LANDS)
+                and record.get('card') in (VANILLA_BEARS | LANDS | {'Llanowar Elves'})
                 for record in view['opponent_table']))
     if emergency_elf_chump:
         block_pairs.append([elves[0], targets[0]])
