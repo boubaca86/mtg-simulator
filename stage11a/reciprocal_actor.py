@@ -40,51 +40,90 @@ def public_power(name):
         return 4
     return 3 if name in VANILLA_THREES else 2
 
-for raw in sys.stdin.buffer:
-    if len(raw) > 16384:
-        raise SystemExit('oversized observation')
-    message = json.loads(raw, object_pairs_hook=_strict_object_pairs,
+def validate_view(view):
+    if not isinstance(view, dict) or set(view) != {'objective', 'own_cards', 'opponent_table', 'life_totals'}:
+        raise SystemExit('observation contract violation')
+    if not isinstance(view['objective'], str) or not 0 < len(view['objective']) <= 2000:
+        raise SystemExit('invalid objective')
+    own = view['own_cards']
+    if not isinstance(own, dict) or set(own) != {'hand', 'decklist_multiset', 'table'}:
+        raise SystemExit('own card projection violation')
+    def name(value):
+        return isinstance(value, str) and 0 < len(value) <= 200
+    if not isinstance(own['hand'], list) or len(own['hand']) > 128 or not all(map(name, own['hand'])):
+        raise SystemExit('invalid own hand')
+    counts = own['decklist_multiset']
+    if not isinstance(counts, list) or len(counts) > 256:
+        raise SystemExit('invalid registered deck')
+    seen = set()
+    for pair in counts:
+        if (not isinstance(pair, list) or len(pair) != 2 or not name(pair[0])
+                or type(pair[1]) is not int or not 1 <= pair[1] <= 1000 or pair[0] in seen):
+            raise SystemExit('invalid registered deck')
+        seen.add(pair[0])
+    for table in (own['table'], view['opponent_table']):
+        if not isinstance(table, list) or len(table) > 128:
+            raise SystemExit('invalid visible table')
+        for card in table:
+            if not isinstance(card, dict):
+                raise SystemExit('invalid visible card')
+            if card.get('appearance') == 'face_down':
+                if set(card) != {'appearance'}:
+                    raise SystemExit('face-down information leak')
+            elif card.get('appearance') == 'face_up':
+                if set(card) != {'appearance', 'card'} or not name(card['card']):
+                    raise SystemExit('invalid visible card')
+            else:
+                raise SystemExit('invalid appearance')
+    life = view['life_totals']
+    if (not isinstance(life, dict) or set(life) != {'self', 'opponent'}
+            or any(type(n) is not int or abs(n) > 1000000000 for n in life.values())):
+        raise SystemExit('invalid life totals')
+
+
+def own_hand_order(hand):
+    # Discard unsupported spells, then surplus basics, then smaller known
+    # creatures. Retain enough preferred basics in this HAND for its largest
+    # known vanilla creature (up to four); no opponent or referee state.
+    needed_lands = max([2] + [4 if name in VANILLA_FOURS else 3
+                              for name in hand
+                              if name in VANILLA_FOURS | VANILLA_THREES])
+    lands = sorted((i for i, name in enumerate(hand) if name in LANDS),
+                   key=lambda i: (hand[i] != 'Forest', i))
+    retained_lands = set(lands[:needed_lands])
+    def score(i):
+        name = hand[i]
+        if name not in LANDS and name not in CREATURES:
+            return (0, 0, i)
+        if name in LANDS and i not in retained_lands:
+            return (1, 0, i)
+        if name in CREATURES:
+            return (2, public_power(name) if name in VANILLA_FIGHTERS else 1, i)
+        return (3, 0, i)
+    return sorted(range(len(hand)), key=score)
+
+
+while True:
+    raw = sys.stdin.buffer.readline(16385)
+    if not raw:
+        break
+    if len(raw) > 16384 or not raw.endswith(b'\n'):
+        raise SystemExit('oversized or unterminated observation')
+    message = json.loads(raw.decode("utf-8"), object_pairs_hook=_strict_object_pairs,
                          parse_constant=_reject_nonfinite_constant,
                          parse_float=_strict_json_float)
-    opening = isinstance(message, dict) and set(message) == {'request', 'observation'}
-    if opening:
-        if message['request'] != 'own_opening_hand':
-            raise SystemExit('unapproved IPC action type')
-        view = message['observation']
-    else:
-        view = message
-    # Strict denylist: an actor must never be told game authority fields.
-    if set(view) != {'objective', 'own_cards', 'opponent_table', 'life_totals'}:
-        raise SystemExit('observation contract violation')
-    if set(view['own_cards']) != {'hand', 'decklist_multiset', 'table'}:
-        raise SystemExit('own card projection violation')
-    if not isinstance(view['objective'], str):
-        raise SystemExit('invalid objective')
-    if not isinstance(view['life_totals'], dict) or set(view['life_totals']) != {'self', 'opponent'}:
-        raise SystemExit('invalid life projection')
-    if any(type(value) is not int for value in view['life_totals'].values()):
-        raise SystemExit('invalid life totals')
-    for key in ('table',):
-        if not isinstance(view['own_cards'][key], list):
-            raise SystemExit('invalid own table')
-    if not isinstance(view['opponent_table'], list):
-        raise SystemExit('invalid opponent table')
-    for record in view['own_cards']['table'] + view['opponent_table']:
-        if not isinstance(record, dict) or record.get('appearance') not in ('face_up', 'face_down'):
-            raise SystemExit('invalid card appearance')
-        if record['appearance'] == 'face_down':
-            if set(record) != {'appearance'}:
-                raise SystemExit('face-down identity forbidden')
-        elif set(record) != {'appearance', 'card'} or not isinstance(record['card'], str):
-            raise SystemExit('invalid face-up card')
-    if not isinstance(view['own_cards']['hand'], list) or any(not isinstance(x, str) for x in view['own_cards']['hand']):
-        raise SystemExit('invalid own hand')
-    if not isinstance(view['own_cards']['decklist_multiset'], list):
-        raise SystemExit('invalid own deck multiset')
-    for entry in view['own_cards']['decklist_multiset']:
-        if not isinstance(entry, list) or len(entry) != 2 or not isinstance(entry[0], str) or type(entry[1]) is not int or entry[1] < 0:
-            raise SystemExit('invalid own deck entry')
+    envelope = isinstance(message, dict) and set(message) == {'request', 'observation'}
+    kind = message['request'] if envelope else None
+    if envelope and kind not in ('own_opening_hand', 'own_hand_order'):
+        raise SystemExit('unapproved IPC action type')
+    view = message['observation'] if envelope else message
+    validate_view(view)
     hand = view['own_cards']['hand']
+    if kind == 'own_hand_order':
+        print(json.dumps({'intent': 'hand_order', 'hand_priority': own_hand_order(hand)},
+                         separators=(',', ':')), flush=True)
+        continue
+    opening = kind == 'own_opening_hand'
     if opening:
         # Derive everything from OWN hand; no deck order, opponent hand, or
         # referee mulligan counter is sent. The referee validates the index
