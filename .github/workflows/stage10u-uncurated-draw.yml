@@ -1,7 +1,7 @@
 name: Stage 12C - Mana-Preserving London Bottoms
 
 # Two external persistent actor processes plus one authoritative Forge referee.
-# Stage12C preserves a payable opening creature, with four native cases and 160 inherited methods.
+# Stage12C preserves a payable opening creature, with five native cases and 160 inherited methods.
 # Inherited uncurated natural matches remain separate from arranged regressions.
 # Registered 60-card decks, no hand curation, true London opening and 20 life; not full MTG or OS sandbox.
 on:
@@ -132,7 +132,7 @@ jobs:
           set -euo pipefail
           python3 -m unittest -v stage12c.test_protocol stage11y.test_protocol forge_tests.test_verify_stage11o_surefire 2>&1 \
             | tee stage10u-evidence/stage12c-python-tests.log
-      - name: Run four London retention cases and 160 inherited Forge tests
+      - name: Run five London retention cases and 160 inherited Forge tests
         shell: bash
         run: |
           set -euo pipefail
@@ -153,7 +153,7 @@ jobs:
           tail -n 75 "$GITHUB_WORKSPACE/stage10u-evidence/maven.log"
           python3 -c 'import os; from pathlib import Path; print("\n".join(line for line in (Path(os.environ["GITHUB_WORKSPACE"]) / "stage10u-evidence/maven.log").read_text().splitlines() if line.startswith(("STAGE11W_", "STAGE11X_", "STAGE11Y_", "STAGE11Z_", "STAGE12A_", "STAGE12B_", "STAGE12C_"))))'
           test "$code" -eq 0
-      - name: Verify exact 164 genuine Forge-native methods with independent XML gate
+      - name: Verify exact 165 genuine Forge-native methods with independent XML gate
         shell: bash
         run: |
           set -euo pipefail

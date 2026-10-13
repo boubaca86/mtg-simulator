@@ -1253,7 +1253,12 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             if(!ownHandOpeningEnabled) {
                 throw new SecurityException("opening-hand protocol not enabled");
             }
-            if(cardsToReturn<0 || cardsToReturn>controlled.getCardsIn(ZoneType.Hand).size()) {
+            // LondonMulligan already bottomed this many cards before Forge
+            // asks whether to keep. Its count can exceed the remaining hand
+            // (for example four returned, three kept), up to the native maximum.
+            // This is a keep decision; tuckCardsViaMulligan separately validates
+            // a selection count against the full, pre-bottom physical hand.
+            if(cardsToReturn<0 || cardsToReturn>controlled.getMaxHandSize()) {
                 throw new SecurityException("referee invalid mulligan count");
             }
             try {
@@ -9517,6 +9522,56 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             Assert.assertEquals(self.getLife(),20);Assert.assertEquals(other.getLife(),20);
             Assert.assertTrue(a.process.isAlive() && b.process.isAlive());
             System.out.println("STAGE12C_RETAINED_CAST kept_hand=3 original_bear=true paid_forests=2 native_turns=true");
+        }
+    }
+
+    @Test(timeOut=120000)
+    public void stage12cRepeatedNativeMulligansAllowReducedHands() throws Exception {
+        Game game=stage12cOpeningFixture(false);
+        Player self=game.getPlayers().get(0),other=game.getPlayers().get(1);
+        Set<Long> originalIds=new TreeSet<>(stage12cCardIds(self.getCardsIn(ZoneType.Library)));
+        Assert.assertEquals(originalIds.size(),60);
+        try(Actor a=new Actor(5);Actor b=new Actor(5)) {
+            Assert.assertNotEquals(a.process.pid(),b.process.pid());
+            ExternalCreatureController ac=attach(game,self,other,a);
+            attach(game,other,self,b);
+            ac.enableOwnHandOpening();
+            self.drawCards(7);
+            // Explicitly drive seven successive mulligans in this fixture,
+            // regardless of the worker's keep preference. No counter override:
+            // native Forge returns, shuffles, draws, increments and bottoms.
+            forge.game.mulligan.LondonMulligan london=
+                    new forge.game.mulligan.LondonMulligan(self,false);
+            for(int count=0;count<=7;count++) {
+                if(count>0) london.mulligan();
+                Assert.assertEquals(london.tuckCardsDuringMulligan(),count);
+                Assert.assertEquals(self.getCardsIn(ZoneType.Hand).size(),7-count);
+                Assert.assertEquals(self.getCardsIn(ZoneType.Library).size(),53+count);
+                int callbacks=ac.openingCallbacks;
+                boolean keep=ac.mulliganKeepHand(self,london.tuckCardsDuringMulligan());
+                Assert.assertEquals(ac.openingCallbacks,callbacks+1);
+                if(count>=6) Assert.assertTrue(keep,"one or zero cards terminates the actor's mulligans");
+                Set<Long> currentIds=new TreeSet<>(stage12cCardIds(self.getCardsIn(ZoneType.Library)));
+                currentIds.addAll(stage12cCardIds(self.getCardsIn(ZoneType.Hand)));
+                Assert.assertEquals(currentIds,originalIds);
+                Assert.assertEquals(fullPhysicalInventory(self),frozenMain.owned(self));
+                Assert.assertEquals(fullPhysicalInventory(other),frozenMain.owned(other));
+                Assert.assertFalse(game.isGameOver());
+                Assert.assertEquals(self.getLife(),20);Assert.assertEquals(other.getLife(),20);
+                System.out.println("STAGE12C_REPEATED_LONDON native_count="+count+
+                        " remaining_hand="+(7-count)+" keep_callback_accepted=true");
+            }
+            int callbacks=ac.openingCallbacks;
+            for(int invalid:new int[]{-1,8,Integer.MAX_VALUE}) {
+                try {
+                    ac.mulliganKeepHand(self,invalid);
+                    Assert.fail("invalid native mulligan count accepted: "+invalid);
+                } catch(SecurityException expected) {
+                    Assert.assertEquals(expected.getMessage(),"referee invalid mulligan count");
+                }
+            }
+            Assert.assertEquals(ac.openingCallbacks,callbacks,"bad counts fail before actor choice");
+            Assert.assertTrue(a.process.isAlive() && b.process.isAlive());
         }
     }
 

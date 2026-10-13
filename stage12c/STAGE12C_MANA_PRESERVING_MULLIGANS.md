@@ -33,8 +33,8 @@ moves the actual physical cards.
 
 ## Verification and integration
 
-The independent XML gate requires exactly **164 native Forge methods**:
-160 inherited integration regressions and four new methods:
+The independent XML gate requires exactly **165 native Forge methods**:
+160 inherited integration regressions and five new methods:
 
 - Two independent opening workers return identical choices while the
   opponent's hidden hand and both library orders change.
@@ -45,7 +45,7 @@ The independent XML gate requires exactly **164 native Forge methods**:
 - After retaining two Forests and the original Bear, native turns play lands,
   pay mana, put that original Bear on the stack and resolve it onto the board.
 
-These four are explicitly arranged registered-card fixtures. The London
+The first four are explicitly arranged registered-card fixtures. The London
 fixture overrides only `tuckCardsDuringMulligan()` to supply a fixed test
 count; it does not prove Forge computed that count through repeated natural
 mulligans. The actual draw, controller callback and bottom movements are
@@ -69,6 +69,18 @@ upstream arranged Elf-combat fixtures use the same explicit priority-pass
 fixture control as the earlier combat fixtures, keeping the declared board
 stable while native combat proceeds. Their separate natural games retain
 normal priority decisions.
+
+The initial push CI exposed an inherited keep-callback boundary error during a
+natural Visionary game: the already-applied London return count was compared
+with the remaining hand size. Four returned cards leave three in hand, so that
+comparison rejected a valid native callback. The adapter now bounds the keep
+count by Forge's maximum; actual bottom selection retains its separate physical
+hand-size check. A fifth regression drives seven successive native
+`LondonMulligan.mulligan()` calls without overriding the counter, checks every
+reduced-hand callback and all original card IDs, and rejects negative or
+above-maximum counts before IPC. This is an explicitly driven sequence, not a
+natural keep-policy trajectory. Natural games are not retried for favorable
+outcomes.
 
 ## Limits and references
 
