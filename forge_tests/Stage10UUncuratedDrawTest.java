@@ -21,6 +21,7 @@ import forge.item.PaperCard;
 import forge.model.FModel;
 import forge.game.combat.Combat;
 import forge.game.combat.CombatUtil;
+import forge.game.staticability.StaticAbilityCantAttackBlock;
 import forge.game.card.Card;
 import forge.game.card.CardCollectionView;
 import forge.game.card.CardCollection;
@@ -9602,9 +9603,13 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 fixture.getPhaseHandler().mainLoopStep();
                 if(attacker.getCardsIn(ZoneType.Battlefield).contains(sprite)) {
                     if(forest.isTapped()) nativePaid=true;
-                    if(!baloth.isTapped()) {
-                        nativeFlyingRestriction |= !CombatUtil.canBlock(sprite,baloth);
-                    }
+                    // Test the PRINTED evasion rule itself, not the
+                    // unrelated readiness of the defending creature.
+                    // The nextTurn form ignores tapped status, so this
+                    // cannot accidentally pass because Baloth attacked.
+                    nativeFlyingRestriction |=
+                            StaticAbilityCantAttackBlock.cantBlockBy(sprite,baloth)
+                            && !CombatUtil.canBlock(sprite,baloth,true);
                     if(!baloth.isTapped() && !publicFlyingPreference) {
                         JsonObject preference=actor.ask(observation(attacker,defender));
                         JsonArray attacks=preference.getAsJsonArray("attack_table_indices");
