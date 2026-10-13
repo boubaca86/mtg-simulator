@@ -9808,9 +9808,10 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             Assert.assertEquals(initial.get("intent").getAsString(),"action_plan");
             Assert.assertEquals(initial.getAsJsonArray("creature_hand_indices")
                     .get(0).getAsInt(),0);
-            for(String denied:Arrays.asList("\\"phase\\"","\\"priority\\"",
-                    "\\"stack\\"","\\"library_top\\"","\\"opponent_hand\\""))
-                Assert.assertFalse(projected.contains(denied));
+            JsonObject publicView=JsonParser.parseString(projected).getAsJsonObject();
+            for(String denied:Arrays.asList("phase","priority","stack",
+                    "library_top","opponent_hand"))
+                Assert.assertFalse(publicView.has(denied));
             offense.shuffle(null);
             Assert.assertEquals(observation(defense,offense),projected);
             Assert.assertEquals(defenderWorker.ask(projected),initial);
