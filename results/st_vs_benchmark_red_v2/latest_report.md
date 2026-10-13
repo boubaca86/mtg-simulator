@@ -1,6 +1,6 @@
 # S.T vs Benchmark Red — V2 Fair-Search AI
 
-**Games:** 101,000
+**Games:** 101,500
 **S.T win rate:** 91.53%
 
 ## Fair-play checks
@@ -14,17 +14,17 @@
 
 | Card | Drawn WR | Not drawn WR | Delta | Cast WR | Cast rate |
 |---|---:|---:|---:|---:|---:|
-| Servitor | 93.56% | 87.54% | +6.02 pp | 93.82% | 64.83% |
-| Eradicator S.T | 93.16% | 88.56% | +4.60 pp | 95.07% | 57.94% |
-| Drop Pod S.T | 93.01% | 88.73% | +4.29 pp | 93.32% | 57.49% |
-| Pyroclast Squad S.T | 92.85% | 88.97% | +3.89 pp | 93.66% | 64.31% |
-| Terminator S.T | 92.81% | 89.05% | +3.75 pp | 93.30% | 65.53% |
+| Servitor | 93.57% | 87.53% | +6.04 pp | 93.83% | 64.82% |
+| Eradicator S.T | 93.15% | 88.57% | +4.58 pp | 95.06% | 57.94% |
+| Drop Pod S.T | 93.01% | 88.73% | +4.28 pp | 93.31% | 57.49% |
+| Pyroclast Squad S.T | 92.86% | 88.95% | +3.91 pp | 93.66% | 64.32% |
+| Terminator S.T | 92.81% | 89.05% | +3.76 pp | 93.30% | 65.51% |
 | Exterminatus S.T | 89.08% | 92.21% | -3.13 pp | 0.00% | 0.00% |
-| Vindicator S.T | 90.24% | 92.33% | -2.09 pp | 92.61% | 4.23% |
-| Infernus S.T | 91.93% | 90.79% | +1.14 pp | 93.08% | 61.50% |
-| Whirlwind S.T | 91.12% | 92.24% | -1.12 pp | 93.35% | 47.90% |
-| Servo-Skull | 91.17% | 91.64% | -0.47 pp | 91.24% | 21.98% |
-| Demolitionist S.T | 91.59% | 91.43% | +0.16 pp | 93.21% | 47.25% |
+| Vindicator S.T | 90.23% | 92.33% | -2.09 pp | 92.65% | 4.24% |
+| Whirlwind S.T | 91.12% | 92.26% | -1.14 pp | 93.34% | 47.90% |
+| Infernus S.T | 91.92% | 90.80% | +1.12 pp | 93.07% | 61.50% |
+| Servo-Skull | 91.18% | 91.64% | -0.46 pp | 91.24% | 21.99% |
+| Demolitionist S.T | 91.58% | 91.44% | +0.15 pp | 93.21% | 47.27% |
 
 ## Limits
 
