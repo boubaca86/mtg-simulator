@@ -54,6 +54,8 @@ class LondonBottomTests(unittest.TestCase):
     def test_each_affordable_creature_retains_required_basic_mana(self):
         actor = self.launch()
         for creature, cost, green in (("Llanowar Elves", 1, 1),
+                                     ("Scryb Sprites", 1, 1),
+                                     ("Sedge Scorpion", 1, 1),
                                      ("Grizzly Bears", 2, 1),
                                      ("Elvish Visionary", 2, 1),
                                      ("Runeclaw Bear", 2, 1),

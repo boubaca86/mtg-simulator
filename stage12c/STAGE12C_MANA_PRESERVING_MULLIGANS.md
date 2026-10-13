@@ -1,12 +1,12 @@
-# Stage 12C: preserve a payable creature during London bottom choices
+# Mana-preserving London mulligans, integrated through Stage 12D
 
-This integrates development through Stage 12B
-`e58a0c5343b69c17839b800fac1c59da2503168d` with the tested cleanup and evidence
+This integrates development through Stage 12D
+`2306becd48746c187cd2d5fe3215d2821b1504a5` with the tested cleanup and evidence
 work in [PR #32](https://github.com/boubaca86/mtg-simulator/pull/32), head
 `5e9126636c31883baff5dd048ac74c416b04bc1d`, and its parent
 [PR #31](https://github.com/boubaca86/mtg-simulator/pull/31).
 Those pull requests remain unmerged. This branch carries both histories so
-the current Visionary, two-Elf defense and cleanup behavior are preserved.
+the current Flying, Deathtouch, Visionary, two-Elf defense and cleanup behavior are preserved.
 
 ## Behavior
 
@@ -16,7 +16,7 @@ creature. The reciprocal worker now protects the cheapest supported creature
 that the basics in its own hand can pay for, together with the required lands.
 Forests are preferred for green requirements, including Baloth's two green
 mana. The supported costs cover Llanowar Elves, the three vanilla Bears,
-Centaur Courser, Rumbling Baloth and Elvish Visionary.
+Centaur Courser, Rumbling Baloth, Elvish Visionary, Scryb Sprites and Sedge Scorpion.
 
 Unsupported spells, surplus basics and other creatures precede the protected
 group. Original hand indices break ties, including duplicate card names.
@@ -33,8 +33,8 @@ moves the actual physical cards.
 
 ## Verification and integration
 
-The independent XML gate requires exactly **165 native Forge methods**:
-160 inherited integration regressions and five new methods:
+The independent XML gate requires exactly **169 native Forge methods**:
+164 inherited integration regressions and five new methods:
 
 - Two independent opening workers return identical choices while the
   opponent's hidden hand and both library orders change.
@@ -53,7 +53,7 @@ native. Existing uncurated `Match.startGame` cohorts separately exercise
 natural shuffles, mulligans, paid casting and real outcomes without hand,
 deck, seed or outcome selection.
 
-Thirty-one Python checks cover opening preservation, seven supported creature
+Thirty-one Python checks cover opening preservation, nine supported creature
 names across all seven cyclic hand layouts and every safe prefix, duplicate
 indices, color requirements, independent processes, own-hand-only behavior,
 cleanup and strict evidence handling. The inherited disabled-validator
