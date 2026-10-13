@@ -1,12 +1,14 @@
-name: Stage 11W - Emergency Llanowar Elf Chump Block
+name: Stage 11X - Elf Combat Damage Integration
 
 # Two external persistent actor processes plus one authoritative Forge referee.
-# Stage11W extends 136 pinned native Forge tests: a registered 1/1 Llanowar Elves blocks lethal known 2/2 at own life two; real Forge life, original Elf graveyard, and two untouched natural 60-card Elf-deck games per seat order.
+# Stage11X repairs Stage11W Elf combat damage and adds two boundary tests to 138 inherited methods.
+# Inherited uncurated natural matches remain separate from arranged regressions.
 # Registered 60-card decks, no hand curation, true London opening and 20 life; not full MTG or OS sandbox.
 on:
   push:
     branches:
       - expert-stage9a-forge-decision-pairs
+      - expert-stage11x-elf-combat-damage
     paths:
       - .github/workflows/stage10u-uncurated-draw.yml
       - stage9w/opening_hand_actor.py
@@ -22,6 +24,27 @@ on:
       - stage11a/reciprocal_actor.py
       - forge_tests/Stage10UUncuratedDrawTest.java
       - forge_tests/verify_stage10u_surefire.py
+      - forge_tests/stage11o_rejection_integrity.py
+      - forge_tests/test_verify_stage11o_surefire.py
+      - stage11x/**
+
+  pull_request:
+    paths:
+      - .github/workflows/stage10u-uncurated-draw.yml
+      - stage9w/**
+      - stage10b/**
+      - stage10d/**
+      - stage10e/**
+      - stage10h/**
+      - stage10l/**
+      - stage10o/**
+      - stage10v/**
+      - stage11a/**
+      - stage11x/**
+      - forge_tests/Stage10UUncuratedDrawTest.java
+      - forge_tests/verify_stage10u_surefire.py
+      - forge_tests/stage11o_rejection_integrity.py
+      - forge_tests/test_verify_stage11o_surefire.py
 
 permissions:
   contents: read
@@ -74,7 +97,7 @@ jobs:
           test "$(git -C forge-src rev-parse HEAD)" = 4ec5f1a2c32fa90ecb983a72b9eb47aa5c5d7676
           git -C forge-src rev-parse HEAD > stage10u-evidence/forge-sha.txt
           git rev-parse HEAD > stage10u-evidence/feature-sha.txt
-          sha256sum stage9w/opening_hand_actor.py stage10b/action_plan_actor.py stage10d/multi_block_actor.py stage10d/test_protocol.py stage10e/menace_defense_actor.py stage10e/test_protocol.py forge_tests/Stage10UUncuratedDrawTest.java stage10h/test_protocol.py stage10l/adversarial_actor.py stage10o/controlled_delay_actor.py stage10v/visible_opponent_actor.py stage11a/reciprocal_actor.py forge_tests/verify_stage10u_surefire.py \
+          sha256sum stage9w/opening_hand_actor.py stage10b/action_plan_actor.py stage10d/multi_block_actor.py stage10d/test_protocol.py stage10e/menace_defense_actor.py stage10e/test_protocol.py forge_tests/Stage10UUncuratedDrawTest.java stage10h/test_protocol.py stage10l/adversarial_actor.py stage10o/controlled_delay_actor.py stage10v/visible_opponent_actor.py stage11a/reciprocal_actor.py forge_tests/verify_stage10u_surefire.py forge_tests/stage11o_rejection_integrity.py forge_tests/test_verify_stage11o_surefire.py \
             > stage10u-evidence/source-hashes.txt
           test -r "$STAGE10G_WORKER"
           test -r "$STAGE10G_LEGACY_PLAN_WORKER"
@@ -97,7 +120,13 @@ jobs:
         run: |
           set -euo pipefail
           python3 stage10h/test_protocol.py | tee stage10u-evidence/stage10h-protocol.log
-      - name: Run native Llanowar emergency chump and 136 inherited Forge tests
+      - name: Verify evidence and rejection-integrity checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest -v forge_tests.test_verify_stage11o_surefire 2>&1 \
+            | tee stage10u-evidence/stage11x-python-tests.log
+      - name: Run Elf damage boundaries and 138 inherited Forge tests
         shell: bash
         run: |
           set -euo pipefail
@@ -116,19 +145,29 @@ jobs:
           fi
           echo "Forge Maven exit: $code"
           tail -n 75 "$GITHUB_WORKSPACE/stage10u-evidence/maven.log"
+          python3 -c 'import os; from pathlib import Path; print("\n".join(line for line in (Path(os.environ["GITHUB_WORKSPACE"]) / "stage10u-evidence/maven.log").read_text().splitlines() if line.startswith(("STAGE11W_", "STAGE11X_"))))'
           test "$code" -eq 0
-      - name: Verify exact 138 genuine Forge-native methods with independent XML gate
+      - name: Verify exact 140 genuine Forge-native methods with independent XML gate
         shell: bash
         run: |
           set -euo pipefail
           python3 forge_tests/verify_stage10u_surefire.py \
             --reports stage10u-evidence/surefire \
             | tee stage10u-evidence/gate.json
+      - name: Prove repaired assertions detect a disabled validator
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m forge_tests.stage11o_rejection_integrity \
+            --forge-root forge-src \
+            --baseline stage10u-evidence/surefire \
+            --evidence stage10u-evidence/rejection-mutation \
+            | tee stage10u-evidence/rejection-mutation.log
       - name: Save build, per-method XML, source hashes and gate result
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stage11w-registered-elf-chump-${{ github.run_id }}-${{ github.run_attempt }}
+          name: stage11x-elf-combat-damage-${{ github.run_id }}-${{ github.run_attempt }}
           path: stage10u-evidence/
           if-no-files-found: warn
           retention-days: 14

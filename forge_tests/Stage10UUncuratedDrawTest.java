@@ -864,6 +864,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 int damageDealt,GameEntity defender,boolean overrideOrder) {
             if(source==null || source.getController()!=controlled ||
                     !controlled.getCardsIn(ZoneType.Battlefield).contains(source) ||
+                    source.isFaceDown() || !source.isCreature() ||
                     !(supportedVanillaFighter(source.getName()) ||
                       "Llanowar Elves".equals(source.getName())) ||
                     damageDealt!=("Rumbling Baloth".equals(source.getName())?4:
@@ -877,6 +878,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             Set<Card> unique=Collections.newSetFromMap(new IdentityHashMap<Card,Boolean>());
             for(Card target:targets) {
                 if(target==null || !unique.add(target) ||
+                        target.isFaceDown() || !target.isCreature() ||
                         !(supportedVanillaFighter(target.getName()) ||
                           "Llanowar Elves".equals(target.getName())) ||
                         target.getController()!=opponent ||
@@ -884,6 +886,11 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     throw new SecurityException("unregistered or unsupported combat target");
                 }
             }
+            // Stage11X: Stage11W permits a real Llanowar Elves blocker.
+            // The same current, face-up opponent creature must therefore
+            // be eligible to RECEIVE damage. Forge supplies the actual
+            // blockers and applies damage; no new actor fields are
+            // authorized here (CR 510.1c-d, 510.2).
             // Stage11M: CR 510.1c-d + 704.5g. Allocate to Forge's
             // current remaining lethal damage, NOT printed toughness:
             // already-marked damage (and damage assigned by other
@@ -1406,12 +1413,13 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             "{\"intent\":\"play_land\",\"hand_index\":0.5}",
             "{\"intent\":\"play_land\",\"hand_index\":-1}",
             "{\"intent\":\"pass\",\"opponent_hand\":[]}")) {
+            boolean rejected=false;
             try {
                 validateReply(JsonParser.parseString(candidate).getAsJsonObject());
-                Assert.fail("referee must reject forged payload "+candidate);
             } catch(AssertionError expected) {
-                Assert.assertNotNull(expected.getMessage());
+                rejected=true;
             }
+            Assert.assertTrue(rejected,"FORGED_PAYLOAD_ACCEPTED: "+candidate);
         }
         Assert.assertEquals(active.getCardsIn(ZoneType.Hand).size(),initial);
         Assert.assertEquals(active.getLandsPlayedThisTurn(),0);
@@ -1531,12 +1539,13 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             "{\"intent\":\"cast_creature\",\"hand_index\":\"0\"}",
             "{\"intent\":\"cast_spell\",\"hand_index\":0}",
             "{\"intent\":\"pass\",\"hand_index\":0}")) {
+            boolean rejected=false;
             try {
                 validateReply(JsonParser.parseString(candidate).getAsJsonObject());
-                Assert.fail("forged creature payload accepted "+candidate);
             } catch(AssertionError expected) {
-                Assert.assertNotNull(expected.getMessage());
+                rejected=true;
             }
+            Assert.assertTrue(rejected,"FORGED_PAYLOAD_ACCEPTED: "+candidate);
         }
         JsonObject unsupported=JsonParser.parseString(
             "{\"intent\":\"cast_creature\",\"hand_index\":0}").getAsJsonObject();
@@ -1657,12 +1666,13 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             "{\"intent\":\"attack\",\"table_indices\":[\"0\"]}",
             "{\"intent\":\"attack\",\"table_indices\":[]}",
             "{\"intent\":\"attack\",\"table_indices\":[0,1,2,3,4,5,6,7,8]}")) {
+            boolean rejected=false;
             try {
                 validateReply(JsonParser.parseString(payload).getAsJsonObject());
-                Assert.fail("forged attack accepted: "+payload);
             } catch(AssertionError expected) {
-                Assert.assertNotNull(expected.getMessage());
+                rejected=true;
             }
+            Assert.assertTrue(rejected,"FORGED_PAYLOAD_ACCEPTED: "+payload);
         }
         JsonObject reply=JsonParser.parseString(
             "{\"intent\":\"attack\",\"table_indices\":[0]}").getAsJsonObject();
@@ -8405,6 +8415,16 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     .getAsJsonObject().has("phase"));
             Assert.assertFalse(JsonParser.parseString(observation(offense,defense))
                     .getAsJsonObject().has("stack"));
+            // Explicit fixture ONLY: test this exact public combat board.
+            // Random opening-hand main-phase casts (for example a second
+            // Elf) otherwise change the policy's single-threat premise
+            // before blockers are declared. Natural games below keep
+            // their complete unmodified phase progression.
+            String combatView=observation(defense,offense);
+            fixture.getPhaseHandler().devModeSet(PhaseType.COMBAT_BEGIN,offense);
+            fixture.getPhaseHandler().onStackResolved();
+            Assert.assertEquals(observation(defense,offense),combatView,
+                    "referee-only fixture timing never enters the actor view");
             boolean actualChump=false;
             int steps=0;
             while(!fixture.isGameOver() && steps++<2500) {
@@ -8424,6 +8444,10 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     " attacks="+oc.attacksAuthorized+
                     " blocks="+dc.blocksAuthorized+
                     " defender_life="+defense.getLife());
+            Assert.assertEquals(bear.getDamage(),1,
+                    "Forge also applies the blocking Elf's one damage to the Bear");
+            Assert.assertTrue(oc.refereeDamageAssignments>0,
+                    "the trusted damage allocator must handle the Elf target");
             Assert.assertFalse(fixture.isGameOver(),"survived actual chump block");
             Assert.assertEquals(fullPhysicalInventory(offense),
                     frozenMain.owned(offense));
@@ -8485,4 +8509,132 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     @Test(timeOut=240000)
     public void nativeLlanowarEmergencyChumpRightRegisteredFirst()
             throws Exception {verifyEmergencyElvesChump(false);}
+
+    /** Explicit fixtures only: move an ORIGINAL registered Elf, never mint one. */
+    private Card fixturePlaceRegisteredElf(Game game,Player owner) {
+        for(ZoneType zone:Arrays.asList(ZoneType.Library,ZoneType.Hand)) {
+            for(Card card:owner.getCardsIn(zone)) {
+                if("Llanowar Elves".equals(card.getName())) {
+                    Card moved=game.getAction().moveToPlay(card,null,
+                            forge.game.ability.AbilityKey.newMap());
+                    Assert.assertNotNull(moved);
+                    Assert.assertEquals(moved.getId(),card.getId());
+                    return moved;
+                }
+            }
+        }
+        throw new AssertionError("registered Elf missing from fixture");
+    }
+
+    @Test(timeOut=120000)
+    public void refereeAllocatesLethalSplitAcrossElfAndBearTargets() throws Exception {
+        Game game=nativeElfEmergencyGame(true);
+        Player attacker=game.getPlayers().get(0),defender=game.getPlayers().get(1);
+        try(Actor workerA=new Actor(5);Actor workerD=new Actor(5)) {
+            Assert.assertNotEquals(workerA.process.pid(),workerD.process.pid());
+            ExternalCreatureController ac=attach(game,attacker,defender,workerA);
+            ExternalCreatureController dc=attach(game,defender,attacker,workerD);
+            doRealNativeStartForMultiTurn(game,ac,dc);
+            fixturePlaceRegisteredVanilla(game,attacker,"Centaur Courser");
+            fixturePlaceRegisteredVanilla(game,defender,"Grizzly Bears");
+            Card elf=fixturePlaceRegisteredElf(game,defender);
+            Card courser=attacker.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->"Centaur Courser".equals(c.getName())).findFirst().orElseThrow();
+            Card bear=defender.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->"Grizzly Bears".equals(c.getName())).findFirst().orElseThrow();
+            String beforeA=observation(attacker,defender),beforeD=observation(defender,attacker);
+            CardCollection targets=new CardCollection();
+            targets.add(elf);targets.add(bear);
+            Map<Card,Integer> first=ac.assignCombatDamage(courser,targets,null,3,defender,false);
+            Assert.assertEquals(first.size(),2);
+            Assert.assertEquals(first.get(elf),Integer.valueOf(1));
+            Assert.assertEquals(first.get(bear),Integer.valueOf(2));
+            targets.clear();targets.add(bear);targets.add(elf);
+            Assert.assertEquals(ac.assignCombatDamage(courser,targets,null,3,defender,false),first,
+                    "three damage covers 1/1 and 2/2 lethal in either target order");
+            Assert.assertEquals(ac.refereeDamageAssignments,2);
+            Assert.assertEquals(ac.refereeSplitDamageAssignments,2);
+            CardCollection returning=new CardCollection();returning.add(courser);
+            Map<Card,Integer> returnDamage=dc.assignCombatDamage(elf,returning,null,1,attacker,false);
+            Assert.assertEquals(returnDamage.size(),1);
+            Assert.assertEquals(returnDamage.get(courser),Integer.valueOf(1));
+            Assert.assertEquals(dc.refereeDamageAssignments,1);
+            Assert.assertEquals(elf.getDamage(),0,"allocation itself does not apply damage");
+            Assert.assertEquals(bear.getDamage(),0);
+            Assert.assertEquals(courser.getDamage(),0);
+            Assert.assertEquals(observation(attacker,defender),beforeA);
+            Assert.assertEquals(observation(defender,attacker),beforeD);
+            Assert.assertEquals(fullPhysicalInventory(attacker),frozenMain.owned(attacker));
+            Assert.assertEquals(fullPhysicalInventory(defender),frozenMain.owned(defender));
+            System.out.println("STAGE11X_ELF_SPLIT elf=1 bear=2 total=3 both_orders=true");
+        }
+    }
+
+    private void assertDamageBindingDenied(ExternalCreatureController controller,
+            Card source,Card target,int damage) {
+        Player self=controller.controlled,other=controller.opponent;
+        String beforeSelf=observation(self,other),beforeOther=observation(other,self);
+        Map<String,Integer> inventorySelf=fullPhysicalInventory(self);
+        Map<String,Integer> inventoryOther=fullPhysicalInventory(other);
+        int before=controller.refereeDamageAssignments;
+        int sourceDamage=source.getDamage(),targetDamage=target.getDamage();
+        CardCollection targets=new CardCollection();targets.add(target);
+        boolean denied=false;
+        try {controller.assignCombatDamage(source,targets,null,damage,other,false);}
+        catch(SecurityException expected) {denied=true;}
+        Assert.assertTrue(denied,"invalid damage binding must be rejected");
+        Assert.assertEquals(controller.refereeDamageAssignments,before);
+        Assert.assertEquals(source.getDamage(),sourceDamage);
+        Assert.assertEquals(target.getDamage(),targetDamage);
+        Assert.assertEquals(observation(self,other),beforeSelf);
+        Assert.assertEquals(observation(other,self),beforeOther);
+        Assert.assertEquals(fullPhysicalInventory(self),inventorySelf);
+        Assert.assertEquals(fullPhysicalInventory(other),inventoryOther);
+    }
+
+    @Test(timeOut=120000)
+    public void refereeRejectsInvalidElfDamageBindingsWithoutMutation() throws Exception {
+        Game game=nativeElfEmergencyGame(false);
+        Player attacker=game.getPlayers().get(0),defender=game.getPlayers().get(1);
+        try(Actor workerA=new Actor(5);Actor workerD=new Actor(5)) {
+            Assert.assertNotEquals(workerA.process.pid(),workerD.process.pid());
+            ExternalCreatureController ac=attach(game,attacker,defender,workerA);
+            ExternalCreatureController dc=attach(game,defender,attacker,workerD);
+            doRealNativeStartForMultiTurn(game,ac,dc);
+            fixturePlaceRegisteredVanilla(game,attacker,"Grizzly Bears");
+            Card bear=attacker.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->"Grizzly Bears".equals(c.getName())).findFirst().orElseThrow();
+            Card ownElf=fixturePlaceRegisteredElf(game,attacker);
+            Card elf=fixturePlaceRegisteredElf(game,defender);
+            Card hiddenElf=java.util.stream.Stream.concat(
+                    defender.getCardsIn(ZoneType.Library).stream(),
+                    defender.getCardsIn(ZoneType.Hand).stream())
+                    .filter(c->"Llanowar Elves".equals(c.getName())).findFirst().orElseThrow();
+            Card forest=defender.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Forest".equals(c.getName())).findFirst().orElseThrow();
+            forest=game.getAction().moveToPlay(forest,null,
+                    forge.game.ability.AbilityKey.newMap());
+            Assert.assertNotNull(forest);
+            CardCollection valid=new CardCollection();valid.add(elf);
+            Assert.assertEquals(ac.assignCombatDamage(bear,valid,null,2,defender,false)
+                    .get(elf),Integer.valueOf(2),"one blocker receives all nontrample damage");
+            assertDamageBindingDenied(ac,bear,ownElf,2);
+            assertDamageBindingDenied(ac,bear,hiddenElf,2);
+            assertDamageBindingDenied(ac,bear,forest,2);
+            assertDamageBindingDenied(ac,bear,elf,3);
+            assertDamageBindingDenied(ac,ownElf,elf,2);
+            Assert.assertTrue(elf.turnFaceDown());
+            assertDamageBindingDenied(ac,bear,elf,2);
+            Assert.assertTrue(elf.turnFaceUp(false,null));
+            Card departed=game.getAction().moveToGraveyard(elf,null);
+            Assert.assertNotNull(departed);
+            assertDamageBindingDenied(ac,bear,elf,2);
+            assertDamageBindingDenied(ac,bear,departed,2);
+            Assert.assertEquals(ac.refereeDamageAssignments,1,
+                    "only the positive control may allocate damage");
+            Assert.assertEquals(fullPhysicalInventory(attacker),frozenMain.owned(attacker));
+            Assert.assertEquals(fullPhysicalInventory(defender),frozenMain.owned(defender));
+            System.out.println("STAGE11X_ELF_BOUNDARY rejected=8 allocations=1");
+        }
+    }
 }
