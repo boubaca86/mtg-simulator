@@ -325,6 +325,26 @@ for raw in sys.stdin.buffer:
         and all(record.get('appearance') == 'face_up'
                 and record.get('card') in (VANILLA_FIGHTERS | LANDS)
                 for record in view['opponent_table']))
+    # Stage11W: an otherwise idle OWN face-up Llanowar Elves is a
+    # legitimate 1/1 creature blocker. When exactly one known vanilla
+    # opposing 2/2 could cause immediate loss at own life 1 or 2, offer
+    # this fragile mana creature as an emergency chump block rather
+    # than taking lethal player damage. This is NOT an attack proposal,
+    # nor a tap/phase/readiness claim: Forge alone approves the legal
+    # physical block, combat damage, creature death and player survival.
+    # No inferencing about unknown or facedown opposing permanents.
+    elves = [i for i, record in enumerate(view['own_cards']['table'])
+             if record.get('appearance') == 'face_up'
+             and record.get('card') == 'Llanowar Elves']
+    emergency_elf_chump = (
+        0 < life <= 2 and not fighters
+        and len(elves) == 1 and len(targets) == 1
+        and view['opponent_table'][targets[0]]['card'] in VANILLA_BEARS
+        and all(record.get('appearance') == 'face_up'
+                and record.get('card') in (VANILLA_BEARS | LANDS)
+                for record in view['opponent_table']))
+    if emergency_elf_chump:
+        block_pairs.append([elves[0], targets[0]])
     if two_lane_emergency:
         strong = next(i for i in defensive_candidates
                       if public_power(view['own_cards']['table'][i]['card']) == 4)

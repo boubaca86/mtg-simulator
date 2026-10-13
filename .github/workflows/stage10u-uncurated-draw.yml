@@ -1,7 +1,7 @@
-name: Stage 11V - Two-Lane Emergency Defense
+name: Stage 11W - Emergency Llanowar Elf Chump Block
 
 # Two external persistent actor processes plus one authoritative Forge referee.
-# Stage11V extends 134 pinned native Forge tests with separate 4/4 trade and 2/2 chump blocking lanes versus two 4/4 attackers at four life; untouched natural shuffled full games.
+# Stage11W extends 136 pinned native Forge tests: a registered 1/1 Llanowar Elves blocks lethal known 2/2 at own life two; real Forge life, original Elf graveyard, and two untouched natural 60-card Elf-deck games per seat order.
 # Registered 60-card decks, no hand curation, true London opening and 20 life; not full MTG or OS sandbox.
 on:
   push:
@@ -97,7 +97,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 stage10h/test_protocol.py | tee stage10u-evidence/stage10h-protocol.log
-      - name: Run native two-lane emergency defense and 134 inherited Forge tests
+      - name: Run native Llanowar emergency chump and 136 inherited Forge tests
         shell: bash
         run: |
           set -euo pipefail
@@ -117,7 +117,7 @@ jobs:
           echo "Forge Maven exit: $code"
           tail -n 75 "$GITHUB_WORKSPACE/stage10u-evidence/maven.log"
           test "$code" -eq 0
-      - name: Verify exact 136 genuine Forge-native methods with independent XML gate
+      - name: Verify exact 138 genuine Forge-native methods with independent XML gate
         shell: bash
         run: |
           set -euo pipefail
@@ -128,7 +128,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stage11v-two-lane-emergency-defense-${{ github.run_id }}-${{ github.run_attempt }}
+          name: stage11w-registered-elf-chump-${{ github.run_id }}-${{ github.run_attempt }}
           path: stage10u-evidence/
           if-no-files-found: warn
           retention-days: 14
