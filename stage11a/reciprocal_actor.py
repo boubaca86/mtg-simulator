@@ -345,6 +345,25 @@ for raw in sys.stdin.buffer:
                 for record in view['opponent_table']))
     if emergency_elf_chump:
         block_pairs.append([elves[0], targets[0]])
+    # Stage11X: two separate publicly known vanilla 2/2 attackers at own
+    # life <=2, with exactly one visible own 2/2 and one visible 1/1 Elf.
+    # Trade the 2/2 on one lane and chump the other with the Elf.
+    # These are ordered PREFERENCES, not declared blockers: the trusted
+    # Forge referee checks real attackers, tap state, evasion, legal blocks,
+    # simultaneous damage, deaths, and life. Unknown/facedown opposing
+    # permanents disable this narrow public-only inference.
+    two_lane_bear_elf = (
+        0 < life <= 2 and len(fighters) == 1 and len(elves) == 1
+        and view['own_cards']['table'][fighters[0]]['card'] in VANILLA_BEARS
+        and len(targets) == 2
+        and all(view['opponent_table'][i]['card'] in VANILLA_BEARS
+                for i in targets)
+        and all(record.get('appearance') == 'face_up'
+                and record.get('card') in (VANILLA_BEARS | LANDS | {'Llanowar Elves'})
+                for record in view['opponent_table']))
+    if two_lane_bear_elf:
+        block_pairs.extend([[fighters[0], ordered_targets[0]],
+                            [elves[0], ordered_targets[1]]])
     if two_lane_emergency:
         strong = next(i for i in defensive_candidates
                       if public_power(view['own_cards']['table'][i]['card']) == 4)

@@ -1,7 +1,7 @@
 name: Stage 11X - Elf Combat Damage Integration
 
 # Two external persistent actor processes plus one authoritative Forge referee.
-# Stage11X verifies Elf damage, native outcome integrity and 138 inherited methods.
+# Stage11X verifies Elf damage, native outcome integrity and 140 inherited methods.
 # Inherited uncurated natural matches remain separate from arranged regressions.
 # Registered 60-card decks, no hand curation, true London opening and 20 life; not full MTG or OS sandbox.
 on:
@@ -126,7 +126,7 @@ jobs:
           set -euo pipefail
           python3 -m unittest -v forge_tests.test_verify_stage11o_surefire 2>&1 \
             | tee stage10u-evidence/stage11x-python-tests.log
-      - name: Run Elf damage and deck-out boundaries with 138 inherited Forge tests
+      - name: Run Elf damage and deck-out boundaries with 140 inherited Forge tests
         shell: bash
         run: |
           set -euo pipefail
@@ -147,7 +147,7 @@ jobs:
           tail -n 75 "$GITHUB_WORKSPACE/stage10u-evidence/maven.log"
           python3 -c 'import os; from pathlib import Path; print("\n".join(line for line in (Path(os.environ["GITHUB_WORKSPACE"]) / "stage10u-evidence/maven.log").read_text().splitlines() if line.startswith(("STAGE11W_", "STAGE11X_"))))'
           test "$code" -eq 0
-      - name: Verify exact 142 genuine Forge-native methods with independent XML gate
+      - name: Verify exact 144 genuine Forge-native methods with independent XML gate
         shell: bash
         run: |
           set -euo pipefail
