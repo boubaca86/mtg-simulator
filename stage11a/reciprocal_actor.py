@@ -35,7 +35,9 @@ VANILLA_FOURS = frozenset(('Rumbling Baloth',))
 VANILLA_FIGHTERS = VANILLA_BEARS | VANILLA_THREES | VANILLA_FOURS
 DRAW_CREATURES = frozenset(('Elvish Visionary',))
 FLYING_CREATURES = frozenset(('Scryb Sprites',))
-CREATURES = frozenset(('Llanowar Elves',)) | VANILLA_FIGHTERS | DRAW_CREATURES | FLYING_CREATURES
+DEATHTOUCH_CREATURES = frozenset(('Sedge Scorpion',))
+CREATURES = (frozenset(('Llanowar Elves',)) | VANILLA_FIGHTERS |
+             DRAW_CREATURES | FLYING_CREATURES | DEATHTOUCH_CREATURES)
 
 def public_power(name):
     if name in VANILLA_FOURS:
@@ -147,8 +149,17 @@ for raw in sys.stdin.buffer:
     # prefer it over another 2-mana creature to replenish resources.
     # This is only a candidate order; Forge alone checks legal casting,
     # pays mana, puts the triggered ability on the stack and draws.
+    # Stage12D: when a visible 4/4 threatens lethal at own life <=4,
+    # prioritize our printed one-mana 1/1 Deathtouch defender.
+    # This is only a public-only CAST preference; the referee alone
+    # verifies real mana, priority, sickness, blocking and combat damage.
+    urgent_deathtouch = (0 < view['life_totals']['self'] <= 4 and
+        any(r.get('appearance') == 'face_up' and
+            r.get('card') == 'Rumbling Baloth'
+            for r in view['opponent_table']))
     creatures.sort(key=lambda i: (
-        0 if len(hand) <= 3 and hand[i] in DRAW_CREATURES else 1,
+        0 if urgent_deathtouch and hand[i] in DEATHTOUCH_CREATURES else
+        1 if len(hand) <= 3 and hand[i] in DRAW_CREATURES else 2,
         -public_power(hand[i]) if hand[i] in VANILLA_FIGHTERS else 0, i))
     fighters = [
         i for i, record in enumerate(view['own_cards']['table'])
@@ -444,6 +455,22 @@ for raw in sys.stdin.buffer:
     if emergency_double_elf_trade:
         block_pairs.extend([[elves[0], targets[0]],
                             [elves[1], targets[0]]])
+    # Stage12D: one genuine Sedge Scorpion 1/1 with printed Deathtouch
+    # can trade with a single visible 4/4 when its attack threatens our
+    # <=4 life. Do NOT mistake this for a vanilla 1/1 chump block:
+    # CR 702.2b destroys the 4/4 after one damage. No hidden cards,
+    # readiness, actual combat or phase are supplied to the actor.
+    scorpions = [i for i, record in enumerate(view['own_cards']['table'])
+                 if record.get('appearance') == 'face_up'
+                 and record.get('card') in DEATHTOUCH_CREATURES]
+    emergency_deathtouch = (
+        0 < life <= 4 and len(scorpions) == 1 and len(targets) == 1
+        and view['opponent_table'][targets[0]]['card'] == 'Rumbling Baloth'
+        and all(record.get('appearance') == 'face_up'
+                and record.get('card') in (VANILLA_FIGHTERS | LANDS)
+                for record in view['opponent_table']))
+    if emergency_deathtouch:
+        block_pairs.append([scorpions[0],targets[0]])
     if two_lane_emergency:
         strong = next(i for i in defensive_candidates
                       if public_power(view['own_cards']['table'][i]['card']) == 4)
