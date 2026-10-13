@@ -9592,7 +9592,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             boolean nativePaid=false,publicFlyingPreference=false;
             boolean nativeFlyingRestriction=false;
             boolean nativeAttack=false,realUnblockedDamage=false;
-            int steps=0;
+            int steps=0, spriteBattlefieldSamples=0, untappedBalothSamples=0;
             while(!fixture.isGameOver() && steps++<3000) {
                 // Explicit fixture-only readiness: even if Baloth attacked
                 // on the preceding turn, it is an UNTAPPED possible blocker
@@ -9602,6 +9602,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                         baloth.isTapped()) baloth.setTapped(false);
                 fixture.getPhaseHandler().mainLoopStep();
                 if(attacker.getCardsIn(ZoneType.Battlefield).contains(sprite)) {
+                    spriteBattlefieldSamples++;
+                    if(!baloth.isTapped()) untappedBalothSamples++;
                     if(forest.isTapped()) nativePaid=true;
                     // Test the PRINTED evasion rule itself, not the
                     // unrelated readiness of the defending creature.
@@ -9627,7 +9629,18 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             Assert.assertTrue(steps<3000,"native cast and real combat must finish");
             Assert.assertTrue(nativePaid,"original Forest must pay printed {G} cast");
             Assert.assertTrue(nativeFlyingRestriction,
-                    "native Forge rejects an untapped grounded Baloth as a Flying blocker");
+                    "native printed Flying restriction missing: samples="+spriteBattlefieldSamples+
+                    " ready="+untappedBalothSamples+" steps="+steps+
+                    " paid="+nativePaid+" attacker_turn="+
+                    (fixture.getPhaseHandler().getPlayerTurn()==attacker)+
+                    " sprite_zone="+sprite.getZone().getZoneType()+
+                    " baloth_tapped="+baloth.isTapped()+
+                    " flying="+sprite.hasKeyword("Flying")+
+                    " direct_static="+StaticAbilityCantAttackBlock.cantBlockBy(sprite,baloth)+
+                    " nextturn_canblock="+CombatUtil.canBlock(sprite,baloth,true)+
+                    " attack_callbacks="+ac.attackCallbacks+
+                    " attacks_authorized="+ac.attacksAuthorized+
+                    " defender_life="+defender.getLife());
             Assert.assertTrue(publicFlyingPreference,
                     "external actor must prefer Flying 1/1 past grounded 4/4");
             Assert.assertTrue(nativeAttack,"native Forge must declare the flyer attacker");
