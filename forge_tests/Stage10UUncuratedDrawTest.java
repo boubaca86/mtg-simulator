@@ -864,9 +864,11 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 int damageDealt,GameEntity defender,boolean overrideOrder) {
             if(source==null || source.getController()!=controlled ||
                     !controlled.getCardsIn(ZoneType.Battlefield).contains(source) ||
-                    !supportedVanillaFighter(source.getName()) ||
+                    !(supportedVanillaFighter(source.getName()) ||
+                      "Llanowar Elves".equals(source.getName())) ||
                     damageDealt!=("Rumbling Baloth".equals(source.getName())?4:
-                            "Centaur Courser".equals(source.getName())?3:2) ||
+                            "Centaur Courser".equals(source.getName())?3:
+                            "Llanowar Elves".equals(source.getName())?1:2) ||
                     source.getNetCombatDamage()!=damageDealt ||
                     source.hasKeyword("Trample") ||
                     targets==null || targets.isEmpty() || targets.size()>8) {
@@ -875,7 +877,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             Set<Card> unique=Collections.newSetFromMap(new IdentityHashMap<Card,Boolean>());
             for(Card target:targets) {
                 if(target==null || !unique.add(target) ||
-                        !supportedVanillaFighter(target.getName()) ||
+                        !(supportedVanillaFighter(target.getName()) ||
+                          "Llanowar Elves".equals(target.getName())) ||
                         target.getController()!=opponent ||
                         !opponent.getCardsIn(ZoneType.Battlefield).contains(target)) {
                     throw new SecurityException("unregistered or unsupported combat target");
