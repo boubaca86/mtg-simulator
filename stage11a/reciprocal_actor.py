@@ -46,13 +46,12 @@ for raw in sys.stdin.buffer:
     message = json.loads(raw, object_pairs_hook=_strict_object_pairs,
                          parse_constant=_reject_nonfinite_constant,
                          parse_float=_strict_json_float)
-    opening = isinstance(message, dict) and set(message) == {'request', 'observation'}
-    if opening:
-        if message['request'] != 'own_opening_hand':
-            raise SystemExit('unapproved IPC action type')
-        view = message['observation']
-    else:
-        view = message
+    envelope = isinstance(message, dict) and set(message) == {'request', 'observation'}
+    request_kind = message['request'] if envelope else None
+    if envelope and request_kind not in ('own_opening_hand', 'own_hand_order'):
+        raise SystemExit('unapproved IPC action type')
+    view = message['observation'] if envelope else message
+    opening = request_kind == 'own_opening_hand'
     # Strict denylist: an actor must never be told game authority fields.
     if set(view) != {'objective', 'own_cards', 'opponent_table', 'life_totals'}:
         raise SystemExit('observation contract violation')
@@ -85,6 +84,31 @@ for raw in sys.stdin.buffer:
         if not isinstance(entry, list) or len(entry) != 2 or not isinstance(entry[0], str) or type(entry[1]) is not int or entry[1] < 0:
             raise SystemExit('invalid own deck entry')
     hand = view['own_cards']['hand']
+    # Stage12A: only names and indices in OUR current hand.
+    # Never disclose cleanup timing, phase, priority, maximum size, count,
+    # opponent hidden cards, or any shuffled-library information.
+    if request_kind == 'own_hand_order':
+        if len(hand) > 128:
+            raise SystemExit('oversized own-hand ranking')
+        needed = max([2] + [4 if name in VANILLA_FOURS else 3
+                            for name in hand
+                            if name in VANILLA_FOURS | VANILLA_THREES])
+        lands_in_hand = sorted((i for i, name in enumerate(hand) if name in LANDS),
+                               key=lambda i: (hand[i] != 'Forest', i))
+        preferred = set(lands_in_hand[:needed])
+        def discard_rank(i):
+            name = hand[i]
+            if name not in LANDS and name not in CREATURES:
+                return (0, 0, i)
+            if name in LANDS and i not in preferred:
+                return (1, 0, i)
+            if name in CREATURES:
+                return (2, public_power(name) if name in VANILLA_FIGHTERS else 1, i)
+            return (3, 0, i)
+        ordering = sorted(range(len(hand)), key=discard_rank)
+        print(json.dumps({'intent': 'hand_order', 'hand_priority': ordering},
+                         separators=(',', ':')), flush=True)
+        continue
     if opening:
         # Derive everything from OWN hand; no deck order, opponent hand, or
         # referee mulligan counter is sent. The referee validates the index
