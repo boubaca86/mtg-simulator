@@ -9571,8 +9571,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             Assert.assertTrue(sprite.hasKeyword("Flying"));
             Assert.assertFalse(baloth.hasKeyword("Flying"));
             Assert.assertFalse(baloth.hasKeyword("Reach"));
-            Assert.assertFalse(CombatUtil.canBlock(sprite,baloth),
-                    "printed grounded Baloth cannot block printed flying Sprites");
+            // The card is still in hand here. CombatUtil.canBlock is
+            // meaningful only once the real creature has resolved in play.
             Assert.assertEquals(fullPhysicalInventory(attacker),frozenMain.owned(attacker));
             Assert.assertEquals(fullPhysicalInventory(defender),frozenMain.owned(defender));
             String view=observation(attacker,defender);
@@ -9589,6 +9589,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     "opponent's hidden shuffled order never changes the actor view");
             Assert.assertEquals(actor.ask(view),before);
             boolean nativePaid=false,publicFlyingPreference=false;
+            boolean nativeFlyingRestriction=false;
             boolean nativeAttack=false,realUnblockedDamage=false;
             int steps=0;
             while(!fixture.isGameOver() && steps++<3000) {
@@ -9601,6 +9602,9 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 fixture.getPhaseHandler().mainLoopStep();
                 if(attacker.getCardsIn(ZoneType.Battlefield).contains(sprite)) {
                     if(forest.isTapped()) nativePaid=true;
+                    if(!baloth.isTapped()) {
+                        nativeFlyingRestriction |= !CombatUtil.canBlock(sprite,baloth);
+                    }
                     if(!baloth.isTapped() && !publicFlyingPreference) {
                         JsonObject preference=actor.ask(observation(attacker,defender));
                         JsonArray attacks=preference.getAsJsonArray("attack_table_indices");
@@ -9617,6 +9621,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             }
             Assert.assertTrue(steps<3000,"native cast and real combat must finish");
             Assert.assertTrue(nativePaid,"original Forest must pay printed {G} cast");
+            Assert.assertTrue(nativeFlyingRestriction,
+                    "native Forge rejects an untapped grounded Baloth as a Flying blocker");
             Assert.assertTrue(publicFlyingPreference,
                     "external actor must prefer Flying 1/1 past grounded 4/4");
             Assert.assertTrue(nativeAttack,"native Forge must declare the flyer attacker");
