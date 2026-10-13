@@ -1635,7 +1635,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     public void forgedCreatureCommandsAndUnsupportedCardAreRejected() {
         Game game=initAndCreateGame();
         Player active=game.getPlayers().get(1),other=game.getPlayers().get(0);
-        addCardToZone("Sedge Scorpion",active,ZoneType.Hand);
+        addCardToZone("Young Wolf",active,ZoneType.Hand);
         Card forest=addCardToZone("Forest",active,ZoneType.Battlefield);
         for(String candidate:Arrays.asList(
             "{\"intent\":\"cast_creature\",\"hand_index\":0,\"life\":999}",
