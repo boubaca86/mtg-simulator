@@ -33,7 +33,8 @@ VANILLA_THREES = frozenset(('Centaur Courser',))
 # Stage11J: official vanilla {2}{G}{G} 4/4 extends visible size decisions.
 VANILLA_FOURS = frozenset(('Rumbling Baloth',))
 VANILLA_FIGHTERS = VANILLA_BEARS | VANILLA_THREES | VANILLA_FOURS
-CREATURES = frozenset(('Llanowar Elves',)) | VANILLA_FIGHTERS
+DRAW_CREATURES = frozenset(('Elvish Visionary',))
+CREATURES = frozenset(('Llanowar Elves',)) | VANILLA_FIGHTERS | DRAW_CREATURES
 
 def public_power(name):
     if name in VANILLA_FOURS:
@@ -140,8 +141,14 @@ for raw in sys.stdin.buffer:
     creatures = [i for i, name in enumerate(hand) if name in CREATURES]
     # Prefer greater known creature strength when actual mana permits it.
     # Forge remains solely responsible for paying {2}{G}{G} correctly.
-    creatures.sort(key=lambda i: (-public_power(hand[i])
-                                   if hand[i] in VANILLA_FIGHTERS else 0, i))
+    # Stage12B: a genuine {1}{G} Elvish Visionary replaces itself on
+    # entering via a mandatory Forge-resolved draw. At <=3 own hand cards,
+    # prefer it over another 2-mana creature to replenish resources.
+    # This is only a candidate order; Forge alone checks legal casting,
+    # pays mana, puts the triggered ability on the stack and draws.
+    creatures.sort(key=lambda i: (
+        0 if len(hand) <= 3 and hand[i] in DRAW_CREATURES else 1,
+        -public_power(hand[i]) if hand[i] in VANILLA_FIGHTERS else 0, i))
     fighters = [
         i for i, record in enumerate(view['own_cards']['table'])
         if record.get('appearance') == 'face_up'
