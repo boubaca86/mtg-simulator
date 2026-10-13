@@ -1,6 +1,7 @@
 package forge.ai;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import forge.game.Game;
@@ -365,6 +366,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
 
     private static final class Actor implements AutoCloseable {
         final Process process;
+        final boolean handOrderCapable;
         final BufferedReader reader;
         final BufferedWriter writer;
         boolean replyTimedOut=false;
@@ -387,6 +389,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             this(mode,null,null);
         }
         Actor(int mode,String testScript,String actorMode) throws Exception {
+            handOrderCapable=mode==5;
             String script=testScript!=null ? testScript :
                     System.getenv(mode==5 ? "STAGE11A_RECIPROCAL_WORKER" :
                     mode==4 ? "STAGE10W_VISIBLE_OPPONENT_WORKER" :
@@ -803,6 +806,86 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         if(!CombatUtil.validateAttackers(combat)) combat.clearAttackers();
     }
 
+    private static final String HAND_ORDER_DENIED="stage11y: invalid own-hand cleanup choice";
+
+    private static void validateHandOrder(JsonObject reply,int size) {
+        if(size<0 || size>128 || reply==null || reply.size()!=2
+                || !reply.has("intent") || !reply.get("intent").isJsonPrimitive()
+                || !reply.get("intent").getAsJsonPrimitive().isString()
+                || !"hand_order".equals(reply.get("intent").getAsString())
+                || !reply.has("hand_priority") || !reply.get("hand_priority").isJsonArray()) {
+            throw new SecurityException(HAND_ORDER_DENIED);
+        }
+        JsonArray order=reply.getAsJsonArray("hand_priority");
+        if(order.size()!=size) throw new SecurityException(HAND_ORDER_DENIED);
+        boolean[] seen=new boolean[size];
+        for(JsonElement value:order) {
+            if(!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()) {
+                throw new SecurityException(HAND_ORDER_DENIED);
+            }
+            String raw=value.getAsString();
+            if(!raw.matches("0|[1-9][0-9]*") || raw.length()>3) {
+                throw new SecurityException(HAND_ORDER_DENIED);
+            }
+            int index=Integer.parseInt(raw);
+            if(index>=size || seen[index]) throw new SecurityException(HAND_ORDER_DENIED);
+            seen[index]=true;
+        }
+    }
+
+    private static JsonObject askHandOrder(Actor actor,String view) throws Exception {
+        if(!actor.handOrderCapable) throw new SecurityException(HAND_ORDER_DENIED);
+        JsonObject request=new JsonObject();
+        request.addProperty("request","own_hand_order");
+        request.add("observation",parseStrictActorReplyView(view));
+        String encoded=request.toString();
+        if(encoded.getBytes(java.nio.charset.StandardCharsets.UTF_8).length>=16384)
+            throw new SecurityException(HAND_ORDER_DENIED);
+        String line=exchangeActorRequestWithOneDeadline(actor.writer,actor.reader,
+                actor.replyReads,encoded,10000L,
+                () -> {actor.replyTimedOut=true;actor.process.destroyForcibly();});
+        JsonObject reply=parseStrictActorReply(line);
+        int size=request.getAsJsonObject("observation").getAsJsonObject("own_cards")
+                .getAsJsonArray("hand").size();
+        validateHandOrder(reply,size);
+        return reply;
+    }
+
+    private static JsonObject parseStrictActorReplyView(String view) {
+        // Trusted referee projection has the request limit, not the reply limit.
+        if(view==null || view.length()>=16000) throw new SecurityException(HAND_ORDER_DENIED);
+        return com.google.gson.JsonParser.parseString(view).getAsJsonObject();
+    }
+
+    private static void requireCleanup(Player self,int count) {
+        Game game=self.getGame();
+        int size=self.getCardsIn(ZoneType.Hand).size();
+        if(game.getPhaseHandler().getPhase()!=PhaseType.CLEANUP
+                || game.getPhaseHandler().getPlayerTurn()!=self
+                || self.isUnlimitedHandSize() || size>128 || count<=0 || count>size
+                || count!=size-self.getMaxHandSize()) {
+            throw new SecurityException(HAND_ORDER_DENIED);
+        }
+    }
+
+    private static CardCollection resolveOwnHandOrder(Player self,CardCollection snapshot,
+            JsonObject reply,int count) {
+        requireCleanup(self,count);
+        CardCollectionView current=self.getCardsIn(ZoneType.Hand);
+        if(snapshot.size()!=current.size()) throw new SecurityException(HAND_ORDER_DENIED);
+        for(int i=0;i<snapshot.size();i++) {
+            Card card=snapshot.get(i);
+            if(card!=current.get(i) || card.getOwner()!=self || card.getController()!=self
+                    || card.getGame()!=self.getGame()) throw new SecurityException(HAND_ORDER_DENIED);
+        }
+        validateHandOrder(reply,snapshot.size());
+        CardCollection chosen=new CardCollection();
+        for(int i=0;i<count;i++) {
+            chosen.add(snapshot.get(reply.getAsJsonArray("hand_priority").get(i).getAsInt()));
+        }
+        return chosen;
+    }
+
     /**
      * Actual Forge PlayerController inserted only in disposable test game.
      * The inherited Forge AI may handle automatic mandatory non-strategic
@@ -814,6 +897,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         final Player controlled;
         final Player opponent;
         int priorityCallbacks = 0;
+        int cleanupChoices = 0;
+        CardCollection cleanupSelected = new CardCollection();
         // Explicit arranged combat fixtures only. Natural games keep false.
         boolean fixturePassPriority = false;
         ExternalCreatureController(Game game,Player self,Player other,Actor worker) {
@@ -973,8 +1058,24 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         }
 
         @Override
-        public CardCollectionView chooseCardsToDiscardToMaximumHandSize(int n) {
-            throw new SecurityException("restricted actor has no discard protocol");
+        public CardCollectionView chooseCardsToDiscardToMaximumHandSize(int count) {
+            if(!subprocess.handOrderCapable) throw new SecurityException(HAND_ORDER_DENIED);
+            requireCleanup(controlled,count);
+            CardCollection snapshot=new CardCollection(controlled.getCardsIn(ZoneType.Hand));
+            String view=observation(controlled,opponent);
+            try {
+                JsonObject reply=askHandOrder(subprocess,view);
+                if(!view.equals(observation(controlled,opponent)))
+                    throw new SecurityException(HAND_ORDER_DENIED);
+                CardCollection result=resolveOwnHandOrder(controlled,snapshot,reply,count);
+                cleanupChoices++;
+                cleanupSelected=new CardCollection(result);
+                return result; // Only native Forge performs the actual discards.
+            } catch(SecurityException ex) {
+                throw ex;
+            } catch(Exception ex) {
+                throw new SecurityException("stage11y: own-hand actor failed",ex);
+            }
         }
 
         @Override
@@ -7426,7 +7527,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     frozenMain.owned(offense));
             Assert.assertEquals(fullPhysicalInventory(defense),
                     frozenMain.owned(defense));
-            System.out.println("STAGE11P_EMERGENCY_FIXTURE left_first="+
+            System.out.println("STAGE11Y_EMERGENCY_FIXTURE left_first="+
                     leftRegisteredFirst+" actual_blocks="+dc.blocksAuthorized+
                     " coordinated="+dc.coordinatedNativeBlocks+
                     " native_splits="+oc.refereeSplitDamageAssignments+
@@ -7436,7 +7537,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         // 60-card games on each invocation, not the staged fixture above.
         // It runs TWO predeclared natural matches per registration order.
         verifyNaturalFourStrengthVanilla(leftRegisteredFirst);
-        System.out.println("STAGE11P_FRESH_NATURAL_COHORT left_first="+
+        System.out.println("STAGE11Y_FRESH_NATURAL_COHORT left_first="+
                 leftRegisteredFirst+" games=2");
     }
 
@@ -8639,5 +8740,243 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             Assert.assertEquals(fullPhysicalInventory(defender),frozenMain.owned(defender));
             System.out.println("STAGE11X_ELF_BOUNDARY rejected=8 allocations=1");
         }
+    }
+    private static void cleanupRejected(Runnable action) {
+        try { action.run(); }
+        catch(SecurityException expected) { return; }
+        Assert.fail("CLEANUP_GUARD_MISSING");
+    }
+
+    private static Map<String,Integer> cleanupPhysicalCards(Player player) {
+        Map<String,Integer> result=new TreeMap<>();
+        for(ZoneType zone:Arrays.asList(ZoneType.Hand,ZoneType.Library,
+                ZoneType.Battlefield,ZoneType.Graveyard)) {
+            for(Card card:player.getCardsIn(zone)) {
+                Assert.assertSame(card.getOwner(),player);
+                result.merge(card.getName(),1,Integer::sum);
+            }
+        }
+        return result;
+    }
+
+    /** Explicit cleanup fixture, separate from every natural shuffled game. */
+    private void nineCardFixture(Player self) {
+        for(String name:Arrays.asList("Counterspell","Shock","Forest","Forest",
+                "Grizzly Bears","Forest","Centaur Courser","Forest","Rumbling Baloth")) {
+            addCardToZone(name,self,ZoneType.Hand);
+        }
+    }
+
+    @Test(timeOut=120000)
+    public void stage11yOwnHandPreferenceUsesIndependentWorkersAndIgnoresPrivateWorlds() throws Exception {
+        Game game=initAndCreateGame();
+        Player self=game.getPlayers().get(1),other=game.getPlayers().get(0);
+        nineCardFixture(self);
+        try(Actor a=new Actor(5);Actor b=new Actor(5)) {
+            Assert.assertNotEquals(a.process.pid(),b.process.pid());
+            String view=observation(self,other);
+            JsonObject before=askHandOrder(a,view);
+            Assert.assertEquals(askHandOrder(b,view),before);
+            Assert.assertEquals(before.getAsJsonArray("hand_priority").get(0).getAsInt(),0);
+            Assert.assertEquals(before.getAsJsonArray("hand_priority").get(1).getAsInt(),1);
+            addCardToZone("Counterspell",other,ZoneType.Hand);
+            addCardToZone("Shock",other,ZoneType.Library);
+            addCardToZone("Forest",self,ZoneType.Library);
+            Assert.assertEquals(observation(self,other),view);
+            Assert.assertEquals(askHandOrder(a,view),before);
+            Assert.assertEquals(self.getCardsIn(ZoneType.Hand).size(),9);
+            Assert.assertTrue(self.getCardsIn(ZoneType.Graveyard).isEmpty());
+        }
+    }
+
+    @Test(timeOut=120000)
+    public void stage11yMalformedHandPreferencesCannotChooseDuplicateHiddenOrNonintegerCards() {
+        validateHandOrder(parseStrictActorReply("{\"intent\":\"hand_order\",\"hand_priority\":[1,0]}"),2);
+        for(String raw:Arrays.asList(
+                "{}", "{\"intent\":\"hand_order\",\"hand_priority\":[0]}",
+                "{\"intent\":\"hand_order\",\"hand_priority\":[0,0]}",
+                "{\"intent\":\"hand_order\",\"hand_priority\":[0,2]}",
+                "{\"intent\":\"hand_order\",\"hand_priority\":[-1,0]}",
+                "{\"intent\":\"hand_order\",\"hand_priority\":[0.0,1]}",
+                "{\"intent\":\"hand_order\",\"hand_priority\":[\"0\",1]}",
+                "{\"intent\":\"hand_order\",\"hand_priority\":[true,1]}",
+                "{\"intent\":\"hand_order\",\"hand_priority\":[0,1],\"count\":1}",
+                "{\"intent\":\"hand_order\",\"hand_priority\":[0,1],\"opponent_hand\":[0]}",
+                "{\"intent\":\"hand_order\",\"hand_priority\":[0,1],\"hand_priority\":[1,0]}",
+                "{\"intent\":\"hand_order\",\"hand_priority\":[NaN,1]}")) {
+            cleanupRejected(() -> validateHandOrder(parseStrictActorReply(raw),2));
+        }
+    }
+
+    @Test(timeOut=120000)
+    public void stage11yCleanupRejectsWrongCountTurnAndPhaseBeforeActorChoice() throws Exception {
+        Game game=initAndCreateGame();
+        Player self=game.getPlayers().get(1),other=game.getPlayers().get(0);
+        nineCardFixture(self);
+        try(Actor a=new Actor(5);Actor b=new Actor(5)) {
+            ExternalCreatureController ca=attach(game,self,other,a);
+            attach(game,other,self,b);
+            cleanupRejected(() -> ca.chooseCardsToDiscardToMaximumHandSize(2));
+            game.getPhaseHandler().devModeSet(PhaseType.CLEANUP,other);
+            cleanupRejected(() -> ca.chooseCardsToDiscardToMaximumHandSize(2));
+            game.getPhaseHandler().devModeSet(PhaseType.CLEANUP,self);
+            for(int wrong:new int[]{-1,0,1,3,10,Integer.MAX_VALUE}) {
+                cleanupRejected(() -> ca.chooseCardsToDiscardToMaximumHandSize(wrong));
+            }
+            self.setUnlimitedHandSize(true);
+            cleanupRejected(() -> ca.chooseCardsToDiscardToMaximumHandSize(2));
+            self.setUnlimitedHandSize(false);
+            Assert.assertEquals(ca.cleanupChoices,0);
+            Assert.assertEquals(ca.chooseCardsToDiscardToMaximumHandSize(2).size(),2,
+                    "positive control: genuine count and active cleanup are accepted");
+            Assert.assertEquals(self.getCardsIn(ZoneType.Hand).size(),9);
+            Assert.assertTrue(self.getCardsIn(ZoneType.Graveyard).isEmpty());
+        }
+    }
+
+    @Test(timeOut=120000)
+    public void stage11yStaleAndForeignHandBindingsAreRejectedBeforeAnyDiscard() {
+        Game game=initAndCreateGame();
+        Player self=game.getPlayers().get(1),other=game.getPlayers().get(0);
+        nineCardFixture(self);
+        game.getPhaseHandler().devModeSet(PhaseType.CLEANUP,self);
+        CardCollection snapshot=new CardCollection(self.getCardsIn(ZoneType.Hand));
+        JsonObject order=parseStrictActorReply("{\"intent\":\"hand_order\",\"hand_priority\":[0,1,2,3,4,5,6,7,8]}");
+        Assert.assertEquals(resolveOwnHandOrder(self,snapshot,order,2).size(),2);
+        Card foreign=addCardToZone("Grizzly Bears",other,ZoneType.Hand);
+        CardCollection forged=new CardCollection();
+        forged.add(foreign);
+        for(int i=1;i<snapshot.size();i++) forged.add(snapshot.get(i));
+        cleanupRejected(() -> resolveOwnHandOrder(self,forged,order,2));
+        game.getAction().moveToGraveyard(snapshot.get(0),null);
+        addCardToZone("Forest",self,ZoneType.Hand); // same size, different physical hand
+        Map<String,Integer> before=cleanupPhysicalCards(self);
+        cleanupRejected(() -> resolveOwnHandOrder(self,snapshot,order,2));
+        Assert.assertEquals(cleanupPhysicalCards(self),before);
+        Assert.assertEquals(self.getCardsIn(ZoneType.Hand).size(),9);
+        Assert.assertEquals(other.getCardsIn(ZoneType.Hand).size(),1);
+    }
+
+
+    private void verifyNativeOwnHandCleanup(int maximum) throws Exception {
+        Game game=initAndCreateGame();
+        Player self=game.getPlayers().get(1),other=game.getPlayers().get(0);
+        nineCardFixture(self);
+        self.setMaxHandSize(maximum); // Explicit fixture; never sent to the actor.
+        for(Player player:Arrays.asList(self,other))
+            for(int i=0;i<5;i++) addCardToZone("Forest",player,ZoneType.Library);
+        Card marked=addCardToZone("Centaur Courser",self,ZoneType.Battlefield);
+        marked.setDamage(2);
+        CardCollection originalHand=new CardCollection(self.getCardsIn(ZoneType.Hand));
+        Map<String,Integer> before=cleanupPhysicalCards(self),otherBefore=cleanupPhysicalCards(other);
+        try(Actor a=new Actor(5);Actor b=new Actor(5)) {
+            Assert.assertNotEquals(a.process.pid(),b.process.pid());
+            ExternalCreatureController ca=attach(game,self,other,a);
+            attach(game,other,self,b);
+            // Arrange only the starting end step. Forge itself enters cleanup,
+            // requests the count, discards cards, clears damage and starts the next turn.
+            game.getPhaseHandler().devModeSet(PhaseType.END_OF_TURN,self);
+            game.getPhaseHandler().onStackResolved();
+            int steps=0;
+            while(ca.cleanupChoices==0 && !game.isGameOver() && steps++<60)
+                game.getPhaseHandler().mainLoopStep();
+            int discarded=9-maximum;
+            Assert.assertTrue(steps<60);
+            Assert.assertEquals(ca.cleanupChoices,1);
+            Assert.assertEquals(ca.cleanupSelected.size(),discarded);
+            Assert.assertEquals(self.getCardsIn(ZoneType.Hand).size(),maximum);
+            Assert.assertEquals(self.getCardsIn(ZoneType.Graveyard).size(),discarded);
+            Assert.assertEquals(ca.cleanupSelected.get(0).getName(),"Counterspell");
+            Assert.assertEquals(ca.cleanupSelected.get(1).getName(),"Shock");
+            if(maximum==5) {
+                Assert.assertEquals(ca.cleanupSelected.get(2).getName(),"Grizzly Bears");
+                Assert.assertEquals(ca.cleanupSelected.get(3).getName(),"Centaur Courser");
+            }
+            for(Card selected:ca.cleanupSelected) {
+                Assert.assertTrue(originalHand.stream().anyMatch(c->c==selected));
+                Assert.assertTrue(self.getCardsIn(ZoneType.Graveyard).stream()
+                        .anyMatch(c->c.getId()==selected.getId()));
+                Assert.assertFalse(self.getCardsIn(ZoneType.Hand).stream()
+                        .anyMatch(c->c.getId()==selected.getId()));
+            }
+            Assert.assertEquals(marked.getDamage(),0,"native cleanup also clears marked damage");
+            Assert.assertEquals(cleanupPhysicalCards(self),before);
+            Assert.assertEquals(cleanupPhysicalCards(other),otherBefore);
+            while(game.getPhaseHandler().getPlayerTurn()==self && steps++<90)
+                game.getPhaseHandler().mainLoopStep();
+            Assert.assertSame(game.getPhaseHandler().getPlayerTurn(),other);
+            Assert.assertFalse(game.isGameOver());
+            Assert.assertNull(game.getOutcome());
+            Assert.assertEquals(self.getLife(),20);
+            Assert.assertEquals(other.getLife(),20);
+            Assert.assertTrue(a.process.isAlive() && b.process.isAlive());
+            System.out.println("STAGE11Y_CLEANUP maximum="+maximum+" discarded="+discarded+
+                    " hand="+self.getCardsIn(ZoneType.Hand).size()+
+                    " marked_damage=0 next_turn=true");
+        }
+    }
+
+    @Test(timeOut=120000)
+    public void stage11yNativeCleanupDiscardsOwnCardsClearsDamageAndResumesTurns()
+            throws Exception {
+        verifyNativeOwnHandCleanup(7);
+    }
+
+    @Test(timeOut=120000)
+    public void stage11yNativeCleanupUsesRefereeModifiedMaximumWithoutLeakingIt()
+            throws Exception {
+        verifyNativeOwnHandCleanup(5);
+    }
+
+    /** One predeclared natural mixed-creature game per registration order.
+     * No hand, life, battlefield or library fixtures and no chosen seeds.
+     * Cleanup can legitimately be unnecessary; report the actual count. */
+    private void verifyNaturalCleanupCapableMixedGame(boolean leftRegisteredFirst)
+            throws Exception {
+        Game game=nativeFourStrengthVanillaGame(leftRegisteredFirst);
+        Player left=game.getPlayers().get(leftRegisteredFirst?0:1);
+        Player right=game.getPlayers().get(leftRegisteredFirst?1:0);
+        try(Actor a=new Actor(5);Actor b=new Actor(5)) {
+            Assert.assertNotEquals(a.process.pid(),b.process.pid());
+            ExternalCreatureController lc=attach(game,left,right,a);
+            ExternalCreatureController rc=attach(game,right,left,b);
+            doRealNativeStartForMultiTurn(game,lc,rc);
+            for(Player player:Arrays.asList(left,right)) {
+                Assert.assertEquals(player.getLife(),20);
+                Assert.assertTrue(player.getCardsIn(ZoneType.Battlefield).isEmpty());
+                Assert.assertEquals(fullPhysicalInventory(player),frozenMain.owned(player));
+            }
+            Assert.assertTrue(lc.openingCallbacks>0 && rc.openingCallbacks>0);
+            int steps=0;
+            while(!game.isGameOver() && steps++<85000)
+                game.getPhaseHandler().mainLoopStep();
+            Assert.assertTrue(steps<85000,"uncurated native game must terminate");
+            Assert.assertTrue(game.isGameOver());
+            Assert.assertNotNull(game.getOutcome());
+            Assert.assertFalse(game.getOutcome().isDraw());
+            Assert.assertTrue(left.hasWon()!=right.hasWon());
+            Assert.assertTrue(left.hasLost()!=right.hasLost());
+            Player winner=left.hasWon()?left:right;
+            Assert.assertTrue(game.getOutcome().isWinner(winner.getRegisteredPlayer()));
+            Assert.assertTrue(lc.priorityCallbacks>0 && rc.priorityCallbacks>0);
+            Assert.assertEquals(fullPhysicalInventory(left),frozenMain.owned(left));
+            Assert.assertEquals(fullPhysicalInventory(right),frozenMain.owned(right));
+            Assert.assertTrue(a.process.isAlive() && b.process.isAlive());
+            System.out.println("STAGE11Y_NATURAL left_first="+leftRegisteredFirst+
+                    " cleanup_choices="+(lc.cleanupChoices+rc.cleanupChoices)+
+                    " attacks="+(lc.attacksAuthorized+rc.attacksAuthorized)+
+                    " blocks="+(lc.blocksAuthorized+rc.blocksAuthorized)+
+                    " winner="+winner.getName()+" prepared_hand=false");
+        }
+    }
+
+    @Test(timeOut=180000)
+    public void stage11yNaturalCleanupCapableMixedGameLeftRegisteredFirst() throws Exception {
+        verifyNaturalCleanupCapableMixedGame(true);
+    }
+
+    @Test(timeOut=180000)
+    public void stage11yNaturalCleanupCapableMixedGameRightRegisteredFirst() throws Exception {
+        verifyNaturalCleanupCapableMixedGame(false);
     }
 }

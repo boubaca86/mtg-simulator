@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail closed unless exactly 140 real Forge TestNG methods ran and passed."""
+"""Fail closed unless exactly 148 real Forge TestNG methods ran and passed."""
 import argparse
 import json
 import sys
@@ -148,6 +148,14 @@ EXPECTED = {
     "nativeLlanowarEmergencyChumpRightRegisteredFirst",
     "refereeAllocatesLethalSplitAcrossElfAndBearTargets",
     "refereeRejectsInvalidElfDamageBindingsWithoutMutation",
+    "stage11yOwnHandPreferenceUsesIndependentWorkersAndIgnoresPrivateWorlds",
+    "stage11yMalformedHandPreferencesCannotChooseDuplicateHiddenOrNonintegerCards",
+    "stage11yCleanupRejectsWrongCountTurnAndPhaseBeforeActorChoice",
+    "stage11yStaleAndForeignHandBindingsAreRejectedBeforeAnyDiscard",
+    "stage11yNativeCleanupDiscardsOwnCardsClearsDamageAndResumesTurns",
+    "stage11yNativeCleanupUsesRefereeModifiedMaximumWithoutLeakingIt",
+    "stage11yNaturalCleanupCapableMixedGameLeftRegisteredFirst",
+    "stage11yNaturalCleanupCapableMixedGameRightRegisteredFirst",
 }
 
 REJECTIONS = {
@@ -184,7 +192,7 @@ def verify(folder: Path) -> dict:
         if problems:
             raise ValueError(f"test failed or skipped: {name}")
     return {"gate": "PASS", "test_class": CLASS, "executed_methods": len(seen),
-            "previous_regressions": 138, "elf_damage_boundary_cases": 2,
+            "previous_regressions": 140, "own_hand_cleanup_cases": 8,
             "full_magic_game": False, "reserved_seed_games_run": False}
 
 
