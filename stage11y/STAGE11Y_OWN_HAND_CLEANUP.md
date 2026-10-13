@@ -1,10 +1,10 @@
 # Stage 11Y: own-hand cleanup in the current combat actors
 
-Base: Stage 11X commit `cdd669506ceadef5c5a5a37643c6c9c4ced69953`,
+Base: Stage 11X commit `376db0a1bc1d7ba7b33886d159e8e9c4e532bd8f`,
 [PR #31](https://github.com/boubaca86/mtg-simulator/pull/31).
 This integrates the cleanup protocol prototyped separately in
 [PR #27](https://github.com/boubaca86/mtg-simulator/pull/27) with the current
-mixed-creature reciprocal actor, including the current Elf-defense policy. Neither parent
+mixed-creature reciprocal actor, including the current Elf-defense policy and its visible opposing-Elf fix. Neither parent
 work nor this change is merged by this stage. Exact CI evidence is recorded
 in the Stage 11Y pull request after the runs complete.
 
@@ -37,7 +37,7 @@ uses its existing shared I/O deadline and strict reply parser.
 
 ## Verification
 
-The exact-method gate requires 148 Forge methods: 140 inherited plus eight new:
+The exact-method gate requires 150 Forge methods: 142 inherited plus eight new:
 
 1. Two independent workers agree on own-hand rankings, invariant under changes
    to the opponent's secret hand/library and the actual own-library contents.
@@ -56,6 +56,13 @@ The cleanup fixtures explicitly arrange cards and the starting end step; they
 are not natural-opening games. The two natural games use real shuffled openings,
 London mulligans, 20 life, paid casts and native outcomes. Their actual cleanup
 counts, including zero, are reported without retries or favorable seed selection.
+
+The initial cleanup cases passed in both CI runs. The first PR-preview run
+failed an inherited natural-game assertion requiring combat victory from every
+shuffle. The synchronized parent now validates the actual native combat or
+empty-library-draw outcome and adds two controlled deck-out regressions; see
+`stage11x/STAGE11X_INTEGRATION.md`. Natural decks and hands remain unchanged,
+and neither failed games nor outcomes are selected or retried.
 
 Twenty-three Python checks cover the new request, mixed-creature ranking, continued
 Elf-defense behavior, framing, independent processes, input rejection and

@@ -4480,6 +4480,9 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             Assert.assertEquals(attacker.getLife(),20);
             Assert.assertEquals(defender.getLife(),expectLethal?0:14);
             if(expectLethal) {
+                Assert.assertEquals(assertNaturalBearOutcome(game,attacker,defender,
+                        2*damageEvents,damageEvents,sawPaidBearOnStack,
+                        sawRealBearOnBattlefield),"LifeReachedZero");
                 Assert.assertTrue(game.isGameOver(),
                         "native Forge must recognize genuine 20-to-zero loss");
                 Assert.assertNotNull(game.getOutcome());
@@ -5132,21 +5135,129 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         verifyTwoSuccessiveNaturalBlocks(false);
     }
 
+    /** Validate actual Forge outcomes without requiring a lucky natural draw.
+     * Neither a stopped game, a concession nor an unrelated loss counts. */
+    private static String assertNaturalBearOutcome(Game game,Player attacker,
+            Player defender,int damageTotal,int damageEvents,
+            boolean paidOnStack,boolean bearResolved) {
+        Assert.assertTrue(game.isGameOver(),"native outcome requires completed game");
+        Assert.assertNotNull(game.getOutcome(),"native outcome must be recorded");
+        Assert.assertFalse(game.getOutcome().isDraw(),"two-player decisive outcome required");
+        Assert.assertEquals(attacker.getLife(),20);
+        Assert.assertEquals(defender.getLife(),20-damageTotal,
+                "all defender life loss must match observed Bear combat damage");
+        Assert.assertTrue(damageEvents>=0 && damageTotal>=0 && damageTotal%2==0);
+        Assert.assertTrue(damageTotal>=2*damageEvents && damageTotal<=8*damageEvents);
+        if(damageTotal>0) {
+            Assert.assertTrue(paidOnStack && bearResolved,
+                    "positive combat damage requires a paid, resolved original Bear");
+        }
+        Assert.assertNotEquals(attacker.hasLost(),defender.hasLost(),
+                "exactly one registered player must lose");
+        Player loser=attacker.hasLost()?attacker:defender;
+        Player winner=attacker.hasLost()?defender:attacker;
+        Assert.assertTrue(winner.hasWon());
+        Assert.assertFalse(loser.hasWon());
+        Assert.assertTrue(game.getOutcome().isWinner(winner.getRegisteredPlayer()));
+        Assert.assertFalse(game.getOutcome().isWinner(loser.getRegisteredPlayer()));
+        Assert.assertNotNull(loser.getOutcome());
+        Assert.assertNotNull(loser.getOutcome().lossState);
+        String reason=loser.getOutcome().lossState.toString();
+        if("LifeReachedZero".equals(reason)) {
+            Assert.assertSame(loser,defender);
+            Assert.assertTrue(defender.getLife()<=0 && damageTotal>=20);
+            Assert.assertTrue(damageEvents>=3,"at most eight damage per combat");
+            Assert.assertTrue(paidOnStack && bearResolved);
+        } else {
+            Assert.assertEquals(reason,"Milled","only native empty-draw loss is an alternative");
+            Assert.assertTrue(loser.getCardsIn(ZoneType.Library).isEmpty());
+            Assert.assertTrue(loser.getLife()>0 && damageTotal<20,
+                    "deck-out must never be reported as lethal combat");
+        }
+        return reason;
+    }
+
+    /** Arranged regression, separate from the unchanged natural shuffled games.
+     * Move original library cards to the graveyard, then let Forge's draw and SBA end it.
+     * An empty library alone must not fabricate a loss or a game outcome. */
+    private void verifyNativeEmptyLibraryOutcome(boolean attackerLoses) throws Exception {
+        Game game=nativeUncuratedTwoActorGame(true);
+        Player attacker=game.getPlayers().get(0),defender=game.getPlayers().get(1);
+        Player loser=attackerLoses?attacker:defender;
+        try(Actor workerA=new Actor(1);Actor workerD=new Actor(2)) {
+            Assert.assertNotEquals(workerA.process.pid(),workerD.process.pid());
+            ExternalCreatureController ac=attach(game,attacker,defender,workerA);
+            ExternalCreatureController dc=attach(game,defender,attacker,workerD);
+            doRealNativeStartForMultiTurn(game,ac,dc);
+            ac.fixturePassPriority=true;dc.fixturePassPriority=true;
+            List<Card> originalLibrary=new ArrayList<>();
+            for(Card card:loser.getCardsIn(ZoneType.Library)) originalLibrary.add(card);
+            Assert.assertFalse(originalLibrary.isEmpty());
+            for(Card card:originalLibrary) {
+                Card moved=game.getAction().moveToGraveyard(card,null);
+                Assert.assertNotNull(moved);
+                Assert.assertEquals(moved.getId(),card.getId());
+                Assert.assertSame(moved.getOwner(),loser);
+            }
+            Assert.assertTrue(loser.getCardsIn(ZoneType.Library).isEmpty());
+            Assert.assertFalse(game.isGameOver(),"empty library before a draw is not a loss");
+            Assert.assertNull(game.getOutcome());
+            Assert.assertFalse(loser.hasLost());
+            boolean rejected=false;
+            try {assertNaturalBearOutcome(game,attacker,defender,0,0,false,false);}
+            catch(AssertionError expected) {rejected=true;}
+            Assert.assertTrue(rejected,"unfinished game cannot pass outcome verification");
+            int steps=0;
+            while(!game.isGameOver() && steps++<1500)
+                game.getPhaseHandler().mainLoopStep();
+            Assert.assertTrue(steps<1500,"native draw and state-based loss must finish");
+            Assert.assertEquals(assertNaturalBearOutcome(game,attacker,defender,
+                    0,0,false,false),"Milled");
+            Assert.assertTrue(loser.hasLost(),"only the arranged empty-library player loses");
+            Assert.assertEquals(game.getPhaseHandler().getPhase(),PhaseType.DRAW);
+            Assert.assertSame(game.getPhaseHandler().getPlayerTurn(),loser);
+            Assert.assertEquals(attacker.getLife(),20);
+            Assert.assertEquals(defender.getLife(),20);
+            Assert.assertEquals(fullPhysicalInventory(attacker),frozenMain.owned(attacker));
+            Assert.assertEquals(fullPhysicalInventory(defender),frozenMain.owned(defender));
+            rejected=false;
+            try {assertNaturalBearOutcome(game,attacker,defender,2,1,true,true);}
+            catch(AssertionError expected) {rejected=true;}
+            Assert.assertTrue(rejected,"invented combat damage cannot pass outcome verification");
+            Assert.assertTrue(workerA.process.isAlive() && workerD.process.isAlive());
+            System.out.println("STAGE11X_DECK_OUT attacker_loses="+attackerLoses+
+                    " loss_reason=Milled damage=0 native_draw=true original_cards=true");
+        }
+    }
+
+    @Test(timeOut=120000)
+    public void nativeEmptyLibraryAttackerLosesOnlyOnDraw() throws Exception {
+        verifyNativeEmptyLibraryOutcome(true);
+    }
+
+    @Test(timeOut=120000)
+    public void nativeEmptyLibraryDefenderLosesOnlyOnDraw() throws Exception {
+        verifyNativeEmptyLibraryOutcome(false);
+    }
+
     /**
-     * Stage10Y: a full real 20-life Forge win, with ZERO selected opening
+     * Stage10Y/11X: a full native 20-life outcome, with ZERO selected opening
      * cards. The attacking player's originally registered 56 Forest + four
      * Bears and the nonblocking registered opponent's 60 Islands are
      * genuinely shuffled for native Match.startGame and London mulligans.
      * Both persistent Python actors decide only on their permitted own/public
      * observations. The referee alone casts legally, collects mana,
-     * resolves the stack, handles combat, and checks the life-based winner.
+     * resolves the stack, handles combat, and records the actual native winner.
+     * The legacy opening policy can bottom Bears during London mulligans;
+     * a late threat may lose the race to an empty-library draw. Such an
+     * outcome must be verified and reported, never retried or called lethal.
      *
      * Multiple naturally drawn Bears may attack in the same damage step;
      * therefore the rule-grounded requirement is positive EVEN damage
      * between 2 and 8 in each separate combat event, not artificially
      * assuming exactly ten single-Bear attacks to reach 0.
      */
-    private void verifyNativeUncuratedFullTwentyLifeWin(boolean attackerRegisteredFirst)
+    private void verifyNativeUncuratedFullTwentyLifeOutcome(boolean attackerRegisteredFirst)
             throws Exception {
         Game game=nativeUncuratedTwoActorGame(attackerRegisteredFirst);
         Player attacker=game.getPlayers().get(attackerRegisteredFirst?0:1);
@@ -5202,10 +5313,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 }
             }
             Assert.assertTrue(steps<25000,"bounded native match completed before turn limit");
-            Assert.assertTrue(paidOnStack && bearResolved,
-                    "genuine naturally drawn original Bear resolves from a paid Forge spell");
-            Assert.assertTrue(damageEvents>=3,"multiple genuine combat turns required");
-            Assert.assertTrue(damageTotal>=20,"unblocked creature damage beats 20 starting life");
+            String lossReason=assertNaturalBearOutcome(game,attacker,defender,
+                    damageTotal,damageEvents,paidOnStack,bearResolved);
             Assert.assertTrue(ca.attackCallbacks>=damageEvents);
             Assert.assertTrue(ca.priorityCallbacks>damageEvents);
             Assert.assertTrue(cb.priorityCallbacks>damageEvents);
@@ -5218,17 +5327,14 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     "all originally registered attacker cards conserved");
             Assert.assertEquals(fullPhysicalInventory(defender),frozenMain.owned(defender),
                     "all originally registered defender cards conserved");
-            Assert.assertEquals(attacker.getLife(),20);
-            Assert.assertTrue(defender.getLife()<=0,
-                    "native Forge, not the test, determines the final life value");
-            Assert.assertTrue(game.isGameOver(),"actual game conclusion required");
-            Assert.assertNotNull(game.getOutcome(),"Forge must record real game outcome");
-            Assert.assertTrue(defender.hasLost(),"life-based native loss");
-            Assert.assertEquals(defender.getOutcome().lossState.toString(),
-                    "LifeReachedZero");
-            Assert.assertTrue(attacker.hasWon(),"registered attacker is Forge winner");
-            Assert.assertTrue(game.getOutcome().isWinner(attacker.getRegisteredPlayer()));
-            Assert.assertFalse(game.getOutcome().isDraw());
+            Assert.assertTrue(aggressive.process.isAlive() && passive.process.isAlive());
+            System.out.println("STAGE11X_NATURAL_OUTCOME attacker_first="+
+                    attackerRegisteredFirst+" damage="+damageTotal+
+                    " damage_events="+damageEvents+" loss_reason="+lossReason+
+                    " winner="+(attacker.hasWon()?"attacker":"defender")+
+                    " attacker_library="+attacker.getCardsIn(ZoneType.Library).size()+
+                    " defender_library="+defender.getCardsIn(ZoneType.Library).size()+
+                    " prepared_hand=false");
             JsonObject attackerView=JsonParser.parseString(observation(attacker,defender))
                     .getAsJsonObject();
             JsonObject defenderView=JsonParser.parseString(observation(defender,attacker))
@@ -5244,15 +5350,15 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     }
 
     @Test(timeOut=120000)
-    public void nativeUncuratedTwentyLifeForgeVictoryAttackerRegisteredFirst()
+    public void nativeUncuratedTwentyLifeForgeOutcomeAttackerRegisteredFirst()
             throws Exception {
-        verifyNativeUncuratedFullTwentyLifeWin(true);
+        verifyNativeUncuratedFullTwentyLifeOutcome(true);
     }
 
     @Test(timeOut=120000)
-    public void nativeUncuratedTwentyLifeForgeVictoryDefenderRegisteredFirst()
+    public void nativeUncuratedTwentyLifeForgeOutcomeDefenderRegisteredFirst()
             throws Exception {
-        verifyNativeUncuratedFullTwentyLifeWin(false);
+        verifyNativeUncuratedFullTwentyLifeOutcome(false);
     }
 
     /**
@@ -8472,6 +8578,10 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     .filter(c->"Grizzly Bears".equals(c.getName()))
                     .findFirst().orElseThrow();
             bear.setSickness(false); // controlled fixture ONLY
+            // Fixture-only physical readiness; CR 509.1a forbids tapped blockers.
+            // No such intervention occurs in either natural 60-card cohort.
+            elf.setTapped(false);
+            Assert.assertFalse(elf.isTapped(),"registered fixture Elf must be untapped");
             final long bearId=bear.getId(),elfId=elf.getId();
             Assert.assertTrue(defense.getCardsIn(ZoneType.Battlefield).stream()
                     .anyMatch(c->c.getId()==elfId));
@@ -8513,6 +8623,15 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             Assert.assertEquals(defenderWorker.ask(unknown.toString())
                     .getAsJsonArray("block_pairs").size(),0,
                     "unknown faceup opposing body never guessed harmless");
+            JsonObject extraElf=JsonParser.parseString(
+                    observation(defense,offense)).getAsJsonObject();
+            JsonObject publicElf=new JsonObject();
+            publicElf.addProperty("appearance","face_up");
+            publicElf.addProperty("card","Llanowar Elves");
+            extraElf.getAsJsonArray("opponent_table").add(publicElf);
+            Assert.assertEquals(defenderWorker.ask(extraElf.toString())
+                    .getAsJsonArray("block_pairs").size(),1,
+                    "visible opposing nonattacking mana Elf must not suppress lethal Bear block");
             Assert.assertEquals(defense.getLife(),2,
                     "public probes never change trusted Forge life");
             Assert.assertFalse(JsonParser.parseString(observation(defense,offense))
@@ -8547,6 +8666,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     "Forge must approve block, kill original 1/1 and preserve 2 life;"+
                     " attacks="+oc.attacksAuthorized+
                     " blocks="+dc.blocksAuthorized+
+                    " blocker_callbacks="+dc.blockerCallbacks+
+                    " elf_tapped="+elf.isTapped()+
                     " defender_life="+defense.getLife());
             Assert.assertEquals(bear.getDamage(),1,
                     "Forge also applies the blocking Elf's one damage to the Bear");
