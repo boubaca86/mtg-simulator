@@ -310,6 +310,28 @@ for raw in sys.stdin.buffer:
     ordered_targets = sorted(targets,
         key=lambda i: -public_power(view['opponent_table'][i]['card']))
     block_pairs = []
+    # Stage11V: at <=4 public life, block TWO visible 4/4 attackers
+    # separately with our 4/4 (trade) and 2/2 (chump). The old greedy
+    # strongest-first proposal double-blocked one and leaked lethal four.
+    # This is a public-only priority; Forge checks real attackers, tapped
+    # status, blocking legality, native damage and winner (CR 509-510).
+    two_lane_emergency = (
+        0 < life <= 4 and len(defensive_candidates) == 2
+        and sorted(public_power(view['own_cards']['table'][i]['card'])
+                   for i in defensive_candidates) == [2, 4]
+        and len(targets) == 2
+        and all(public_power(view['opponent_table'][i]['card']) == 4
+                for i in targets)
+        and all(record.get('appearance') == 'face_up'
+                and record.get('card') in (VANILLA_FIGHTERS | LANDS)
+                for record in view['opponent_table']))
+    if two_lane_emergency:
+        strong = next(i for i in defensive_candidates
+                      if public_power(view['own_cards']['table'][i]['card']) == 4)
+        weak = next(i for i in defensive_candidates
+                    if public_power(view['own_cards']['table'][i]['card']) == 2)
+        block_pairs.extend([[strong, ordered_targets[0]],
+                            [weak, ordered_targets[1]]])
     # Stage11K: a generic coordinated block is profitable when TWO weaker
     # vanilla creatures jointly match the public threat's toughness.
     # Example: 3/3 + 2/2 against a 4/4, or 2/2 + 2/2 against a 3/3.

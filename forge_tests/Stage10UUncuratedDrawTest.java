@@ -8159,4 +8159,125 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             throws Exception {
         verifyNonlethalUnderpoweredSwarm(false);
     }
+
+    /** Stage11V: TWO distinct public 4/4 attackers, own 4/4 and 2/2,
+     * four life. Explicit physical fixture only; Forge alone decides
+     * legal combat, damage, deaths, and life. Followed by TWO untouched
+     * fresh shuffled registered sixty-card native games per seat order. */
+    private void verifyTwoLaneEmergencyDefense(boolean leftRegisteredFirst)
+            throws Exception {
+        Game game=nativeFourStrengthVanillaGame(leftRegisteredFirst);
+        Player seatA=game.getPlayers().get(0),seatB=game.getPlayers().get(1);
+        try(Actor workerA=new Actor(5);Actor workerB=new Actor(5)) {
+            Assert.assertNotEquals(workerA.process.pid(),workerB.process.pid());
+            ExternalCreatureController ca=attach(game,seatA,seatB,workerA);
+            ExternalCreatureController cb=attach(game,seatB,seatA,workerB);
+            doRealNativeStartForMultiTurn(game,ca,cb);
+            Assert.assertEquals(seatA.getLife(),20);
+            Assert.assertEquals(seatB.getLife(),20);
+            Player offense=game.getPhaseHandler().getPlayerTurn();
+            Assert.assertNotNull(offense);
+            Player defense=offense==seatA?seatB:seatA;
+            Actor defenderWorker=offense==seatA?workerB:workerA;
+            ExternalCreatureController oc=offense==seatA?ca:cb;
+            ExternalCreatureController dc=offense==seatA?cb:ca;
+            fixturePlaceRegisteredVanilla(game,offense,"Rumbling Baloth");
+            fixturePlaceRegisteredVanilla(game,offense,"Rumbling Baloth");
+            fixturePlaceRegisteredVanilla(game,defense,"Rumbling Baloth");
+            fixturePlaceRegisteredVanilla(game,defense,"Grizzly Bears");
+            List<Card> attackers=new ArrayList<>();
+            for(Card c:offense.getCardsIn(ZoneType.Battlefield))
+                if("Rumbling Baloth".equals(c.getName())) attackers.add(c);
+            Assert.assertEquals(attackers.size(),2);
+            for(Card c:attackers) c.setSickness(false); // controlled fixture
+            Card guard=defense.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->"Rumbling Baloth".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Card bear=defense.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->"Grizzly Bears".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Set<Long> attackingIds=new HashSet<>();
+            for(Card c:attackers) attackingIds.add(Long.valueOf(c.getId()));
+            long guardId=guard.getId(),bearId=bear.getId();
+            Assert.assertEquals(fullPhysicalInventory(offense),
+                    frozenMain.owned(offense));
+            Assert.assertEquals(fullPhysicalInventory(defense),
+                    frozenMain.owned(defense));
+            Assert.assertTrue(defense.setLife(5,null));
+            JsonArray baseline=defenderWorker.ask(observation(defense,offense))
+                    .getAsJsonArray("block_pairs");
+            Assert.assertEquals(baseline.size(),4);
+            Assert.assertEquals(baseline.get(0).getAsJsonArray().get(0).getAsInt(),
+                    baseline.get(1).getAsJsonArray().get(0).getAsInt(),
+                    "old greedy order would double-block one attacker");
+            Assert.assertTrue(defense.setLife(4,null));
+            JsonArray proposed=defenderWorker.ask(observation(defense,offense))
+                    .getAsJsonArray("block_pairs");
+            Assert.assertEquals(proposed.size(),4);
+            JsonArray first=proposed.get(0).getAsJsonArray();
+            JsonArray second=proposed.get(1).getAsJsonArray();
+            Assert.assertNotEquals(first.get(0).getAsInt(),second.get(0).getAsInt());
+            Assert.assertNotEquals(first.get(1).getAsInt(),second.get(1).getAsInt());
+            Assert.assertEquals(defense.getCardsIn(ZoneType.Battlefield)
+                    .get(first.get(0).getAsInt()).getName(),"Rumbling Baloth");
+            Assert.assertEquals(defense.getCardsIn(ZoneType.Battlefield)
+                    .get(second.get(0).getAsInt()).getName(),"Grizzly Bears");
+            JsonObject uncertain=JsonParser.parseString(
+                    observation(defense,offense)).getAsJsonObject();
+            JsonObject down=new JsonObject();
+            down.addProperty("appearance","face_down");
+            uncertain.getAsJsonArray("opponent_table").add(down);
+            JsonArray cautious=defenderWorker.ask(uncertain.toString())
+                    .getAsJsonArray("block_pairs");
+            Assert.assertEquals(cautious.get(0).getAsJsonArray().get(0).getAsInt(),
+                    cautious.get(1).getAsJsonArray().get(0).getAsInt(),
+                    "unknown public permanent disables two-lane inference");
+            Assert.assertEquals(defense.getLife(),4);
+            boolean nativeTwoLane=false;
+            int steps=0;
+            while(!game.isGameOver() && steps++<2500) {
+                game.getPhaseHandler().mainLoopStep();
+                int attackerDeaths=0,attackerSurvivors=0;
+                for(Card c:offense.getCardsIn(ZoneType.Graveyard))
+                    if(attackingIds.contains(Long.valueOf(c.getId()))) attackerDeaths++;
+                for(Card c:offense.getCardsIn(ZoneType.Battlefield))
+                    if(attackingIds.contains(Long.valueOf(c.getId()))) attackerSurvivors++;
+                boolean guardDead=defense.getCardsIn(ZoneType.Graveyard).stream()
+                        .anyMatch(c->c.getId()==guardId);
+                boolean bearDead=defense.getCardsIn(ZoneType.Graveyard).stream()
+                        .anyMatch(c->c.getId()==bearId);
+                if(oc.attacksAuthorized>=2 && dc.blocksAuthorized>=2 &&
+                        attackerDeaths==1 && attackerSurvivors==1 &&
+                        guardDead && bearDead && defense.getLife()==4) {
+                    nativeTwoLane=true;break;
+                }
+            }
+            Assert.assertTrue(steps<2500,"bounded Forge combat");
+            Assert.assertTrue(nativeTwoLane,
+                    "Forge must resolve two lanes: one 4/4 trade, 2/2 chump;"+
+                    " attacks="+oc.attacksAuthorized+" blocks="+dc.blocksAuthorized+
+                    " defender_life="+defense.getLife());
+            Assert.assertEquals(defense.getLife(),4);
+            Assert.assertFalse(game.isGameOver());
+            Assert.assertEquals(fullPhysicalInventory(offense),
+                    frozenMain.owned(offense));
+            Assert.assertEquals(fullPhysicalInventory(defense),
+                    frozenMain.owned(defense));
+            System.out.println("STAGE11V_TWO_LANE_NATIVE_FIXTURE left_first="+
+                    leftRegisteredFirst+" real_attacks="+oc.attacksAuthorized+
+                    " real_blocks="+dc.blocksAuthorized+" defender_life="+
+                    defense.getLife());
+        }
+        verifyNaturalFourStrengthVanilla(leftRegisteredFirst);
+        System.out.println("STAGE11V_UNCURATED_NATURAL left_first="+
+                leftRegisteredFirst+" games=2");
+    }
+
+    @Test(timeOut=240000)
+    public void nativeTwoLaneEmergencyDefenseLeftRegisteredFirst()
+            throws Exception {verifyTwoLaneEmergencyDefense(true);}
+
+    @Test(timeOut=240000)
+    public void nativeTwoLaneEmergencyDefenseRightRegisteredFirst()
+            throws Exception {verifyTwoLaneEmergencyDefense(false);}
 }
