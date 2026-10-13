@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail closed unless exactly 150 real Forge TestNG methods ran and passed."""
+"""Fail closed unless exactly 152 real Forge TestNG methods ran and passed."""
 import argparse
 import json
 import sys
@@ -8,6 +8,8 @@ from xml.etree import ElementTree as ET
 
 CLASS = "forge.ai.Stage10UUncuratedDrawTest"
 EXPECTED = {
+    "nativeTwoLaneBearElfLeftRegisteredFirst",
+    "nativeTwoLaneBearElfRightRegisteredFirst",
     "nativeEmptyLibraryAttackerLosesOnlyOnDraw",
     "nativeEmptyLibraryDefenderLosesOnlyOnDraw",
     "realPriorityRequiresTwoExternalActorPassesToAdvance",
@@ -194,7 +196,7 @@ def verify(folder: Path) -> dict:
         if problems:
             raise ValueError(f"test failed or skipped: {name}")
     return {"gate": "PASS", "test_class": CLASS, "executed_methods": len(seen),
-            "previous_regressions": 142, "own_hand_cleanup_cases": 8,
+            "previous_regressions": 144, "own_hand_cleanup_cases": 8,
             "full_magic_game": False, "reserved_seed_games_run": False}
 
 

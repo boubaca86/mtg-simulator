@@ -1,7 +1,7 @@
 name: Stage 11Y - Own-Hand Cleanup Integration
 
 # Two external persistent actor processes plus one authoritative Forge referee.
-# Stage11Y adds bounded own-hand cleanup with eight native cases and 142 inherited methods.
+# Stage11Y adds bounded own-hand cleanup with eight native cases and 144 inherited methods.
 # Inherited uncurated natural matches remain separate from arranged regressions.
 # Registered 60-card decks, no hand curation, true London opening and 20 life; not full MTG or OS sandbox.
 on:
@@ -129,7 +129,7 @@ jobs:
           set -euo pipefail
           python3 -m unittest -v stage11y.test_protocol forge_tests.test_verify_stage11o_surefire 2>&1 \
             | tee stage10u-evidence/stage11y-python-tests.log
-      - name: Run eight cleanup cases and 142 inherited Forge tests
+      - name: Run eight cleanup cases and 144 inherited Forge tests
         shell: bash
         run: |
           set -euo pipefail
@@ -150,7 +150,7 @@ jobs:
           tail -n 75 "$GITHUB_WORKSPACE/stage10u-evidence/maven.log"
           python3 -c 'import os; from pathlib import Path; print("\n".join(line for line in (Path(os.environ["GITHUB_WORKSPACE"]) / "stage10u-evidence/maven.log").read_text().splitlines() if line.startswith(("STAGE11W_", "STAGE11X_", "STAGE11Y_"))))'
           test "$code" -eq 0
-      - name: Verify exact 150 genuine Forge-native methods with independent XML gate
+      - name: Verify exact 152 genuine Forge-native methods with independent XML gate
         shell: bash
         run: |
           set -euo pipefail

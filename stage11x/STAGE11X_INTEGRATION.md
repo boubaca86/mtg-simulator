@@ -1,11 +1,16 @@
 # Stage 11X integration and native outcome checks
 
 This branch combines the Elf damage validation from PR #31 with development
-commit `1eb0997d4b7e471e5901846e743ac08ea4aa370f`. The latter preserves the
+commits `1eb0997d4b7e471e5901846e743ac08ea4aa370f` and
+`989a6b5e379bc80d314935f5c38806efd4032062`. The first preserves the
 emergency Bear block when another visible opposing Llanowar Elf is present and
 explicitly untaps the arranged blocker. The fixture still passes priority to
 preserve its declared board; Forge initializes combat and applies actual damage.
 Natural games do not receive either fixture intervention.
+The second development commit adds a two-lane Bear trade plus Elf chump. Both
+of its native cases and its actor policy are retained; its arranged combat
+fixture uses the same priority-pass control to prevent opening-hand casts
+from changing the declared board. Its separate natural cohorts are unchanged.
 
 PR #32's first push passed all 148 methods, while its first PR-preview run failed
 the inherited `nativeUncuratedTwentyLifeForgeVictoryAttackerRegisteredFirst`
@@ -38,7 +43,7 @@ prove the outcome validator rejects unfinished games and fabricated damage.
 The existing arranged ten-hit, twenty-to-zero regression still requires lethal
 combat and exercises the same outcome validator's combat branch.
 
-The exact native suite now requires 142 named methods, with zero failures,
+The exact native suite now requires 144 named methods, with zero failures,
 errors or skips. Thirteen Python evidence tests and the existing three-case
 disabled-validator mutation gate remain required. Exact run results belong in
 the PR description, after CI completes. Successful tests and independent review

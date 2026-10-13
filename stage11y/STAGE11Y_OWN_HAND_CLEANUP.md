@@ -1,10 +1,12 @@
 # Stage 11Y: own-hand cleanup in the current combat actors
 
-Base: Stage 11X commit `376db0a1bc1d7ba7b33886d159e8e9c4e532bd8f`,
+Base: Stage 11X commit `9668cfc4b2c2e8118cbf95d6142d11345dc3fd2a`,
 [PR #31](https://github.com/boubaca86/mtg-simulator/pull/31).
 This integrates the cleanup protocol prototyped separately in
 [PR #27](https://github.com/boubaca86/mtg-simulator/pull/27) with the current
-mixed-creature reciprocal actor, including the current Elf-defense policy and its visible opposing-Elf fix. Neither parent
+mixed-creature reciprocal actor, including the current Elf-defense policy, its visible opposing-Elf fix, and
+the subsequent two-lane Bear trade plus Elf chump from development
+`989a6b5e379bc80d314935f5c38806efd4032062`. Neither parent
 work nor this change is merged by this stage. Exact CI evidence is recorded
 in the Stage 11Y pull request after the runs complete.
 
@@ -37,7 +39,7 @@ uses its existing shared I/O deadline and strict reply parser.
 
 ## Verification
 
-The exact-method gate requires 150 Forge methods: 142 inherited plus eight new:
+The exact-method gate requires 152 Forge methods: 144 inherited plus eight new:
 
 1. Two independent workers agree on own-hand rankings, invariant under changes
    to the opponent's secret hand/library and the actual own-library contents.

@@ -146,6 +146,13 @@ class OwnHandProtocolTests(unittest.TestCase):
                 self.assertEqual(before["block_pairs"], [[0, 0]])
                 self.ask(actor, request())
                 self.assertEqual(self.ask(actor, data), before)
+        data["own_cards"]["table"].append({"appearance": "face_up", "card": "Grizzly Bears"})
+        data["opponent_table"] = [{"appearance": "face_up", "card": name}
+                                  for name in ("Grizzly Bears", "Runeclaw Bear")]
+        before = self.ask(actor, data)
+        self.assertEqual(before["block_pairs"][:2], [[1, 0], [0, 1]])
+        self.ask(actor, request())
+        self.assertEqual(self.ask(actor, data), before)
 
     def test_unknown_request_and_broken_wire_frames_are_rejected(self):
         payload = request()
