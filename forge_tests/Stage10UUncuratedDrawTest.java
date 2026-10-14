@@ -10287,12 +10287,12 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 // Thus test 8-life lethal player damage and actual lethal
                 // marked blocker damage, plus separate 9-life native SBA
                 // destruction of the same original physical blocker.
-                Card liveBlocker=defense.getCardsIn(ZoneType.Battlefield).stream()
+                Card blockerDuringDamage=defense.getCardsIn(ZoneType.Battlefield).stream()
                         .filter(c->c.getId()==blocker.getId()).findFirst().orElse(null);
                 boolean blockerDead=defense.getCardsIn(ZoneType.Graveyard).stream()
                         .anyMatch(c->c.getId()==blocker.getId());
                 if(defenderStartLife==8 && defense.getLife()==0 &&
-                        liveBlocker!=null && liveBlocker.getDamage()>=2)
+                        blockerDuringDamage!=null && blockerDuringDamage.getDamage()>=2)
                     trampleVerified=true;
                 if(defenderStartLife==9 && defense.getLife()==1 && blockerDead)
                     trampleVerified=true;
