@@ -37,6 +37,8 @@ DRAW_CREATURES = frozenset(('Elvish Visionary',))
 FLYING_CREATURES = frozenset(('Scryb Sprites',))
 DEATHTOUCH_CREATURES = frozenset(('Sedge Scorpion',))
 RAMP_SORCERIES = frozenset(('Rampant Growth',))
+SWARM_SORCERIES = frozenset(('Overrun',))
+KNOWN_SORCERIES = RAMP_SORCERIES | SWARM_SORCERIES
 CREATURES = (frozenset(('Llanowar Elves',)) | VANILLA_FIGHTERS |
              DRAW_CREATURES | FLYING_CREATURES | DEATHTOUCH_CREATURES)
 
@@ -95,19 +97,20 @@ for raw in sys.stdin.buffer:
     if request_kind == 'own_hand_order':
         if len(hand) > 128:
             raise SystemExit('oversized own-hand ranking')
-        needed = max([2] + [4 if name in VANILLA_FOURS else 3
+        needed = max([2] + [5 if name in SWARM_SORCERIES else
+                             4 if name in VANILLA_FOURS else 3
                             for name in hand
-                            if name in VANILLA_FOURS | VANILLA_THREES])
+                            if name in VANILLA_FOURS | VANILLA_THREES | SWARM_SORCERIES])
         lands_in_hand = sorted((i for i, name in enumerate(hand) if name in LANDS),
                                key=lambda i: (hand[i] != 'Forest', i))
         preferred = set(lands_in_hand[:needed])
         def discard_rank(i):
             name = hand[i]
-            if name not in LANDS and name not in CREATURES | RAMP_SORCERIES:
+            if name not in LANDS and name not in CREATURES | KNOWN_SORCERIES:
                 return (0, 0, i)
             if name in LANDS and i not in preferred:
                 return (1, 0, i)
-            if name in CREATURES or name in RAMP_SORCERIES:
+            if name in CREATURES or name in KNOWN_SORCERIES:
                 return (2, public_power(name) if name in VANILLA_FIGHTERS else 1, i)
             return (3, 0, i)
         ordering = sorted(range(len(hand)), key=discard_rank)
@@ -126,7 +129,7 @@ for raw in sys.stdin.buffer:
             name = hand[index]
             if name in LANDS:
                 return (2, index)
-            if name in CREATURES or name in RAMP_SORCERIES:
+            if name in CREATURES or name in KNOWN_SORCERIES:
                 return (1, index)
             return (0, index)
         bottom_priority = sorted(range(len(hand)), key=bottom_score)
@@ -148,8 +151,22 @@ for raw in sys.stdin.buffer:
     own_forests = sum(r.get('appearance') == 'face_up' and
                       r.get('card') == 'Forest'
                       for r in view['own_cards']['table'])
+    # Stage12F: genuine printed Overrun costs FIVE mana and provides
+    # team-wide +3/+3 and Trample. The passive actor sees only public
+    # life, known creatures/Forest and own hand, never game phase, priority,
+    # tapped flags, hidden cards or future draws. Native Forge rules decide.
+    own_fighters = sum(r.get('appearance') == 'face_up' and
+                       r.get('card') in VANILLA_FIGHTERS
+                       for r in view['own_cards']['table'])
+    public_safe = all(r.get('appearance') == 'face_up' and
+                      r.get('card') in (VANILLA_FIGHTERS | LANDS)
+                      for r in view['opponent_table'])
+    swarm_window = (own_forests >= 5 and own_fighters >= 2 and
+                    0 < view['life_totals']['opponent'] <= 10 and public_safe)
     sorceries = [i for i, name in enumerate(hand)
-                 if name in RAMP_SORCERIES and own_forests <= 4]
+                 if (name in RAMP_SORCERIES and own_forests <= 4) or
+                    (name in SWARM_SORCERIES and swarm_window)]
+    sorceries.sort(key=lambda i: (hand[i] not in SWARM_SORCERIES, i))
     # Prefer greater known creature strength when actual mana permits it.
     # Forge remains solely responsible for paying {2}{G}{G} correctly.
     # Stage12B: a genuine {1}{G} Elvish Visionary replaces itself on

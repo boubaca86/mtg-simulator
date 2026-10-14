@@ -715,7 +715,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         if(plan.has("sorcery_hand_indices")) {
             JsonArray spells=plan.getAsJsonArray("sorcery_hand_indices");
             for(int i=0;i<spells.size();i++) {
-                SpellAbility legal=refereeAuthorizeRampantGrowth(self,spells.get(i).getAsInt());
+                SpellAbility legal=refereeAuthorizeApprovedSorcery(self,spells.get(i).getAsInt());
                 if(legal!=null) return legal;
             }
         }
@@ -778,7 +778,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
 
     /** Stage12E: the actor cannot inspect, select, or reorder any library card.
      * Only trusted Forge searches a real private library and shuffles it. */
-    private static SpellAbility refereeAuthorizeRampantGrowth(Player self,int index) {
+    private static SpellAbility refereeAuthorizeApprovedSorcery(Player self,int index) {
         if(index<0 || index>=self.getCardsIn(ZoneType.Hand).size()) return null;
         Game game=self.getGame();
         if(game.getPhaseHandler().getPlayerTurn()!=self ||
@@ -786,7 +786,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
            !self.canCastSorcery() || !game.getStack().isEmpty()) return null;
         Card spell=self.getCardsIn(ZoneType.Hand).get(index);
         if(spell.getOwner()!=self || spell.isFaceDown() || !spell.isSorcery() ||
-           !"Rampant Growth".equals(spell.getName())) return null;
+           !("Rampant Growth".equals(spell.getName()) ||
+             "Overrun".equals(spell.getName()))) return null;
         for(SpellAbility sa:spell.getSpellAbilities()) {
             if(!sa.isSpell() || sa.usesTargeting() || sa.getSubAbility()!=null) continue;
             if(sa.getPayCosts()==null || !sa.getPayCosts().hasManaCost() ||
@@ -1381,8 +1382,9 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             // Stage12E: the trusted referee has already authorized the
             // single printed sorcery. Preserve fail-closed behavior for all
             // other noncreature spells, including fabricated actor commands.
-            boolean originalRampantGrowth=host.isSorcery() &&
-                    "Rampant Growth".equals(host.getName()) &&
+            boolean originalApprovedSorcery=host.isSorcery() &&
+                    ("Rampant Growth".equals(host.getName()) ||
+                     "Overrun".equals(host.getName())) &&
                     host.getOwner()==controlled &&
                     controlled.getCardsIn(ZoneType.Hand).contains(host) &&
                     sa.getActivatingPlayer()==controlled &&
@@ -1392,7 +1394,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     controlled.getGame().getPhaseHandler().getPlayerTurn()==controlled &&
                     controlled.getGame().getPhaseHandler().getPriorityPlayer()==controlled &&
                     controlled.canCastSorcery() && controlled.getGame().getStack().isEmpty();
-            if(!host.isCreature() && !originalRampantGrowth) return false;
+            if(!host.isCreature() && !originalApprovedSorcery) return false;
             // Real Forge pays mana, places the spell on stack, resolves
             // its original printed effect, and shuffles the private library.
             return ComputerUtil.handlePlayingSpellAbility(controlled,sa,null);
@@ -10135,6 +10137,172 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     @Test(timeOut=240000)
     public void nativeRampantGrowthSearchRightRegisteredFirst() throws Exception {
         verifyNativeRampantGrowthAndNaturalGames(false);
+    }
+
+    /** Stage12F: printed Overrun {2}{G}{G}{G} gives two ORIGINAL
+     * registered bears +3/+3 and Trample. Forge actually pays five
+     * Forests, resolves its native global buff, legal blocks and excess
+     * damage. Curation is limited to explicit physical-card fixtures. */
+    private Game nativeOverrunGame(boolean leftFirst) {
+        Map<String,Integer> counts=new TreeMap<>();
+        counts.put("Forest",40); counts.put("Overrun",4);
+        counts.put("Grizzly Bears",4); counts.put("Runeclaw Bear",4);
+        counts.put("Llanowar Elves",4); counts.put("Elvish Visionary",4);
+        Assert.assertEquals(counts.values().stream().mapToInt(Integer::intValue).sum(),60);
+        RegisteredPlayer left=new RegisteredPlayer(mainDeck("12F left",counts))
+                .setPlayer(new LobbyPlayerAi("overrun-left",null));
+        RegisteredPlayer right=new RegisteredPlayer(mainDeck("12F right",counts))
+                .setPlayer(new LobbyPlayerAi("overrun-right",null));
+        List<RegisteredPlayer> reg=new ArrayList<>();
+        reg.add(leftFirst?left:right);reg.add(leftFirst?right:left);
+        GameRules rules=new GameRules(GameType.Constructed);
+        Match match=new Match(rules,reg,"Stage12F");
+        Game game=new Game(reg,rules,match);frozenMain=new FrozenMain(game);
+        Assert.assertNull(game.getPhaseHandler().getPhase());
+        for(Player p:game.getPlayers())
+            Assert.assertEquals(frozenMain.owned(p),counts);
+        return game;
+    }
+
+    private void verifyNativeOverrunTrampleAndNaturalGames(boolean leftFirst)
+            throws Exception {
+        Game fixture=nativeOverrunGame(leftFirst);
+        Player p0=fixture.getPlayers().get(0),p1=fixture.getPlayers().get(1);
+        try(Actor w0=new Actor(5);Actor w1=new Actor(5)) {
+            Assert.assertNotEquals(w0.process.pid(),w1.process.pid());
+            ExternalCreatureController c0=attach(fixture,p0,p1,w0);
+            ExternalCreatureController c1=attach(fixture,p1,p0,w1);
+            doRealNativeStartForMultiTurn(fixture,c0,c1);
+            Player assault=fixture.getStartingPlayer();
+            Player defense=assault==p0?p1:p0;
+            Actor actor=assault==p0?w0:w1;
+            // EXPLICIT CONTROLLED FIXTURE only: move already registered
+            // ORIGINAL physical cards; do not fabricate extra cards.
+            for(Player p:Arrays.asList(assault,defense))
+                for(Card c:new ArrayList<Card>(p.getCardsIn(ZoneType.Hand)))
+                    Assert.assertNotNull(fixture.getAction().moveToBottomOfLibrary(c,null));
+            Set<Integer> payIds=new HashSet<>();
+            for(int i=0;i<5;i++) {
+                Card orig=assault.getCardsIn(ZoneType.Library).stream()
+                        .filter(c->"Forest".equals(c.getName())).findFirst().orElseThrow();
+                payIds.add(orig.getId());
+                Assert.assertNotNull(fixture.getAction().moveToPlay(orig,null,
+                        forge.game.ability.AbilityKey.newMap()));
+                Card live=assault.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->c.getId()==orig.getId()).findFirst().orElseThrow();
+                live.setTapped(false);
+            }
+            Set<Integer> bearIds=new HashSet<>();
+            for(String name:Arrays.asList("Grizzly Bears","Runeclaw Bear")) {
+                Card orig=assault.getCardsIn(ZoneType.Library).stream()
+                        .filter(c->name.equals(c.getName())).findFirst().orElseThrow();
+                bearIds.add(orig.getId());
+                Assert.assertNotNull(fixture.getAction().moveToPlay(orig,null,
+                        forge.game.ability.AbilityKey.newMap()));
+                Card live=assault.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->c.getId()==orig.getId()).findFirst().orElseThrow();
+                live.setSickness(false);live.setTapped(false);
+            }
+            Card blocker=defense.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Grizzly Bears".equals(c.getName())).findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToPlay(blocker,null,
+                    forge.game.ability.AbilityKey.newMap()));
+            Card liveBlocker=defense.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->c.getId()==blocker.getId()).findFirst().orElseThrow();
+            liveBlocker.setSickness(false);liveBlocker.setTapped(false);
+            Card spell=assault.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Overrun".equals(c.getName())).findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToHand(spell,null));
+            Assert.assertTrue(defense.setLife(8,null),"fixture-only eight life");
+            Assert.assertEquals(assault.getLife(),20);
+            Assert.assertEquals(assault.getCardsIn(ZoneType.Hand).size(),1);
+            Assert.assertEquals(fullPhysicalInventory(assault),frozenMain.owned(assault));
+            Assert.assertEquals(fullPhysicalInventory(defense),frozenMain.owned(defense));
+            String projected=observation(assault,defense);
+            JsonObject proposed=actor.ask(projected);
+            Assert.assertEquals(proposed.get("intent").getAsString(),"action_plan");
+            Assert.assertEquals(proposed.getAsJsonArray("sorcery_hand_indices").size(),1);
+            Assert.assertEquals(proposed.getAsJsonArray("sorcery_hand_indices")
+                    .get(0).getAsInt(),0);
+            JsonObject view=JsonParser.parseString(projected).getAsJsonObject();
+            for(String forbidden:Arrays.asList("phase","priority","stack",
+                    "library_top","opponent_hand","library_order"))
+                Assert.assertFalse(view.has(forbidden));
+            assault.shuffle(null);
+            Assert.assertEquals(observation(assault,defense),projected);
+            Assert.assertEquals(actor.ask(projected),proposed);
+            boolean paidFive=false,resolved=false,pumped=false,trampleLethal=false;
+            int steps=0;
+            while(!fixture.isGameOver() && steps++<3500) {
+                fixture.getPhaseHandler().mainLoopStep();
+                if(assault.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->payIds.contains(c.getId()) && c.isTapped()).count()==5)
+                    paidFive=true;
+                if(assault.getCardsIn(ZoneType.Graveyard).stream()
+                        .anyMatch(c->c.getId()==spell.getId())) resolved=true;
+                int active=0;
+                for(Card c:assault.getCardsIn(ZoneType.Battlefield))
+                    if(bearIds.contains(c.getId()) && c.hasKeyword("Trample") &&
+                            c.getNetPower()==5 && c.getNetToughness()==5) active++;
+                if(active==2) pumped=true;
+                boolean blockerDead=defense.getCardsIn(ZoneType.Graveyard).stream()
+                        .anyMatch(c->c.getId()==blocker.getId());
+                if(blockerDead && defense.getLife()<=0) trampleLethal=true;
+                if(paidFive && resolved && pumped && trampleLethal) break;
+            }
+            Assert.assertTrue(steps<3500,"real Overrun should resolve promptly");
+            Assert.assertTrue(paidFive,"all five original Forests must pay real mana");
+            Assert.assertTrue(resolved,"native original Overrun goes to graveyard");
+            Assert.assertTrue(pumped,"both original Bears gain +3/+3 and Trample");
+            Assert.assertTrue(trampleLethal,"blocked 5/5 tramples three, other 5/5 "
+                    +"deals five: true Forge lethal at eight life");
+            Assert.assertEquals(fullPhysicalInventory(assault),frozenMain.owned(assault));
+            Assert.assertEquals(fullPhysicalInventory(defense),frozenMain.owned(defense));
+            Assert.assertTrue(w0.process.isAlive() && w1.process.isAlive());
+            System.out.println("STAGE12F_CONTROLLED_OVERRUN left_first="+leftFirst);
+        }
+        // TWO independent completely untouched, naturally shuffled 60-card
+        // complete Forge games per seat, with normal mulligans and 20 life.
+        for(int seq=0;seq<2;seq++) {
+            Game natural=nativeOverrunGame(leftFirst);
+            Player left=natural.getPlayers().get(leftFirst?0:1);
+            Player right=natural.getPlayers().get(leftFirst?1:0);
+            try(Actor wl=new Actor(5);Actor wr=new Actor(5)) {
+                Assert.assertNotEquals(wl.process.pid(),wr.process.pid());
+                ExternalCreatureController lc=attach(natural,left,right,wl);
+                ExternalCreatureController rc=attach(natural,right,left,wr);
+                doRealNativeStartForMultiTurn(natural,lc,rc);
+                Assert.assertEquals(left.getLife(),20);Assert.assertEquals(right.getLife(),20);
+                Assert.assertTrue(lc.openingCallbacks>0 && rc.openingCallbacks>0);
+                for(Player p:Arrays.asList(left,right)) {
+                    Assert.assertTrue(p.getCardsIn(ZoneType.Battlefield).isEmpty());
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                }
+                int steps=0;
+                while(!natural.isGameOver() && steps++<85000)
+                    natural.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(steps<85000 && natural.isGameOver());
+                Assert.assertNotNull(natural.getOutcome());
+                Assert.assertFalse(natural.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(natural.getOutcome().isWinner(winner.getRegisteredPlayer()));
+                for(Player p:Arrays.asList(left,right))
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                Assert.assertTrue(wl.process.isAlive() && wr.process.isAlive());
+                System.out.println("STAGE12F_NATURAL_OVERRUN left_first="+leftFirst+
+                        " sequence="+seq+" winner="+winner.getName());
+            }
+        }
+    }
+
+    @Test(timeOut=240000)
+    public void nativeOverrunTrampleLethalLeftRegisteredFirst() throws Exception {
+        verifyNativeOverrunTrampleAndNaturalGames(true);
+    }
+    @Test(timeOut=240000)
+    public void nativeOverrunTrampleLethalRightRegisteredFirst() throws Exception {
+        verifyNativeOverrunTrampleAndNaturalGames(false);
     }
 
 }
