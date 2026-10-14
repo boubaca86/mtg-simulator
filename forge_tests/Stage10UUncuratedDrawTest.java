@@ -1213,6 +1213,31 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 String filter,String message) {
             throw new SecurityException("restricted actor has no named-card predicate protocol");
         }
+        /** Stage12E: only the trusted Forge referee chooses a basic land
+         * for the ORIGINAL printed Rampant Growth. No candidate or library
+         * order is ever sent to either external Python player process.
+         * Every other hidden-zone selection remains fail-closed. */
+        @Override
+        public Card chooseSingleCardForZoneChange(ZoneType destination,
+                List<ZoneType> origin,SpellAbility sa,CardCollection fetchList,
+                DelayedReveal reveal,String prompt,boolean optional,Player decider) {
+            if(sa==null || sa.getHostCard()==null ||
+                    !"Rampant Growth".equals(sa.getHostCard().getName()) ||
+                    sa.getActivatingPlayer()!=controlled || decider!=controlled ||
+                    destination!=ZoneType.Battlefield || origin.size()!=1 ||
+                    origin.get(0)!=ZoneType.Library ||
+                    !"Land.Basic".equals(sa.getParam("ChangeType")) ||
+                    !"True".equals(sa.getParam("Tapped")) ||
+                    !"1".equals(sa.getParam("ChangeNum")))
+                throw new SecurityException("restricted actor has no other hidden-zone selection protocol");
+            for(Card candidate:fetchList)
+                if("Forest".equals(candidate.getName()) &&
+                        candidate.getOwner()==controlled &&
+                        controlled.getCardsIn(ZoneType.Library).contains(candidate))
+                    return candidate;
+            return null; // native optional search may fail to find a matching card
+        }
+
         @Override
         public List<Card> chooseCardsForZoneChange(ZoneType destination,
                 List<ZoneType> origin,SpellAbility sa,CardCollection fetchList,
@@ -10039,7 +10064,9 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             }
             Assert.assertTrue(steps<3500,"real sorcery must resolve promptly");
             Assert.assertTrue(paid,"two original Forests must pay real {1}{G}");
-            Assert.assertTrue(graveyard,"real original Rampant Growth must resolve");
+            Assert.assertTrue(graveyard,"real original Rampant Growth must resolve; paid="+
+                    paid+" fetchedTapped="+tappedLand+" steps="+steps+
+                    " gameOver="+fixture.isGameOver());
             Assert.assertTrue(tappedLand,"native library search must fetch tapped original Forest");
             Assert.assertEquals(ramp.getCardsIn(ZoneType.Battlefield).stream()
                     .filter(c->"Forest".equals(c.getName())).count(),3L);
