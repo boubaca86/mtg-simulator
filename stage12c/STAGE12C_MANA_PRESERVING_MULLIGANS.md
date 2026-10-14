@@ -82,6 +82,15 @@ above-maximum counts before IPC. This is an explicitly driven sequence, not a
 natural keep-policy trajectory. Natural games are not retried for favorable
 outcomes.
 
+The subsequent Stage 12D PR-preview run exposed a separate inherited deck-out
+fixture failure: priority was held at pass, but the fixture used legacy actors
+that deliberately reject cleanup. Depending on the opening, a required discard
+could occur before the losing empty-library draw. Both registered-role fixtures
+now use current cleanup-capable actors, explicitly arrange the survivor's
+nine-card hand and end step, and require native cleanup to discard two original
+cards before native draw records the other player's `Milled` loss at 20 life.
+The natural-game cohorts and legacy callback-denial tests remain unchanged.
+
 ## Limits and references
 
 This is still a limited ordinary-Magic simulator, not complete Magic or

@@ -5201,12 +5201,27 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         Game game=nativeUncuratedTwoActorGame(true);
         Player attacker=game.getPlayers().get(0),defender=game.getPlayers().get(1);
         Player loser=attackerLoses?attacker:defender;
-        try(Actor workerA=new Actor(1);Actor workerD=new Actor(2)) {
+        Player survivor=attackerLoses?defender:attacker;
+        // Current actors support the real cleanup that can precede the loss.
+        // Legacy modes must continue rejecting unsupported discard callbacks.
+        try(Actor workerA=new Actor(5);Actor workerD=new Actor(5)) {
             Assert.assertNotEquals(workerA.process.pid(),workerD.process.pid());
             ExternalCreatureController ac=attach(game,attacker,defender,workerA);
             ExternalCreatureController dc=attach(game,defender,attacker,workerD);
             doRealNativeStartForMultiTurn(game,ac,dc);
             ac.fixturePassPriority=true;dc.fixturePassPriority=true;
+            ExternalCreatureController survivorController=attackerLoses?dc:ac;
+            // Explicitly arrange a nine-card surviving hand and its end step.
+            // This reproduces cleanup before the opponent's losing draw for
+            // either registered role, independent of the shuffled opening.
+            while(survivor.getCardsIn(ZoneType.Hand).size()<9) {
+                Card original=survivor.getCardsIn(ZoneType.Library).get(0);
+                Assert.assertNotNull(game.getAction().moveToHand(original,null));
+            }
+            CardCollection survivorHand=new CardCollection(survivor.getCardsIn(ZoneType.Hand));
+            Assert.assertEquals(survivorHand.size(),9);
+            Assert.assertEquals(survivor.getMaxHandSize(),7);
+            Assert.assertTrue(survivor.getCardsIn(ZoneType.Graveyard).isEmpty());
             List<Card> originalLibrary=new ArrayList<>();
             for(Card card:loser.getCardsIn(ZoneType.Library)) originalLibrary.add(card);
             Assert.assertFalse(originalLibrary.isEmpty());
@@ -5224,12 +5239,23 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             try {assertNaturalBearOutcome(game,attacker,defender,0,0,false,false);}
             catch(AssertionError expected) {rejected=true;}
             Assert.assertTrue(rejected,"unfinished game cannot pass outcome verification");
+            game.getPhaseHandler().devModeSet(PhaseType.END_OF_TURN,survivor);
+            game.getPhaseHandler().onStackResolved();
             int steps=0;
             while(!game.isGameOver() && steps++<1500)
                 game.getPhaseHandler().mainLoopStep();
             Assert.assertTrue(steps<1500,"native draw and state-based loss must finish");
             Assert.assertEquals(assertNaturalBearOutcome(game,attacker,defender,
                     0,0,false,false),"Milled");
+            Assert.assertEquals(survivorController.cleanupChoices,1);
+            Assert.assertEquals(survivorController.cleanupSelected.size(),2);
+            Assert.assertEquals(survivor.getCardsIn(ZoneType.Hand).size(),7);
+            Assert.assertEquals(survivor.getCardsIn(ZoneType.Graveyard).size(),2);
+            for(Card discarded:survivorController.cleanupSelected) {
+                Assert.assertTrue(survivorHand.stream().anyMatch(c->c.getId()==discarded.getId()));
+                Assert.assertTrue(survivor.getCardsIn(ZoneType.Graveyard).stream()
+                        .anyMatch(c->c.getId()==discarded.getId()));
+            }
             Assert.assertTrue(loser.hasLost(),"only the arranged empty-library player loses");
             Assert.assertEquals(game.getPhaseHandler().getPhase(),PhaseType.DRAW);
             Assert.assertSame(game.getPhaseHandler().getPlayerTurn(),loser);
@@ -5243,7 +5269,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             Assert.assertTrue(rejected,"invented combat damage cannot pass outcome verification");
             Assert.assertTrue(workerA.process.isAlive() && workerD.process.isAlive());
             System.out.println("STAGE11X_DECK_OUT attacker_loses="+attackerLoses+
-                    " loss_reason=Milled damage=0 native_draw=true original_cards=true");
+                    " loss_reason=Milled damage=0 native_draw=true original_cards=true cleanup_discards=2");
         }
     }
 
