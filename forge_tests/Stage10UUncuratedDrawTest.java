@@ -10296,7 +10296,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     trampleVerified=true;
                 if(defenderStartLife==9 && defense.getLife()==1 && blockerDead)
                     trampleVerified=true;
-                if(paidFive && resolved && pumped && trampleVerified) break;
+                if(paidFive && resolved && pumped && trampleVerified &&
+                        (defenderStartLife!=8 || fixture.isGameOver())) break;
             }
             Assert.assertTrue(steps<3500,"real Overrun should resolve promptly");
             Assert.assertTrue(paidFive,"all five original Forests must pay real mana");
