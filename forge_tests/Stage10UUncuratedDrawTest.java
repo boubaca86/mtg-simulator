@@ -10291,8 +10291,21 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             Assert.assertTrue(paidFive,"all five original Forests must pay real mana");
             Assert.assertTrue(resolved,"native original Overrun goes to graveyard");
             Assert.assertTrue(pumped,"both original Bears gain +3/+3 and Trample");
-            Assert.assertTrue(trampleLethal,"blocked 5/5 tramples three, other 5/5 "
-                    +"deals five: true Forge lethal at eight life");
+            boolean defenderActuallyDead=defense.getCardsIn(ZoneType.Graveyard).stream()
+                    .anyMatch(c->c.getId()==blocker.getId());
+            ExternalCreatureController assaultController=assault==p0?c0:c1;
+            ExternalCreatureController defenseController=defense==p0?c0:c1;
+            Assert.assertTrue(trampleLethal,"Forge native trample lethal: "+
+                    "paidFive="+paidFive+" resolved="+resolved+" pumped="+pumped+
+                    " blockerDead="+defenderActuallyDead+" defenderLife="+defense.getLife()+
+                    " initialDefenderId="+blocker.getId()+
+                    " attackerBoard="+assault.getCardsIn(ZoneType.Battlefield).size()+
+                    " defenderBoard="+defense.getCardsIn(ZoneType.Battlefield).size()+
+                    " attackCallbacks="+assaultController.attackCallbacks+
+                    " attacksAuthorized="+assaultController.attacksAuthorized+
+                    " blockCallbacks="+defenseController.blockerCallbacks+
+                    " blocksAuthorized="+defenseController.blocksAuthorized+
+                    " steps="+steps+" gameOver="+fixture.isGameOver());
             Assert.assertEquals(fullPhysicalInventory(assault),frozenMain.owned(assault));
             Assert.assertEquals(fullPhysicalInventory(defense),frozenMain.owned(defense));
             Assert.assertTrue(w0.process.isAlive() && w1.process.isAlive());
