@@ -1376,9 +1376,25 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         @Override
         public boolean playChosenSpellAbility(SpellAbility sa) {
             if(sa.isLandAbility()) return super.playChosenSpellAbility(sa);
-            if(!sa.isSpell() || !sa.getHostCard().isCreature()) return false;
-            // Real Forge pays mana (including tapping actual sources), places spell
-            // on stack and resolves only after normal opponent priority.
+            if(!sa.isSpell() || sa.getHostCard()==null) return false;
+            Card host=sa.getHostCard();
+            // Stage12E: the trusted referee has already authorized the
+            // single printed sorcery. Preserve fail-closed behavior for all
+            // other noncreature spells, including fabricated actor commands.
+            boolean originalRampantGrowth=host.isSorcery() &&
+                    "Rampant Growth".equals(host.getName()) &&
+                    host.getOwner()==controlled &&
+                    controlled.getCardsIn(ZoneType.Hand).contains(host) &&
+                    sa.getActivatingPlayer()==controlled &&
+                    !sa.usesTargeting() && sa.getSubAbility()==null &&
+                    sa.getPayCosts()!=null && sa.getPayCosts().hasManaCost() &&
+                    sa.getPayCosts().hasOnlySpecificCostType(CostPartMana.class) &&
+                    controlled.getGame().getPhaseHandler().getPlayerTurn()==controlled &&
+                    controlled.getGame().getPhaseHandler().getPriorityPlayer()==controlled &&
+                    controlled.canCastSorcery() && controlled.getGame().getStack().isEmpty();
+            if(!host.isCreature() && !originalRampantGrowth) return false;
+            // Real Forge pays mana, places the spell on stack, resolves
+            // its original printed effect, and shuffles the private library.
             return ComputerUtil.handlePlayingSpellAbility(controlled,sa,null);
         }
     }
