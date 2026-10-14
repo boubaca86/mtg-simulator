@@ -10201,7 +10201,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         return game;
     }
 
-    private void verifyNativeOverrunTrampleAndNaturalGames(boolean leftFirst)
+    private void verifyOverrunControlledFixture(boolean leftFirst,int defenderStartLife)
             throws Exception {
         Game fixture=nativeOverrunGame(leftFirst);
         Player p0=fixture.getPlayers().get(0),p1=fixture.getPlayers().get(1);
@@ -10250,7 +10250,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             Card spell=assault.getCardsIn(ZoneType.Library).stream()
                     .filter(c->"Overrun".equals(c.getName())).findFirst().orElseThrow();
             Assert.assertNotNull(fixture.getAction().moveToHand(spell,null));
-            Assert.assertTrue(defense.setLife(8,null),"fixture-only eight life");
+            Assert.assertTrue(defense.setLife(defenderStartLife,null),"controlled physical fixture life");
             Assert.assertEquals(assault.getLife(),20);
             Assert.assertEquals(assault.getCardsIn(ZoneType.Hand).size(),1);
             Assert.assertEquals(fullPhysicalInventory(assault),frozenMain.owned(assault));
@@ -10268,7 +10268,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             assault.shuffle(null);
             Assert.assertEquals(observation(assault,defense),projected);
             Assert.assertEquals(actor.ask(projected),proposed);
-            boolean paidFive=false,resolved=false,pumped=false,trampleLethal=false;
+            boolean paidFive=false,resolved=false,pumped=false,trampleVerified=false;
             int steps=0;
             while(!fixture.isGameOver() && steps++<3500) {
                 fixture.getPhaseHandler().mainLoopStep();
@@ -10282,10 +10282,21 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     if(bearIds.contains(c.getId()) && c.hasKeyword("Trample") &&
                             c.getNetPower()==5 && c.getNetToughness()==5) active++;
                 if(active==2) pumped=true;
+                // Pinned Forge GameAction.checkStateEffects (1401-1405)
+                // ends at zero life BEFORE lethal creature SBA runs.
+                // Thus test 8-life lethal player damage and actual lethal
+                // marked blocker damage, plus separate 9-life native SBA
+                // destruction of the same original physical blocker.
+                Card liveBlocker=defense.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->c.getId()==blocker.getId()).findFirst().orElse(null);
                 boolean blockerDead=defense.getCardsIn(ZoneType.Graveyard).stream()
                         .anyMatch(c->c.getId()==blocker.getId());
-                if(blockerDead && defense.getLife()<=0) trampleLethal=true;
-                if(paidFive && resolved && pumped && trampleLethal) break;
+                if(defenderStartLife==8 && defense.getLife()==0 &&
+                        liveBlocker!=null && liveBlocker.getDamage()>=2)
+                    trampleVerified=true;
+                if(defenderStartLife==9 && defense.getLife()==1 && blockerDead)
+                    trampleVerified=true;
+                if(paidFive && resolved && pumped && trampleVerified) break;
             }
             Assert.assertTrue(steps<3500,"real Overrun should resolve promptly");
             Assert.assertTrue(paidFive,"all five original Forests must pay real mana");
@@ -10295,22 +10306,59 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     .anyMatch(c->c.getId()==blocker.getId());
             ExternalCreatureController assaultController=assault==p0?c0:c1;
             ExternalCreatureController defenseController=defense==p0?c0:c1;
-            Assert.assertTrue(trampleLethal,"Forge native trample lethal: "+
-                    "paidFive="+paidFive+" resolved="+resolved+" pumped="+pumped+
-                    " blockerDead="+defenderActuallyDead+" defenderLife="+defense.getLife()+
-                    " initialDefenderId="+blocker.getId()+
-                    " attackerBoard="+assault.getCardsIn(ZoneType.Battlefield).size()+
-                    " defenderBoard="+defense.getCardsIn(ZoneType.Battlefield).size()+
-                    " attackCallbacks="+assaultController.attackCallbacks+
-                    " attacksAuthorized="+assaultController.attacksAuthorized+
-                    " blockCallbacks="+defenseController.blockerCallbacks+
-                    " blocksAuthorized="+defenseController.blocksAuthorized+
+            Card remainingBlocker=defense.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->c.getId()==blocker.getId()).findFirst().orElse(null);
+            int marked=remainingBlocker==null?0:remainingBlocker.getDamage();
+            Assert.assertTrue(trampleVerified,"Forge native Overrun damage/SBA: "+
+                    "initialLife="+defenderStartLife+" paidFive="+paidFive+
+                    " resolved="+resolved+" pumped="+pumped+
+                    " blockerDead="+defenderActuallyDead+" marked="+marked+
+                    " defenderLife="+defense.getLife()+
+                    " attacks="+assaultController.attacksAuthorized+
+                    " blocks="+defenseController.blocksAuthorized+
+                    " assignments="+assaultController.refereeDamageAssignments+
                     " steps="+steps+" gameOver="+fixture.isGameOver());
+            Assert.assertTrue(assaultController.attacksAuthorized>=2 &&
+                    defenseController.blocksAuthorized>=1,
+                    "two actual Forge attacks and one actual Forge block");
+            Assert.assertTrue(assaultController.refereeDamageAssignments>=1,
+                    "trusted referee must allocate genuine Overrun trample");
+            if(defenderStartLife==8) {
+                Assert.assertEquals(defense.getLife(),0,
+                        "real five unblocked + three trample is lethal at eight");
+                Assert.assertTrue(fixture.isGameOver());
+                Assert.assertNotNull(fixture.getOutcome());
+                Assert.assertTrue(fixture.getOutcome().isWinner(
+                        assault.getRegisteredPlayer()));
+                Assert.assertNotNull(remainingBlocker,
+                        "pinned Forge checks game-over before creature SBAs");
+                Assert.assertTrue(remainingBlocker.getDamage()>=2,
+                        "native blocked Bear dealt at least lethal two damage");
+            } else {
+                Assert.assertEquals(defenderStartLife,9);
+                Assert.assertEquals(defense.getLife(),1,
+                        "identical real eight damage must leave nine-life player at one");
+                Assert.assertTrue(defenderActuallyDead,
+                        "native Forge SBA must destroy the original 2/2 blocker");
+                Assert.assertFalse(fixture.isGameOver());
+            }
             Assert.assertEquals(fullPhysicalInventory(assault),frozenMain.owned(assault));
             Assert.assertEquals(fullPhysicalInventory(defense),frozenMain.owned(defense));
             Assert.assertTrue(w0.process.isAlive() && w1.process.isAlive());
-            System.out.println("STAGE12F_CONTROLLED_OVERRUN left_first="+leftFirst);
+            System.out.println("STAGE12F_CONTROLLED_OVERRUN left_first="+leftFirst+
+                    " initial_life="+defenderStartLife+" paid5=true native_damage=true"+
+                    " blocker_dead="+defenderActuallyDead);
         }
+    }
+
+    private void verifyNativeOverrunTrampleAndNaturalGames(boolean leftFirst)
+            throws Exception {
+        // Two complementary physical fixtures per seating order: at eight
+        // life prove native player-lethal and marked blocker damage; at nine
+        // life prove the SAME native combat destroys the original blocker.
+        // Pinned Forge short-circuits creature SBA after zero-life game over.
+        verifyOverrunControlledFixture(leftFirst,8);
+        verifyOverrunControlledFixture(leftFirst,9);
         // TWO independent completely untouched, naturally shuffled 60-card
         // complete Forge games per seat, with normal mulligans and 20 life.
         for(int seq=0;seq<2;seq++) {
