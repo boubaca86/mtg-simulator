@@ -988,6 +988,43 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         public Map<Card,Integer> assignCombatDamage(Card source,
                 CardCollectionView targets,CardCollectionView remaining,
                 int damageDealt,GameEntity defender,boolean overrideOrder) {
+            // Stage12F ONLY: Forge-native printed Overrun grants our original
+            // registered ordinary Bear exactly +3/+3 and Trample. The referee,
+            // not the external actor or inherited omniscient AI, distributes
+            // mandatory lethal damage to each Forge-certified legal blocker,
+            // then assigns genuine excess Trample damage to the defender
+            // with Forge's documented null-map-key convention.
+            if(source!=null && source.getController()==controlled &&
+                    source.getOwner()==controlled &&
+                    controlled.getCardsIn(ZoneType.Battlefield).contains(source) &&
+                    !source.isFaceDown() &&
+                    supportedVanillaBear(source.getName()) &&
+                    source.hasKeyword("Trample") &&
+                    source.getNetPower()==5 && source.getNetToughness()==5 &&
+                    source.getNetCombatDamage()==5 && damageDealt==5 &&
+                    defender==opponent && targets!=null &&
+                    !targets.isEmpty() && targets.size()<=8) {
+                Map<Card,Integer> assignment=new LinkedHashMap<>();
+                Set<Card> identities=Collections.newSetFromMap(
+                        new IdentityHashMap<Card,Boolean>());
+                int unassigned=damageDealt;
+                for(Card blocker:targets) {
+                    if(blocker==null || !identities.add(blocker) ||
+                            blocker.getController()!=opponent ||
+                            !opponent.getCardsIn(ZoneType.Battlefield).contains(blocker) ||
+                            blocker.isFaceDown() ||
+                            !(supportedVanillaFighter(blocker.getName()) ||
+                              "Llanowar Elves".equals(blocker.getName())))
+                        throw new SecurityException("unsupported Overrun blocker");
+                    int lethal=Math.max(1,blocker.getLethalDamage());
+                    int dealt=Math.min(unassigned,lethal);
+                    if(dealt>0) assignment.put(blocker,dealt);
+                    unassigned-=dealt;
+                }
+                if(unassigned>0) assignment.put(null,unassigned);
+                refereeDamageAssignments++;
+                return assignment;
+            }
             if(source==null || source.getController()!=controlled ||
                     !controlled.getCardsIn(ZoneType.Battlefield).contains(source) ||
                     !(supportedVanillaFighter(source.getName()) ||
