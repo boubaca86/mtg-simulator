@@ -563,12 +563,15 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 "actor reply must have an intent");
         String intent=reply.get("intent").getAsString();
         if ("action_plan".equals(intent)) {
-            Assert.assertTrue(reply.size()==4 || reply.size()==5,
+            boolean sorceries=reply.has("sorcery_hand_indices");
+            boolean blocks=reply.has("block_pairs");
+            Assert.assertEquals(reply.size(),4+(sorceries?1:0)+(blocks?1:0),
                     "action plan only contains approved preference fields");
             validatePlanIndices(reply,"land_hand_indices",128);
             validatePlanIndices(reply,"creature_hand_indices",128);
+            if(sorceries) validatePlanIndices(reply,"sorcery_hand_indices",128);
             validatePlanIndices(reply,"attack_table_indices",8);
-            if(reply.size()==5) validateBlockPairs(reply);
+            if(blocks) validateBlockPairs(reply);
             return;
         }
         if ("pass".equals(intent)) {
@@ -708,6 +711,14 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             SpellAbility legal=refereeAuthorizeLand(self,proposal);
             if(legal!=null) return legal;
         }
+        // Only Forge authorizes printed sorcery timing and actual mana.
+        if(plan.has("sorcery_hand_indices")) {
+            JsonArray spells=plan.getAsJsonArray("sorcery_hand_indices");
+            for(int i=0;i<spells.size();i++) {
+                SpellAbility legal=refereeAuthorizeRampantGrowth(self,spells.get(i).getAsInt());
+                if(legal!=null) return legal;
+            }
+        }
         JsonArray creatures=plan.getAsJsonArray("creature_hand_indices");
         for(int i=0;i<creatures.size();i++) {
             JsonObject proposal=new JsonObject();
@@ -756,6 +767,27 @@ public final class Stage10UUncuratedDrawTest extends AITest {
            !"Sedge Scorpion".equals(creature.getName()) &&
            !supportedVanillaFighter(creature.getName())) return null;
         for(SpellAbility sa:creature.getSpellAbilities()) {
+            if(!sa.isSpell() || sa.usesTargeting() || sa.getSubAbility()!=null) continue;
+            if(sa.getPayCosts()==null || !sa.getPayCosts().hasManaCost() ||
+               !sa.getPayCosts().hasOnlySpecificCostType(CostPartMana.class)) continue;
+            sa.setActivatingPlayer(self);
+            if(sa.canPlay() && ComputerUtilCost.canPayCost(sa,self,false)) return sa;
+        }
+        return null;
+    }
+
+    /** Stage12E: the actor cannot inspect, select, or reorder any library card.
+     * Only trusted Forge searches a real private library and shuffles it. */
+    private static SpellAbility refereeAuthorizeRampantGrowth(Player self,int index) {
+        if(index<0 || index>=self.getCardsIn(ZoneType.Hand).size()) return null;
+        Game game=self.getGame();
+        if(game.getPhaseHandler().getPlayerTurn()!=self ||
+           game.getPhaseHandler().getPriorityPlayer()!=self ||
+           !self.canCastSorcery() || !game.getStack().isEmpty()) return null;
+        Card spell=self.getCardsIn(ZoneType.Hand).get(index);
+        if(spell.getOwner()!=self || spell.isFaceDown() || !spell.isSorcery() ||
+           !"Rampant Growth".equals(spell.getName())) return null;
+        for(SpellAbility sa:spell.getSpellAbilities()) {
             if(!sa.isSpell() || sa.usesTargeting() || sa.getSubAbility()!=null) continue;
             if(sa.getPayCosts()==null || !sa.getPayCosts().hasManaCost() ||
                !sa.getPayCosts().hasOnlySpecificCostType(CostPartMana.class)) continue;
@@ -9912,6 +9944,154 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     @Test(timeOut=240000)
     public void nativeDeathtouchEmergencyTradeRightRegisteredFirst() throws Exception {
         verifyNativeDeathtouchTradeAndNaturalGames(false);
+    }
+
+
+    /** Stage12E: two ORIGINAL Forests pay for a REAL Rampant Growth {1}{G}.
+     * Forge searches the PRIVATE library and puts a third original Forest
+     * onto the battlefield tapped, then shuffles; actors see no private zone. */
+    private Game nativeRampantGrowthGame(boolean leftFirst) {
+        Map<String,Integer> counts=new TreeMap<>();
+        counts.put("Forest",40);
+        counts.put("Rampant Growth",4);
+        counts.put("Grizzly Bears",4);
+        counts.put("Runeclaw Bear",4);
+        counts.put("Llanowar Elves",4);
+        counts.put("Elvish Visionary",4);
+        Assert.assertEquals(counts.values().stream().mapToInt(Integer::intValue).sum(),60);
+        RegisteredPlayer left=new RegisteredPlayer(mainDeck("12E left",counts))
+                .setPlayer(new LobbyPlayerAi("ramp-left",null));
+        RegisteredPlayer right=new RegisteredPlayer(mainDeck("12E right",counts))
+                .setPlayer(new LobbyPlayerAi("ramp-right",null));
+        List<RegisteredPlayer> players=new ArrayList<>();
+        players.add(leftFirst?left:right);
+        players.add(leftFirst?right:left);
+        GameRules rules=new GameRules(GameType.Constructed);
+        Match match=new Match(rules,players,"Stage12E");
+        Game game=new Game(players,rules,match);
+        frozenMain=new FrozenMain(game);
+        Assert.assertNull(game.getPhaseHandler().getPhase());
+        for(Player p:game.getPlayers()) Assert.assertEquals(frozenMain.owned(p),counts);
+        return game;
+    }
+
+    private void verifyNativeRampantGrowthAndNaturalGames(boolean leftFirst) throws Exception {
+        Game fixture=nativeRampantGrowthGame(leftFirst);
+        Player p0=fixture.getPlayers().get(0),p1=fixture.getPlayers().get(1);
+        try(Actor worker0=new Actor(5);Actor worker1=new Actor(5)) {
+            Assert.assertNotEquals(worker0.process.pid(),worker1.process.pid());
+            ExternalCreatureController c0=attach(fixture,p0,p1,worker0);
+            ExternalCreatureController c1=attach(fixture,p1,p0,worker1);
+            doRealNativeStartForMultiTurn(fixture,c0,c1);
+            Player ramp=fixture.getStartingPlayer(),other=ramp==p0?p1:p0;
+            Actor actor=ramp==p0?worker0:worker1;
+            // Controlled fixture ONLY: physically move original hand cards.
+            for(Player p:Arrays.asList(ramp,other))
+                for(Card c:new ArrayList<Card>(p.getCardsIn(ZoneType.Hand)))
+                    Assert.assertNotNull(fixture.getAction().moveToBottomOfLibrary(c,null));
+            Set<Integer> payIds=new HashSet<>();
+            for(int i=0;i<2;i++) {
+                Card forest=ramp.getCardsIn(ZoneType.Library).stream()
+                        .filter(c->"Forest".equals(c.getName())).findFirst().orElseThrow();
+                payIds.add(forest.getId());
+                Assert.assertNotNull(fixture.getAction().moveToPlay(forest,null,
+                        forge.game.ability.AbilityKey.newMap()));
+                Card live=ramp.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->c.getId()==forest.getId()).findFirst().orElseThrow();
+                live.setTapped(false);
+            }
+            Card growth=ramp.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Rampant Growth".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToHand(growth,null));
+            Assert.assertEquals(ramp.getCardsIn(ZoneType.Hand).size(),1);
+            Assert.assertEquals(ramp.getLife(),20);
+            Assert.assertEquals(other.getLife(),20);
+            Assert.assertEquals(fullPhysicalInventory(ramp),frozenMain.owned(ramp));
+            Assert.assertEquals(fullPhysicalInventory(other),frozenMain.owned(other));
+            String projected=observation(ramp,other);
+            JsonObject plan=actor.ask(projected);
+            Assert.assertEquals(plan.get("intent").getAsString(),"action_plan");
+            Assert.assertEquals(plan.getAsJsonArray("sorcery_hand_indices").size(),1);
+            Assert.assertEquals(plan.getAsJsonArray("sorcery_hand_indices")
+                    .get(0).getAsInt(),0);
+            JsonObject publicView=JsonParser.parseString(projected).getAsJsonObject();
+            for(String denied:Arrays.asList("phase","priority","stack",
+                    "library_top","opponent_hand","library_order"))
+                Assert.assertFalse(publicView.has(denied));
+            ramp.shuffle(null);
+            Assert.assertEquals(observation(ramp,other),projected);
+            Assert.assertEquals(actor.ask(projected),plan);
+            boolean paid=false,graveyard=false,tappedLand=false;
+            int steps=0;
+            while(!fixture.isGameOver() && steps++<3500) {
+                fixture.getPhaseHandler().mainLoopStep();
+                int tappedPayments=0;
+                for(Card c:ramp.getCardsIn(ZoneType.Battlefield))
+                    if(payIds.contains(c.getId()) && c.isTapped()) tappedPayments++;
+                if(tappedPayments==2) paid=true;
+                graveyard |= ramp.getCardsIn(ZoneType.Graveyard).stream()
+                        .anyMatch(c->c.getId()==growth.getId());
+                for(Card c:ramp.getCardsIn(ZoneType.Battlefield))
+                    if("Forest".equals(c.getName()) && !payIds.contains(c.getId())
+                            && c.isTapped()) tappedLand=true;
+                if(paid && graveyard && tappedLand) break;
+            }
+            Assert.assertTrue(steps<3500,"real sorcery must resolve promptly");
+            Assert.assertTrue(paid,"two original Forests must pay real {1}{G}");
+            Assert.assertTrue(graveyard,"real original Rampant Growth must resolve");
+            Assert.assertTrue(tappedLand,"native library search must fetch tapped original Forest");
+            Assert.assertEquals(ramp.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->"Forest".equals(c.getName())).count(),3L);
+            Assert.assertEquals(fullPhysicalInventory(ramp),frozenMain.owned(ramp));
+            Assert.assertEquals(fullPhysicalInventory(other),frozenMain.owned(other));
+            Assert.assertTrue(worker0.process.isAlive() && worker1.process.isAlive());
+            System.out.println("STAGE12E_CONTROLLED_RAMP left_first="+leftFirst+
+                    " paid=true native_private_search=true");
+        }
+        // Two independent untouched 60-card full games per seat.
+        for(int sequence=0;sequence<2;sequence++) {
+            Game natural=nativeRampantGrowthGame(leftFirst);
+            Player left=natural.getPlayers().get(leftFirst?0:1);
+            Player right=natural.getPlayers().get(leftFirst?1:0);
+            try(Actor wl=new Actor(5);Actor wr=new Actor(5)) {
+                Assert.assertNotEquals(wl.process.pid(),wr.process.pid());
+                ExternalCreatureController lc=attach(natural,left,right,wl);
+                ExternalCreatureController rc=attach(natural,right,left,wr);
+                doRealNativeStartForMultiTurn(natural,lc,rc);
+                Assert.assertEquals(left.getLife(),20);
+                Assert.assertEquals(right.getLife(),20);
+                Assert.assertTrue(lc.openingCallbacks>0 && rc.openingCallbacks>0);
+                for(Player p:Arrays.asList(left,right)) {
+                    Assert.assertTrue(p.getCardsIn(ZoneType.Battlefield).isEmpty());
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                }
+                int steps=0;
+                while(!natural.isGameOver() && steps++<85000)
+                    natural.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(steps<85000 && natural.isGameOver());
+                Assert.assertNotNull(natural.getOutcome());
+                Assert.assertFalse(natural.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(natural.getOutcome().isWinner(winner.getRegisteredPlayer()));
+                for(Player p:Arrays.asList(left,right))
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                Assert.assertTrue(wl.process.isAlive() && wr.process.isAlive());
+                System.out.println("STAGE12E_NATURAL_RAMP left_first="+leftFirst+
+                        " sequence="+sequence+" winner="+winner.getName());
+            }
+        }
+    }
+
+    @Test(timeOut=240000)
+    public void nativeRampantGrowthSearchLeftRegisteredFirst() throws Exception {
+        verifyNativeRampantGrowthAndNaturalGames(true);
+    }
+
+    @Test(timeOut=240000)
+    public void nativeRampantGrowthSearchRightRegisteredFirst() throws Exception {
+        verifyNativeRampantGrowthAndNaturalGames(false);
     }
 
 }

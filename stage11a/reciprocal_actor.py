@@ -36,6 +36,7 @@ VANILLA_FIGHTERS = VANILLA_BEARS | VANILLA_THREES | VANILLA_FOURS
 DRAW_CREATURES = frozenset(('Elvish Visionary',))
 FLYING_CREATURES = frozenset(('Scryb Sprites',))
 DEATHTOUCH_CREATURES = frozenset(('Sedge Scorpion',))
+RAMP_SORCERIES = frozenset(('Rampant Growth',))
 CREATURES = (frozenset(('Llanowar Elves',)) | VANILLA_FIGHTERS |
              DRAW_CREATURES | FLYING_CREATURES | DEATHTOUCH_CREATURES)
 
@@ -102,11 +103,11 @@ for raw in sys.stdin.buffer:
         preferred = set(lands_in_hand[:needed])
         def discard_rank(i):
             name = hand[i]
-            if name not in LANDS and name not in CREATURES:
+            if name not in LANDS and name not in CREATURES | RAMP_SORCERIES:
                 return (0, 0, i)
             if name in LANDS and i not in preferred:
                 return (1, 0, i)
-            if name in CREATURES:
+            if name in CREATURES or name in RAMP_SORCERIES:
                 return (2, public_power(name) if name in VANILLA_FIGHTERS else 1, i)
             return (3, 0, i)
         ordering = sorted(range(len(hand)), key=discard_rank)
@@ -125,7 +126,7 @@ for raw in sys.stdin.buffer:
             name = hand[index]
             if name in LANDS:
                 return (2, index)
-            if name in CREATURES:
+            if name in CREATURES or name in RAMP_SORCERIES:
                 return (1, index)
             return (0, index)
         bottom_priority = sorted(range(len(hand)), key=bottom_score)
@@ -142,6 +143,13 @@ for raw in sys.stdin.buffer:
     lands = [i for i, name in enumerate(hand) if name in LANDS]
     lands.sort(key=lambda i: (hand[i] != 'Forest', hand[i] != 'Island', i))
     creatures = [i for i, name in enumerate(hand) if name in CREATURES]
+    # Stage12E: strategic basic-land acceleration from our own hand.
+    # No library order, timing, stack or hidden game fields are provided.
+    own_forests = sum(r.get('appearance') == 'face_up' and
+                      r.get('card') == 'Forest'
+                      for r in view['own_cards']['table'])
+    sorceries = [i for i, name in enumerate(hand)
+                 if name in RAMP_SORCERIES and own_forests <= 4]
     # Prefer greater known creature strength when actual mana permits it.
     # Forge remains solely responsible for paying {2}{G}{G} correctly.
     # Stage12B: a genuine {1}{G} Elvish Visionary replaces itself on
@@ -517,6 +525,7 @@ for raw in sys.stdin.buffer:
         'intent': 'action_plan',
         'land_hand_indices': lands,
         'creature_hand_indices': creatures,
+        'sorcery_hand_indices': sorceries,
         'attack_table_indices': active_attacks,
         'block_pairs': block_pairs,
     }
