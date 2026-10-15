@@ -38,12 +38,14 @@ FLYING_CREATURES = frozenset(('Scryb Sprites',))
 DEATHTOUCH_CREATURES = frozenset(('Sedge Scorpion',))
 # Stage12G: genuine printed {1}{B} 1/1 death-trigger life swing.
 DRAIN_CREATURES = frozenset(('Zulaport Cutthroat',))
+# Stage12G: printed {1}{G} 1/3 Landfall life engine, only public-land decisions.
+LANDFALL_CREATURES = frozenset(('Kazandu Nectarpot',))
 RAMP_SORCERIES = frozenset(('Rampant Growth',))
 SWARM_SORCERIES = frozenset(('Overrun',))
 KNOWN_SORCERIES = RAMP_SORCERIES | SWARM_SORCERIES
 CREATURES = (frozenset(('Llanowar Elves',)) | VANILLA_FIGHTERS |
              DRAW_CREATURES | FLYING_CREATURES | DEATHTOUCH_CREATURES |
-             DRAIN_CREATURES)
+             DRAIN_CREATURES | LANDFALL_CREATURES)
 
 def public_power(name):
     if name in VANILLA_FOURS:
@@ -197,7 +199,11 @@ for raw in sys.stdin.buffer:
         any(r.get('appearance') == 'face_up' and
             r.get('card') in VANILLA_FIGHTERS
             for r in view['opponent_table']))
+    # At low public life, deploy the printed Landfall life engine before
+    # vanilla attackers. Only native Forge land entries trigger real life gain.
+    urgent_landfall = 0 < view['life_totals']['self'] <= 6
     creatures.sort(key=lambda i: (
+        0 if urgent_landfall and hand[i] in LANDFALL_CREATURES else
         0 if urgent_deathtouch and hand[i] in DEATHTOUCH_CREATURES else
         0 if drain_window and hand[i] in DRAIN_CREATURES else
         1 if len(hand) <= 3 and hand[i] in DRAW_CREATURES else 2,

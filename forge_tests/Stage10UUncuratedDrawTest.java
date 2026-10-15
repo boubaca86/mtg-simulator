@@ -767,6 +767,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
            !"Scryb Sprites".equals(creature.getName()) &&
            !"Sedge Scorpion".equals(creature.getName()) &&
            !"Zulaport Cutthroat".equals(creature.getName()) &&
+           !"Kazandu Nectarpot".equals(creature.getName()) &&
            !supportedVanillaFighter(creature.getName())) return null;
         for(SpellAbility sa:creature.getSpellAbilities()) {
             if(!sa.isSpell() || sa.usesTargeting() || sa.getSubAbility()!=null) continue;
@@ -10579,6 +10580,185 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     @Test(timeOut=240000)
     public void nativeCutthroatDeathDrainRightRegisteredFirst() throws Exception {
         verifyNativeCutthroatDrainAndNaturalGames(false);
+    }
+
+    /** Stage12G increment: printed Kazandu Nectarpot {1}{G} 1/3.
+     * Landfall is triggered by a real hand-played Forest and again by
+     * native Rampant Growth's private-library search. No actor sees top,
+     * future order, timing, stack, private cards, or authority objects. */
+    private Game nativeNectarpotGame(boolean leftFirst) {
+        Map<String,Integer> counts=new TreeMap<>();
+        counts.put("Forest",40);counts.put("Kazandu Nectarpot",4);
+        counts.put("Rampant Growth",4);counts.put("Grizzly Bears",4);
+        counts.put("Runeclaw Bear",4);counts.put("Llanowar Elves",4);
+        Assert.assertEquals(counts.values().stream().mapToInt(Integer::intValue).sum(),60);
+        RegisteredPlayer left=new RegisteredPlayer(mainDeck("12G landfall left",counts))
+                .setPlayer(new LobbyPlayerAi("nectarpot-left",null));
+        RegisteredPlayer right=new RegisteredPlayer(mainDeck("12G landfall right",counts))
+                .setPlayer(new LobbyPlayerAi("nectarpot-right",null));
+        List<RegisteredPlayer> reg=new ArrayList<>();
+        reg.add(leftFirst?left:right);reg.add(leftFirst?right:left);
+        GameRules rules=new GameRules(GameType.Constructed);
+        Match match=new Match(rules,reg,"Stage12G Landfall");
+        Game game=new Game(reg,rules,match);frozenMain=new FrozenMain(game);
+        Assert.assertNull(game.getPhaseHandler().getPhase());
+        for(Player p:game.getPlayers()) Assert.assertEquals(frozenMain.owned(p),counts);
+        return game;
+    }
+
+    private void verifyNativeNectarpotLandfallAndNaturalGames(boolean leftFirst)
+            throws Exception {
+        Game fixture=nativeNectarpotGame(leftFirst);
+        Player p0=fixture.getPlayers().get(0),p1=fixture.getPlayers().get(1);
+        try(Actor w0=new Actor(5);Actor w1=new Actor(5)) {
+            Assert.assertNotEquals(w0.process.pid(),w1.process.pid());
+            ExternalCreatureController c0=attach(fixture,p0,p1,w0);
+            ExternalCreatureController c1=attach(fixture,p1,p0,w1);
+            doRealNativeStartForMultiTurn(fixture,c0,c1);
+            Player grower=fixture.getStartingPlayer();
+            Player opponent=grower==p0?p1:p0;
+            Actor worker=grower==p0?w0:w1;
+            // CONTROLLED physical original-card fixture only.
+            for(Player p:Arrays.asList(grower,opponent))
+                for(Card c:new ArrayList<Card>(p.getCardsIn(ZoneType.Hand)))
+                    Assert.assertNotNull(fixture.getAction().moveToBottomOfLibrary(c,null));
+            Set<Integer> payingIds=new HashSet<>();
+            for(int i=0;i<2;i++) {
+                Card forest=grower.getCardsIn(ZoneType.Library).stream()
+                        .filter(c->"Forest".equals(c.getName())).findFirst().orElseThrow();
+                payingIds.add(forest.getId());
+                Assert.assertNotNull(fixture.getAction().moveToPlay(forest,null,
+                        forge.game.ability.AbilityKey.newMap()));
+                Card live=grower.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->c.getId()==forest.getId()).findFirst().orElseThrow();
+                live.setTapped(false);
+            }
+            Card pot=grower.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Kazandu Nectarpot".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Card bear=grower.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Grizzly Bears".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToHand(bear,null));
+            Assert.assertNotNull(fixture.getAction().moveToHand(pot,null));
+            Assert.assertTrue(grower.setLife(6,null));
+            String projected=observation(grower,opponent);
+            JsonObject proposal=worker.ask(projected);
+            int potIndex=grower.getCardsIn(ZoneType.Hand).indexOf(pot);
+            Assert.assertEquals(proposal.get("intent").getAsString(),"action_plan");
+            Assert.assertEquals(proposal.getAsJsonArray("creature_hand_indices")
+                    .get(0).getAsInt(),potIndex,
+                    "public low-life actor must prefer Landfall before vanilla Bear");
+            for(String forbidden:Arrays.asList("phase","priority","stack",
+                    "library_top","opponent_hand","library_order"))
+                Assert.assertFalse(JsonParser.parseString(projected)
+                        .getAsJsonObject().has(forbidden));
+            opponent.shuffle(null);
+            Assert.assertEquals(observation(grower,opponent),projected);
+            Assert.assertEquals(worker.ask(projected),proposal);
+            boolean cast=false,paid=false;
+            int steps=0;
+            while(!fixture.isGameOver() && steps++<3500) {
+                fixture.getPhaseHandler().mainLoopStep();
+                cast=grower.getCardsIn(ZoneType.Battlefield).stream()
+                        .anyMatch(c->c.getId()==pot.getId());
+                if(grower.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->payingIds.contains(c.getId()) && c.isTapped())
+                        .count()==2) paid=true;
+                if(cast) break;
+            }
+            Assert.assertTrue(steps<3500 && cast,"real printed Nectarpot cast");
+            Assert.assertTrue(paid,"two original Forests pay genuine {1}{G}");
+            Assert.assertEquals(grower.getLife(),6);
+            if(grower.getCardsIn(ZoneType.Hand).contains(bear))
+                Assert.assertNotNull(fixture.getAction().moveToBottomOfLibrary(bear,null));
+            Card handForest=grower.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Forest".equals(c.getName())).findFirst().orElseThrow();
+            Card growth=grower.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Rampant Growth".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToHand(handForest,null));
+            Assert.assertNotNull(fixture.getAction().moveToHand(growth,null));
+            Assert.assertEquals(fullPhysicalInventory(grower),frozenMain.owned(grower));
+            Assert.assertEquals(fullPhysicalInventory(opponent),frozenMain.owned(opponent));
+            JsonObject after=worker.ask(observation(grower,opponent));
+            Assert.assertTrue(after.getAsJsonArray("land_hand_indices").size()>0);
+            Assert.assertTrue(after.getAsJsonArray("sorcery_hand_indices").size()>0);
+            int previousLife=grower.getLife(),positiveGain=0;
+            boolean handLandPlayed=false,growthResolved=false,fetchedTapped=false;
+            steps=0;
+            while(!fixture.isGameOver() && steps++<3500) {
+                fixture.getPhaseHandler().mainLoopStep();
+                int currentLife=grower.getLife();
+                if(currentLife>previousLife) positiveGain+=currentLife-previousLife;
+                previousLife=currentLife;
+                handLandPlayed |= grower.getCardsIn(ZoneType.Battlefield).stream()
+                        .anyMatch(c->c.getId()==handForest.getId());
+                growthResolved |= grower.getCardsIn(ZoneType.Graveyard).stream()
+                        .anyMatch(c->c.getId()==growth.getId());
+                fetchedTapped |= grower.getCardsIn(ZoneType.Battlefield).stream()
+                        .anyMatch(c->"Forest".equals(c.getName()) &&
+                                !payingIds.contains(c.getId()) &&
+                                c.getId()!=handForest.getId() && c.isTapped());
+                if(handLandPlayed && growthResolved && fetchedTapped && positiveGain>=2)
+                    break;
+            }
+            Assert.assertTrue(steps<3500,"two native Landfall events must finish");
+            Assert.assertTrue(handLandPlayed,"Forge legally played original Forest");
+            Assert.assertTrue(growthResolved,"native Rampant Growth resolved");
+            Assert.assertTrue(fetchedTapped,"Forge privately fetched tapped Forest");
+            Assert.assertEquals(positiveGain,2,
+                    "each original Forest entry must natively trigger +1 life");
+            Assert.assertTrue(grower.getCardsIn(ZoneType.Battlefield).stream()
+                    .anyMatch(c->c.getId()==pot.getId()));
+            Assert.assertEquals(fullPhysicalInventory(grower),frozenMain.owned(grower));
+            Assert.assertEquals(fullPhysicalInventory(opponent),frozenMain.owned(opponent));
+            Assert.assertTrue(w0.process.isAlive() && w1.process.isAlive());
+            System.out.println("STAGE12G_CONTROLLED_LANDFALL left_first="+leftFirst+
+                    " real_cast=true native_landfall=2");
+        }
+        // Four independent UNTOUCHED natural 60-card full games, two per seat.
+        for(int seq=0;seq<2;seq++) {
+            Game natural=nativeNectarpotGame(leftFirst);
+            Player left=natural.getPlayers().get(leftFirst?0:1);
+            Player right=natural.getPlayers().get(leftFirst?1:0);
+            try(Actor wl=new Actor(5);Actor wr=new Actor(5)) {
+                Assert.assertNotEquals(wl.process.pid(),wr.process.pid());
+                ExternalCreatureController lc=attach(natural,left,right,wl);
+                ExternalCreatureController rc=attach(natural,right,left,wr);
+                doRealNativeStartForMultiTurn(natural,lc,rc);
+                Assert.assertEquals(left.getLife(),20);
+                Assert.assertEquals(right.getLife(),20);
+                Assert.assertTrue(lc.openingCallbacks>0 && rc.openingCallbacks>0);
+                for(Player p:Arrays.asList(left,right)) {
+                    Assert.assertTrue(p.getCardsIn(ZoneType.Battlefield).isEmpty());
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                }
+                int steps=0;
+                while(!natural.isGameOver() && steps++<85000)
+                    natural.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(steps<85000 && natural.isGameOver());
+                Assert.assertNotNull(natural.getOutcome());
+                Assert.assertFalse(natural.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(natural.getOutcome().isWinner(winner.getRegisteredPlayer()));
+                for(Player p:Arrays.asList(left,right))
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                Assert.assertTrue(wl.process.isAlive() && wr.process.isAlive());
+                System.out.println("STAGE12G_NATURAL_LANDFALL left_first="+leftFirst+
+                        " sequence="+seq+" winner="+winner.getName());
+            }
+        }
+    }
+
+    @Test(timeOut=240000)
+    public void nativeNectarpotLandfallLeftRegisteredFirst() throws Exception {
+        verifyNativeNectarpotLandfallAndNaturalGames(true);
+    }
+    @Test(timeOut=240000)
+    public void nativeNectarpotLandfallRightRegisteredFirst() throws Exception {
+        verifyNativeNectarpotLandfallAndNaturalGames(false);
     }
 
 }
