@@ -681,7 +681,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     blocker.isFaceDown() || attacker.isFaceDown() ||
                     !(supportedVanillaFighter(blocker.getName()) ||
                       "Llanowar Elves".equals(blocker.getName()) ||
-                      "Sedge Scorpion".equals(blocker.getName())) ||
+                      "Sedge Scorpion".equals(blocker.getName()) ||
+                      "Zulaport Cutthroat".equals(blocker.getName())) ||
                     !supportedVanillaFighter(attacker.getName()) ||
                     committed.contains(blocker) ||
                     !combat.isAttacking(attacker) ||
@@ -765,6 +766,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
            !"Elvish Visionary".equals(creature.getName()) &&
            !"Scryb Sprites".equals(creature.getName()) &&
            !"Sedge Scorpion".equals(creature.getName()) &&
+           !"Zulaport Cutthroat".equals(creature.getName()) &&
            !supportedVanillaFighter(creature.getName())) return null;
         for(SpellAbility sa:creature.getSpellAbilities()) {
             if(!sa.isSpell() || sa.usesTargeting() || sa.getSubAbility()!=null) continue;
@@ -1029,11 +1031,13 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     !controlled.getCardsIn(ZoneType.Battlefield).contains(source) ||
                     !(supportedVanillaFighter(source.getName()) ||
                       "Llanowar Elves".equals(source.getName()) ||
-                      "Sedge Scorpion".equals(source.getName())) ||
+                      "Sedge Scorpion".equals(source.getName()) ||
+                      "Zulaport Cutthroat".equals(source.getName())) ||
                     damageDealt!=("Rumbling Baloth".equals(source.getName())?4:
                             "Centaur Courser".equals(source.getName())?3:
                             ("Llanowar Elves".equals(source.getName()) ||
-                             "Sedge Scorpion".equals(source.getName()))?1:2) ||
+                             "Sedge Scorpion".equals(source.getName()) ||
+                             "Zulaport Cutthroat".equals(source.getName()))?1:2) ||
                     source.getNetCombatDamage()!=damageDealt ||
                     source.hasKeyword("Trample") ||
                     targets==null || targets.isEmpty() || targets.size()>8) {
@@ -1044,7 +1048,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 if(target==null || !unique.add(target) ||
                         !(supportedVanillaFighter(target.getName()) ||
                           "Llanowar Elves".equals(target.getName()) ||
-                          "Sedge Scorpion".equals(target.getName())) ||
+                          "Sedge Scorpion".equals(target.getName()) ||
+                          "Zulaport Cutthroat".equals(target.getName())) ||
                         target.getController()!=opponent ||
                         !opponent.getCardsIn(ZoneType.Battlefield).contains(target)) {
                     throw new SecurityException("unregistered or unsupported combat target");
@@ -10402,6 +10407,178 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     @Test(timeOut=240000)
     public void nativeOverrunTrampleLethalRightRegisteredFirst() throws Exception {
         verifyNativeOverrunTrampleAndNaturalGames(false);
+    }
+
+
+    /** Stage12G: genuine printed {1}{B} Zulaport Cutthroat death trigger.
+     * Two original lands pay, a legal native chump block kills the original
+     * 1/1 and Forge drains one opposing life and gains one controller life. */
+    private Game nativeCutthroatGame(boolean leftFirst) {
+        Map<String,Integer> counts=new TreeMap<>();
+        counts.put("Forest",24);counts.put("Swamp",16);
+        counts.put("Zulaport Cutthroat",4);
+        counts.put("Grizzly Bears",4);counts.put("Runeclaw Bear",4);
+        counts.put("Llanowar Elves",4);counts.put("Elvish Visionary",4);
+        Assert.assertEquals(counts.values().stream().mapToInt(Integer::intValue).sum(),60);
+        RegisteredPlayer left=new RegisteredPlayer(mainDeck("12G left",counts))
+                .setPlayer(new LobbyPlayerAi("cutthroat-left",null));
+        RegisteredPlayer right=new RegisteredPlayer(mainDeck("12G right",counts))
+                .setPlayer(new LobbyPlayerAi("cutthroat-right",null));
+        List<RegisteredPlayer> reg=new ArrayList<>();
+        reg.add(leftFirst?left:right);reg.add(leftFirst?right:left);
+        GameRules rules=new GameRules(GameType.Constructed);
+        Match match=new Match(rules,reg,"Stage12G");
+        Game game=new Game(reg,rules,match);frozenMain=new FrozenMain(game);
+        Assert.assertNull(game.getPhaseHandler().getPhase());
+        for(Player p:game.getPlayers())
+            Assert.assertEquals(frozenMain.owned(p),counts);
+        return game;
+    }
+
+    private void verifyNativeCutthroatDrainAndNaturalGames(boolean leftFirst)
+            throws Exception {
+        Game fixture=nativeCutthroatGame(leftFirst);
+        Player p0=fixture.getPlayers().get(0),p1=fixture.getPlayers().get(1);
+        try(Actor w0=new Actor(5);Actor w1=new Actor(5)) {
+            Assert.assertNotEquals(w0.process.pid(),w1.process.pid());
+            ExternalCreatureController c0=attach(fixture,p0,p1,w0);
+            ExternalCreatureController c1=attach(fixture,p1,p0,w1);
+            doRealNativeStartForMultiTurn(fixture,c0,c1);
+            Player defense=fixture.getStartingPlayer();
+            Player offense=defense==p0?p1:p0;
+            Actor worker=defense==p0?w0:w1;
+            ExternalCreatureController dc=defense==p0?c0:c1;
+            ExternalCreatureController ac=defense==p0?c1:c0;
+            // EXPLICIT CONTROLLED fixture only; no fabricated cards.
+            for(Player p:Arrays.asList(defense,offense))
+                for(Card c:new ArrayList<Card>(p.getCardsIn(ZoneType.Hand)))
+                    Assert.assertNotNull(fixture.getAction().moveToBottomOfLibrary(c,null));
+            Card bear=offense.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Grizzly Bears".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToPlay(bear,null,
+                    forge.game.ability.AbilityKey.newMap()));
+            Card liveBear=offense.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->c.getId()==bear.getId()).findFirst().orElseThrow();
+            liveBear.setSickness(false);liveBear.setTapped(false);
+            Set<Integer> payIds=new HashSet<>();
+            for(String landName:Arrays.asList("Forest","Swamp")) {
+                Card land=defense.getCardsIn(ZoneType.Library).stream()
+                        .filter(c->landName.equals(c.getName()))
+                        .findFirst().orElseThrow();
+                payIds.add(land.getId());
+                Assert.assertNotNull(fixture.getAction().moveToPlay(land,null,
+                        forge.game.ability.AbilityKey.newMap()));
+                Card live=defense.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->c.getId()==land.getId()).findFirst().orElseThrow();
+                live.setTapped(false);
+            }
+            Card cutthroat=defense.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Zulaport Cutthroat".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToHand(cutthroat,null));
+            Assert.assertTrue(defense.setLife(2,null));
+            Assert.assertTrue(offense.setLife(6,null));
+            Assert.assertEquals(defense.getCardsIn(ZoneType.Hand).size(),1);
+            Assert.assertEquals(fullPhysicalInventory(defense),frozenMain.owned(defense));
+            Assert.assertEquals(fullPhysicalInventory(offense),frozenMain.owned(offense));
+            String projected=observation(defense,offense);
+            JsonObject proposal=worker.ask(projected);
+            Assert.assertEquals(proposal.get("intent").getAsString(),"action_plan");
+            Assert.assertEquals(proposal.getAsJsonArray("creature_hand_indices").size(),1);
+            Assert.assertEquals(proposal.getAsJsonArray("creature_hand_indices")
+                    .get(0).getAsInt(),0);
+            JsonObject view=JsonParser.parseString(projected).getAsJsonObject();
+            for(String forbidden:Arrays.asList("phase","priority","stack",
+                    "library_top","opponent_hand","library_order"))
+                Assert.assertFalse(view.has(forbidden));
+            offense.shuffle(null);
+            Assert.assertEquals(observation(defense,offense),projected);
+            Assert.assertEquals(worker.ask(projected),proposal);
+            boolean paidBoth=false,offeredBlock=false,originalDied=false;
+            boolean nativeDrain=false;
+            int steps=0;
+            while(!fixture.isGameOver() && steps++<3500) {
+                fixture.getPhaseHandler().mainLoopStep();
+                if(defense.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->payIds.contains(c.getId()) && c.isTapped()).count()==2)
+                    paidBoth=true;
+                Card live=defense.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->c.getId()==cutthroat.getId()).findFirst().orElse(null);
+                if(live!=null) {
+                    JsonObject plan=worker.ask(observation(defense,offense));
+                    int ownIndex=defense.getCardsIn(ZoneType.Battlefield).indexOf(live);
+                    int enemyIndex=offense.getCardsIn(ZoneType.Battlefield).indexOf(liveBear);
+                    for(JsonElement item:plan.getAsJsonArray("block_pairs")) {
+                        JsonArray pair=item.getAsJsonArray();
+                        if(pair.get(0).getAsInt()==ownIndex &&
+                                pair.get(1).getAsInt()==enemyIndex)
+                            offeredBlock=true;
+                    }
+                }
+                originalDied |= defense.getCardsIn(ZoneType.Graveyard).stream()
+                        .anyMatch(c->c.getId()==cutthroat.getId());
+                if(originalDied && defense.getLife()==3 && offense.getLife()==5) {
+                    nativeDrain=true;break;
+                }
+            }
+            Assert.assertTrue(steps<3500,"paid cast and native drain must finish");
+            Assert.assertTrue(paidBoth,"two original lands pay genuine {1}{B}");
+            Assert.assertTrue(offeredBlock,"external actor offers emergency chump");
+            Assert.assertTrue(ac.attacksAuthorized>=1,"Forge authorized Bear attack");
+            Assert.assertTrue(dc.blocksAuthorized>=1,"Forge authorized legal block");
+            Assert.assertTrue(originalDied,"original Cutthroat died in combat");
+            Assert.assertTrue(nativeDrain,"Forge must drain one and gain one");
+            Assert.assertEquals(defense.getLife(),3);
+            Assert.assertEquals(offense.getLife(),5);
+            Assert.assertEquals(fullPhysicalInventory(defense),frozenMain.owned(defense));
+            Assert.assertEquals(fullPhysicalInventory(offense),frozenMain.owned(offense));
+            Assert.assertTrue(w0.process.isAlive() && w1.process.isAlive());
+            System.out.println("STAGE12G_CONTROLLED_DRAIN left_first="+leftFirst+
+                    " paid=true native_trigger=true");
+        }
+        // Two independent untouched naturally shuffled 60-card full games
+        // per seat. Normal London mulligans and 20 life, no seed selection.
+        for(int seq=0;seq<2;seq++) {
+            Game natural=nativeCutthroatGame(leftFirst);
+            Player left=natural.getPlayers().get(leftFirst?0:1);
+            Player right=natural.getPlayers().get(leftFirst?1:0);
+            try(Actor wl=new Actor(5);Actor wr=new Actor(5)) {
+                Assert.assertNotEquals(wl.process.pid(),wr.process.pid());
+                ExternalCreatureController lc=attach(natural,left,right,wl);
+                ExternalCreatureController rc=attach(natural,right,left,wr);
+                doRealNativeStartForMultiTurn(natural,lc,rc);
+                Assert.assertEquals(left.getLife(),20);Assert.assertEquals(right.getLife(),20);
+                Assert.assertTrue(lc.openingCallbacks>0 && rc.openingCallbacks>0);
+                for(Player p:Arrays.asList(left,right)) {
+                    Assert.assertTrue(p.getCardsIn(ZoneType.Battlefield).isEmpty());
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                }
+                int steps=0;
+                while(!natural.isGameOver() && steps++<85000)
+                    natural.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(steps<85000 && natural.isGameOver());
+                Assert.assertNotNull(natural.getOutcome());
+                Assert.assertFalse(natural.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(natural.getOutcome().isWinner(winner.getRegisteredPlayer()));
+                for(Player p:Arrays.asList(left,right))
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                Assert.assertTrue(wl.process.isAlive() && wr.process.isAlive());
+                System.out.println("STAGE12G_NATURAL_DRAIN left_first="+leftFirst+
+                        " sequence="+seq+" winner="+winner.getName());
+            }
+        }
+    }
+
+    @Test(timeOut=240000)
+    public void nativeCutthroatDeathDrainLeftRegisteredFirst() throws Exception {
+        verifyNativeCutthroatDrainAndNaturalGames(true);
+    }
+    @Test(timeOut=240000)
+    public void nativeCutthroatDeathDrainRightRegisteredFirst() throws Exception {
+        verifyNativeCutthroatDrainAndNaturalGames(false);
     }
 
 }

@@ -36,11 +36,14 @@ VANILLA_FIGHTERS = VANILLA_BEARS | VANILLA_THREES | VANILLA_FOURS
 DRAW_CREATURES = frozenset(('Elvish Visionary',))
 FLYING_CREATURES = frozenset(('Scryb Sprites',))
 DEATHTOUCH_CREATURES = frozenset(('Sedge Scorpion',))
+# Stage12G: genuine printed {1}{B} 1/1 death-trigger life swing.
+DRAIN_CREATURES = frozenset(('Zulaport Cutthroat',))
 RAMP_SORCERIES = frozenset(('Rampant Growth',))
 SWARM_SORCERIES = frozenset(('Overrun',))
 KNOWN_SORCERIES = RAMP_SORCERIES | SWARM_SORCERIES
 CREATURES = (frozenset(('Llanowar Elves',)) | VANILLA_FIGHTERS |
-             DRAW_CREATURES | FLYING_CREATURES | DEATHTOUCH_CREATURES)
+             DRAW_CREATURES | FLYING_CREATURES | DEATHTOUCH_CREATURES |
+             DRAIN_CREATURES)
 
 def public_power(name):
     if name in VANILLA_FOURS:
@@ -144,7 +147,8 @@ for raw in sys.stdin.buffer:
     # No phase/turn/priority decision type is sent into the process.
     # The trusted Forge referee picks the first LEGAL item for its callback.
     lands = [i for i, name in enumerate(hand) if name in LANDS]
-    lands.sort(key=lambda i: (hand[i] != 'Forest', hand[i] != 'Island', i))
+    lands.sort(key=lambda i: (hand[i] != ('Swamp' if DRAIN_CREATURES.intersection(hand) else 'Forest'),
+                              hand[i] != 'Forest', hand[i] != 'Island', i))
     creatures = [i for i, name in enumerate(hand) if name in CREATURES]
     # Stage12E: strategic basic-land acceleration from our own hand.
     # No library order, timing, stack or hidden game fields are provided.
@@ -182,8 +186,20 @@ for raw in sys.stdin.buffer:
         any(r.get('appearance') == 'face_up' and
             r.get('card') == 'Rumbling Baloth'
             for r in view['opponent_table']))
+    # Stage12G: a visible own Bear can trade in native combat while
+    # Zulaport Cutthroat's real printed death trigger drains an opponent
+    # and gains one life. This is only an own-hand cast preference, never
+    # a private phase, mana, attacker or stack instruction to Forge.
+    drain_window = (0 < view['life_totals']['self'] <= 5 and
+        any(r.get('appearance') == 'face_up' and
+            r.get('card') in VANILLA_FIGHTERS
+            for r in view['own_cards']['table']) and
+        any(r.get('appearance') == 'face_up' and
+            r.get('card') in VANILLA_FIGHTERS
+            for r in view['opponent_table']))
     creatures.sort(key=lambda i: (
         0 if urgent_deathtouch and hand[i] in DEATHTOUCH_CREATURES else
+        0 if drain_window and hand[i] in DRAIN_CREATURES else
         1 if len(hand) <= 3 and hand[i] in DRAW_CREATURES else 2,
         -public_power(hand[i]) if hand[i] in VANILLA_FIGHTERS else 0, i))
     fighters = [
@@ -496,6 +512,23 @@ for raw in sys.stdin.buffer:
                 for record in view['opponent_table']))
     if emergency_deathtouch:
         block_pairs.append([scorpions[0],targets[0]])
+    # Stage12G: at critical public life, offer a genuine registered
+    # Cutthroat as a sacrificial blocker against one vanilla 2/2. Its
+    # death triggers a real one-life opponent drain and one-life gain,
+    # resolved solely by Forge. The actor cannot see attacker status,
+    # priority, stack, private cards, or any future library order.
+    cutthroats = [i for i, record in enumerate(view['own_cards']['table'])
+                  if record.get('appearance') == 'face_up'
+                  and record.get('card') in DRAIN_CREATURES]
+    emergency_drain_chump = (
+        0 < life <= 2 and not fighters and len(cutthroats) == 1
+        and len(targets) == 1
+        and view['opponent_table'][targets[0]]['card'] in VANILLA_BEARS
+        and all(record.get('appearance') == 'face_up'
+                and record.get('card') in (VANILLA_BEARS | LANDS)
+                for record in view['opponent_table']))
+    if emergency_drain_chump:
+        block_pairs.append([cutthroats[0], targets[0]])
     if two_lane_emergency:
         strong = next(i for i in defensive_candidates
                       if public_power(view['own_cards']['table'][i]['card']) == 4)
