@@ -39,6 +39,8 @@ KNOWN_FIGHTERS = VANILLA_FIGHTERS | TRAMPLE_FINISHERS
 DRAW_CREATURES = frozenset(('Elvish Visionary',))
 FLYING_CREATURES = frozenset(('Scryb Sprites',))
 DEATHTOUCH_CREATURES = frozenset(('Sedge Scorpion',))
+# Stage12G: printed {1}{B} 2/1 Lifelink, native damage restores life.
+LIFELINK_CREATURES = frozenset(('Child of Night',))
 # Stage12G: genuine printed {1}{B} 1/1 death-trigger life swing.
 DRAIN_CREATURES = frozenset(('Zulaport Cutthroat',))
 # Stage12G: printed {1}{G} 1/3 Landfall life engine, only public-land decisions.
@@ -53,6 +55,7 @@ SWARM_SORCERIES = frozenset(('Overrun',))
 KNOWN_SORCERIES = RAMP_SORCERIES | SWARM_SORCERIES
 CREATURES = (frozenset(('Llanowar Elves',)) | VANILLA_FIGHTERS |
              DRAW_CREATURES | FLYING_CREATURES | DEATHTOUCH_CREATURES |
+             LIFELINK_CREATURES |
              TRAMPLE_FINISHERS |
              DRAIN_CREATURES | LANDFALL_CREATURES | RISK_DRAW_CREATURES |
              ENGINE_CREATURES)
@@ -161,7 +164,7 @@ for raw in sys.stdin.buffer:
     # No phase/turn/priority decision type is sent into the process.
     # The trusted Forge referee picks the first LEGAL item for its callback.
     lands = [i for i, name in enumerate(hand) if name in LANDS]
-    lands.sort(key=lambda i: (hand[i] != ('Swamp' if (DRAIN_CREATURES | RISK_DRAW_CREATURES).intersection(hand) else 'Forest'),
+    lands.sort(key=lambda i: (hand[i] != ('Swamp' if (DRAIN_CREATURES | RISK_DRAW_CREATURES | LIFELINK_CREATURES).intersection(hand) else 'Forest'),
                               hand[i] != 'Forest', hand[i] != 'Island', i))
     creatures = [i for i, name in enumerate(hand)
                  if name in CREATURES and not
@@ -221,6 +224,9 @@ for raw in sys.stdin.buffer:
     # stack ordering, draws and whether each spell resolves.
     engine_window = (own_forests >= 4 and any(
         name in CREATURES and name not in ENGINE_CREATURES for name in hand))
+    # Stage12G: at low public life, prioritize a printed lifelink 2/1.
+    # No opponent hand, readiness, phase, priority or hidden card is consulted.
+    urgent_lifelink = 0 < view['life_totals']['self'] <= 5
     # Stage12G: an already-visible Beast Whisperer and a hand-held Elvish
     # Visionary create TWO independent native draw triggers from one paid
     # creature spell: Whisperer on cast, Visionary on battlefield entry.
@@ -231,6 +237,7 @@ for raw in sys.stdin.buffer:
         r.get('card') in ENGINE_CREATURES
         for r in view['own_cards']['table']))
     creatures.sort(key=lambda i: (
+        0 if urgent_lifelink and hand[i] in LIFELINK_CREATURES else
         0 if own_forests >= 6 and hand[i] in TRAMPLE_FINISHERS else
         0 if visionary_chain and hand[i] in DRAW_CREATURES else
         0 if engine_window and hand[i] in ENGINE_CREATURES else
@@ -433,6 +440,17 @@ for raw in sys.stdin.buffer:
                   and record.get('card') in (KNOWN_FIGHTERS | LANDS)
                   for record in view['opponent_table'])):
         active_attacks = candidate_attackers[:]
+    # Stage12G: an identified printed Lifelink attacker can replenish
+    # public life while applying pressure when only public basic lands
+    # oppose it. This is an ATTACK PREFERENCE, never a claim of readiness
+    # or guaranteed damage: native Forge decides legality and life gain.
+    if all(r.get('appearance') == 'face_up' and r.get('card') in LANDS
+           for r in view['opponent_table']):
+        for i, r in enumerate(view['own_cards']['table']):
+            if (len(active_attacks) < 8 and r.get('appearance') == 'face_up'
+                    and r.get('card') in LIFELINK_CREATURES
+                    and i not in active_attacks):
+                active_attacks.append(i)
     # Stage11F: a healthy defender should still offer legal 2/2 blocks.
     # Attack and defense proposals coexist without assuming the phase.
     # A creature may have attacked already (and be tapped), so ONLY Forge

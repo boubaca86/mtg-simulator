@@ -684,8 +684,10 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                       "Llanowar Elves".equals(blocker.getName()) ||
                       "Sedge Scorpion".equals(blocker.getName()) ||
                       "Zulaport Cutthroat".equals(blocker.getName()) ||
-                      "Beast Whisperer".equals(blocker.getName())) ||
-                    !supportedVanillaFighter(attacker.getName()) ||
+                      "Beast Whisperer".equals(blocker.getName()) ||
+                      "Child of Night".equals(blocker.getName())) ||
+                    !(supportedVanillaFighter(attacker.getName()) ||
+                      "Child of Night".equals(attacker.getName())) ||
                     committed.contains(blocker) ||
                     !combat.isAttacking(attacker) ||
                     !CombatUtil.canBlock(attacker,blocker,combat) ||
@@ -772,6 +774,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
            !"Kazandu Nectarpot".equals(creature.getName()) &&
            !"Phyrexian Rager".equals(creature.getName()) &&
            !"Beast Whisperer".equals(creature.getName()) &&
+           !"Child of Night".equals(creature.getName()) &&
            !supportedVanillaFighter(creature.getName())) return null;
         for(SpellAbility sa:creature.getSpellAbilities()) {
             if(!sa.isSpell() || sa.usesTargeting() || sa.getSubAbility()!=null) continue;
@@ -819,7 +822,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 Card card=self.getCardsIn(ZoneType.Battlefield).get(n);
                 if(card.getController()==self && !card.isFaceDown() &&
                         (supportedVanillaFighter(card.getName()) ||
-                         "Scryb Sprites".equals(card.getName())) &&
+                         "Scryb Sprites".equals(card.getName()) ||
+                         "Child of Night".equals(card.getName())) &&
                         CombatUtil.canAttack(card,defender) &&
                         CombatUtil.getAttackCost(self.getGame(),card,defender)==null) {
                     authorized.add(n);
@@ -845,7 +849,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             Card c=table.get(n);
             if(c.getController()!=self || c.isFaceDown() ||
                !(supportedVanillaFighter(c.getName()) ||
-                 "Scryb Sprites".equals(c.getName())) ||
+                 "Scryb Sprites".equals(c.getName()) ||
+                 "Child of Night".equals(c.getName())) ||
                !CombatUtil.canAttack(c,defender) ||
                CombatUtil.getAttackCost(game,c,defender)!=null) return;
             approved.add(c);
@@ -1041,7 +1046,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                       "Llanowar Elves".equals(source.getName()) ||
                       "Sedge Scorpion".equals(source.getName()) ||
                       "Zulaport Cutthroat".equals(source.getName()) ||
-                      "Beast Whisperer".equals(source.getName())) ||
+                      "Beast Whisperer".equals(source.getName()) ||
+                      "Child of Night".equals(source.getName())) ||
                     damageDealt!=("Colossal Dreadmaw".equals(source.getName())?6:
                             "Rumbling Baloth".equals(source.getName())?4:
                             "Centaur Courser".equals(source.getName())?3:
@@ -1061,7 +1067,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                           "Llanowar Elves".equals(target.getName()) ||
                           "Sedge Scorpion".equals(target.getName()) ||
                           "Zulaport Cutthroat".equals(target.getName()) ||
-                          "Beast Whisperer".equals(target.getName())) ||
+                          "Beast Whisperer".equals(target.getName()) ||
+                          "Child of Night".equals(target.getName())) ||
                         target.getController()!=opponent ||
                         !opponent.getCardsIn(ZoneType.Battlefield).contains(target)) {
                     throw new SecurityException("unregistered or unsupported combat target");
@@ -11492,6 +11499,163 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     @Test(timeOut=240000)
     public void nativeVisionaryWhispererDoubleDrawRightRegisteredFirst() throws Exception {
         verifyNativeVisionaryWhispererChainAndNaturalGames(false);
+    }
+
+
+    /** Stage12G: printed Child of Night {1}{B} 2/1 Lifelink.
+     * Genuine player combat damage must also increase controller life. */
+    private Game nativeChildLifelinkGame(boolean leftFirst) {
+        Map<String,Integer> counts=new TreeMap<>();
+        counts.put("Forest",30);counts.put("Swamp",10);
+        counts.put("Child of Night",4);counts.put("Grizzly Bears",4);
+        counts.put("Runeclaw Bear",4);counts.put("Llanowar Elves",4);
+        counts.put("Elvish Visionary",4);
+        Assert.assertEquals(counts.values().stream().mapToInt(Integer::intValue).sum(),60);
+        RegisteredPlayer left=new RegisteredPlayer(mainDeck("12G Lifelink left",counts))
+                .setPlayer(new LobbyPlayerAi("lifelink-left",null));
+        RegisteredPlayer right=new RegisteredPlayer(mainDeck("12G Lifelink right",counts))
+                .setPlayer(new LobbyPlayerAi("lifelink-right",null));
+        List<RegisteredPlayer> reg=new ArrayList<>();
+        reg.add(leftFirst?left:right);reg.add(leftFirst?right:left);
+        GameRules rules=new GameRules(GameType.Constructed);
+        Match match=new Match(rules,reg,"Stage12G Child of Night Lifelink");
+        Game game=new Game(reg,rules,match);frozenMain=new FrozenMain(game);
+        Assert.assertNull(game.getPhaseHandler().getPhase());
+        for(Player p:game.getPlayers()) Assert.assertEquals(frozenMain.owned(p),counts);
+        return game;
+    }
+
+    private void verifyNativeChildLifelinkAndNaturalGames(boolean leftFirst)
+            throws Exception {
+        Game fixture=nativeChildLifelinkGame(leftFirst);
+        Player p0=fixture.getPlayers().get(0),p1=fixture.getPlayers().get(1);
+        try(Actor w0=new Actor(5);Actor w1=new Actor(5)) {
+            Assert.assertNotEquals(w0.process.pid(),w1.process.pid());
+            ExternalCreatureController c0=attach(fixture,p0,p1,w0);
+            ExternalCreatureController c1=attach(fixture,p1,p0,w1);
+            doRealNativeStartForMultiTurn(fixture,c0,c1);
+            Player caster=fixture.getStartingPlayer();
+            Player opponent=caster==p0?p1:p0;
+            Actor worker=caster==p0?w0:w1;
+            ExternalCreatureController ac=caster==p0?c0:c1;
+            // Controlled fixture only: move ORIGINAL registered cards.
+            for(Player p:Arrays.asList(caster,opponent))
+                for(Card c:new ArrayList<Card>(p.getCardsIn(ZoneType.Hand)))
+                    Assert.assertNotNull(fixture.getAction().moveToBottomOfLibrary(c,null));
+            Set<Integer> paidLands=new HashSet<>();
+            for(String name:Arrays.asList("Forest","Swamp")) {
+                Card land=caster.getCardsIn(ZoneType.Library).stream()
+                        .filter(c->name.equals(c.getName())).findFirst().orElseThrow();
+                paidLands.add(land.getId());
+                Assert.assertNotNull(fixture.getAction().moveToPlay(land,null,
+                        forge.game.ability.AbilityKey.newMap()));
+                land.setTapped(false);
+            }
+            for(int k=0;k<4;k++) {
+                Card bear=caster.getCardsIn(ZoneType.Library).stream()
+                        .filter(c->"Grizzly Bears".equals(c.getName()))
+                        .findFirst().orElseThrow();
+                Assert.assertNotNull(fixture.getAction().moveToHand(bear,null));
+            }
+            Card child=caster.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Child of Night".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToHand(child,null));
+            Assert.assertTrue(caster.setLife(3,null));
+            Assert.assertEquals(opponent.getLife(),20);
+            Assert.assertEquals(fullPhysicalInventory(caster),frozenMain.owned(caster));
+            Assert.assertEquals(fullPhysicalInventory(opponent),frozenMain.owned(opponent));
+            String projection=observation(caster,opponent);
+            JsonObject preference=worker.ask(projection);
+            Assert.assertEquals(preference.get("intent").getAsString(),"action_plan");
+            Assert.assertEquals(caster.getCardsIn(ZoneType.Hand)
+                    .get(preference.getAsJsonArray("creature_hand_indices")
+                    .get(0).getAsInt()).getId(),child.getId(),
+                    "public critical life ranks real Lifelink before four Bears");
+            for(String forbidden:Arrays.asList("phase","priority","stack",
+                    "library_top","opponent_hand","library_order"))
+                Assert.assertFalse(JsonParser.parseString(projection)
+                        .getAsJsonObject().has(forbidden));
+            opponent.shuffle(null);
+            Assert.assertEquals(observation(caster,opponent),projection);
+            Assert.assertEquals(worker.ask(projection),preference);
+            boolean paid=false,entered=false,nativeLifelink=false,offered=false;
+            int steps=0;
+            while(!fixture.isGameOver() && steps++<6500) {
+                fixture.getPhaseHandler().mainLoopStep();
+                paid |= caster.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->paidLands.contains(c.getId()) && c.isTapped())
+                        .count()==2;
+                Card live=caster.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->c.getId()==child.getId()).findFirst().orElse(null);
+                if(live!=null) {
+                    entered |= live.getNetPower()==2 && live.getNetToughness()==1 &&
+                            live.hasKeyword("Lifelink");
+                    JsonObject plan=worker.ask(observation(caster,opponent));
+                    int index=caster.getCardsIn(ZoneType.Battlefield).indexOf(live);
+                    for(JsonElement item:plan.getAsJsonArray("attack_table_indices"))
+                        if(item.getAsInt()==index) offered=true;
+                }
+                if(paid && entered && offered && ac.attacksAuthorized>0 &&
+                        caster.getLife()>=5 && opponent.getLife()<=18) {
+                    nativeLifelink=true;break;
+                }
+            }
+            Assert.assertTrue(steps<6500,"bounded native paid Lifelink attack");
+            Assert.assertTrue(paid,"original Forest and Swamp paid printed {1}{B}");
+            Assert.assertTrue(entered,"original printed 2/1 Lifelink entered");
+            Assert.assertTrue(offered,"external actor offers lifelink attacker");
+            Assert.assertTrue(nativeLifelink,
+                    "Forge-native two combat damage restores two life");
+            Assert.assertEquals(fullPhysicalInventory(caster),frozenMain.owned(caster));
+            Assert.assertEquals(fullPhysicalInventory(opponent),frozenMain.owned(opponent));
+            Assert.assertTrue(w0.process.isAlive() && w1.process.isAlive());
+            System.out.println("STAGE12G_CONTROLLED_LIFELINK left_first="+leftFirst+
+                    " paid_black_mana=true native_damage_and_life_gain=true");
+        }
+        // Four untouched natural shuffled 60-card full games, two per seat.
+        for(int seq=0;seq<2;seq++) {
+            Game natural=nativeChildLifelinkGame(leftFirst);
+            Player left=natural.getPlayers().get(leftFirst?0:1);
+            Player right=natural.getPlayers().get(leftFirst?1:0);
+            try(Actor wl=new Actor(5);Actor wr=new Actor(5)) {
+                Assert.assertNotEquals(wl.process.pid(),wr.process.pid());
+                ExternalCreatureController lc=attach(natural,left,right,wl);
+                ExternalCreatureController rc=attach(natural,right,left,wr);
+                doRealNativeStartForMultiTurn(natural,lc,rc);
+                Assert.assertEquals(left.getLife(),20);
+                Assert.assertEquals(right.getLife(),20);
+                Assert.assertTrue(lc.openingCallbacks>0 && rc.openingCallbacks>0);
+                for(Player p:Arrays.asList(left,right)) {
+                    Assert.assertTrue(p.getCardsIn(ZoneType.Battlefield).isEmpty());
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                }
+                int steps=0;
+                while(!natural.isGameOver() && steps++<85000)
+                    natural.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(steps<85000 && natural.isGameOver());
+                Assert.assertNotNull(natural.getOutcome());
+                Assert.assertFalse(natural.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(natural.getOutcome().isWinner(winner.getRegisteredPlayer()));
+                for(Player p:Arrays.asList(left,right))
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                Assert.assertTrue(wl.process.isAlive() && wr.process.isAlive());
+                System.out.println("STAGE12G_NATURAL_LIFELINK left_first="+leftFirst+
+                        " sequence="+seq+" winner="+winner.getName());
+            }
+        }
+    }
+
+    @Test(timeOut=240000)
+    public void nativeChildLifelinkLeftRegisteredFirst() throws Exception {
+        verifyNativeChildLifelinkAndNaturalGames(true);
+    }
+
+    @Test(timeOut=240000)
+    public void nativeChildLifelinkRightRegisteredFirst() throws Exception {
+        verifyNativeChildLifelinkAndNaturalGames(false);
     }
 
 }
