@@ -10914,4 +10914,150 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         verifyNativeRagerRiskDrawAndNaturalGames(false);
     }
 
+
+    /** Stage12G: Beast Whisperer {2}{G}{G} 2/3 draws a private card
+     * when its controller CASTS another creature, before that spell resolves.
+     * The two external actors rank the engine from their own hand and
+     * public Forests, never from hidden future draws or Forge phase state. */
+    private Game nativeWhispererGame(boolean leftFirst) {
+        Map<String,Integer> counts=new TreeMap<>();
+        counts.put("Forest",40);counts.put("Beast Whisperer",4);
+        counts.put("Grizzly Bears",4);counts.put("Runeclaw Bear",4);
+        counts.put("Balduvian Bears",4);counts.put("Centaur Courser",4);
+        Assert.assertEquals(counts.values().stream().mapToInt(Integer::intValue).sum(),60);
+        RegisteredPlayer left=new RegisteredPlayer(mainDeck("12G Whisperer left",counts))
+                .setPlayer(new LobbyPlayerAi("whisperer-left",null));
+        RegisteredPlayer right=new RegisteredPlayer(mainDeck("12G Whisperer right",counts))
+                .setPlayer(new LobbyPlayerAi("whisperer-right",null));
+        List<RegisteredPlayer> reg=new ArrayList<>();
+        reg.add(leftFirst?left:right);reg.add(leftFirst?right:left);
+        GameRules rules=new GameRules(GameType.Constructed);
+        Match match=new Match(rules,reg,"Stage12G Whisperer");
+        Game game=new Game(reg,rules,match);frozenMain=new FrozenMain(game);
+        Assert.assertNull(game.getPhaseHandler().getPhase());
+        for(Player p:game.getPlayers()) Assert.assertEquals(frozenMain.owned(p),counts);
+        return game;
+    }
+
+    private void verifyNativeWhispererCastDrawAndNaturalGames(boolean leftFirst)
+            throws Exception {
+        Game fixture=nativeWhispererGame(leftFirst);
+        Player p0=fixture.getPlayers().get(0),p1=fixture.getPlayers().get(1);
+        try(Actor w0=new Actor(5);Actor w1=new Actor(5)) {
+            Assert.assertNotEquals(w0.process.pid(),w1.process.pid());
+            ExternalCreatureController c0=attach(fixture,p0,p1,w0);
+            ExternalCreatureController c1=attach(fixture,p1,p0,w1);
+            doRealNativeStartForMultiTurn(fixture,c0,c1);
+            Player caster=fixture.getStartingPlayer();
+            Player opponent=caster==p0?p1:p0;
+            Actor worker=caster==p0?w0:w1;
+            for(Card c:new ArrayList<Card>(caster.getCardsIn(ZoneType.Hand)))
+                Assert.assertNotNull(fixture.getAction().moveToBottomOfLibrary(c,null));
+            Set<Integer> forestIds=new HashSet<>();
+            for(int k=0;k<6;k++) {
+                Card land=caster.getCardsIn(ZoneType.Library).stream()
+                        .filter(c->"Forest".equals(c.getName())).findFirst().orElseThrow();
+                forestIds.add(land.getId());
+                Assert.assertNotNull(fixture.getAction().moveToPlay(land,null,
+                        forge.game.ability.AbilityKey.newMap()));
+                land.setTapped(false);
+            }
+            Card whisperer=caster.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Beast Whisperer".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Card bear=caster.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Grizzly Bears".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToHand(bear,null));
+            Assert.assertNotNull(fixture.getAction().moveToHand(whisperer,null));
+            Assert.assertEquals(caster.getCardsIn(ZoneType.Hand).size(),2);
+            Assert.assertEquals(fullPhysicalInventory(caster),frozenMain.owned(caster));
+            Assert.assertEquals(fullPhysicalInventory(opponent),frozenMain.owned(opponent));
+            String projected=observation(caster,opponent);
+            JsonObject proposal=worker.ask(projected);
+            Assert.assertEquals(proposal.get("intent").getAsString(),"action_plan");
+            Assert.assertEquals(caster.getCardsIn(ZoneType.Hand)
+                    .get(proposal.getAsJsonArray("creature_hand_indices")
+                    .get(0).getAsInt()).getName(),"Beast Whisperer");
+            for(String forbidden:Arrays.asList("phase","priority","stack",
+                    "library_top","opponent_hand","library_order"))
+                Assert.assertFalse(JsonParser.parseString(projected)
+                        .getAsJsonObject().has(forbidden));
+            opponent.shuffle(null);
+            Assert.assertEquals(observation(caster,opponent),projected);
+            Assert.assertEquals(worker.ask(projected),proposal);
+            int libraryBefore=caster.getCardsIn(ZoneType.Library).size();
+            boolean nativeCastDraw=false,paid=false;
+            int steps=0;
+            while(!fixture.isGameOver() && steps++<3500) {
+                fixture.getPhaseHandler().mainLoopStep();
+                paid |= caster.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->forestIds.contains(c.getId()) && c.isTapped())
+                        .count()==6;
+                boolean enginePresent=caster.getCardsIn(ZoneType.Battlefield).stream()
+                        .anyMatch(c->c.getId()==whisperer.getId());
+                boolean bearPresent=caster.getCardsIn(ZoneType.Battlefield).stream()
+                        .anyMatch(c->c.getId()==bear.getId());
+                if(enginePresent && bearPresent && fixture.getStack().isEmpty() &&
+                   caster.getCardsIn(ZoneType.Library).size()==libraryBefore-1 &&
+                   caster.getLife()==20) {
+                    nativeCastDraw=true;break;
+                }
+            }
+            Assert.assertTrue(steps<3500,"bounded genuine paid creature casts");
+            Assert.assertTrue(nativeCastDraw,
+                    "Forge must natively draw exactly one private card on Bear cast");
+            Assert.assertTrue(paid,"six original Forests pay {2}{G}{G} then {1}{G}");
+            Assert.assertEquals(caster.getCardsIn(ZoneType.Hand).size(),1);
+            Assert.assertEquals(opponent.getLife(),20);
+            Assert.assertEquals(fullPhysicalInventory(caster),frozenMain.owned(caster));
+            Assert.assertEquals(fullPhysicalInventory(opponent),frozenMain.owned(opponent));
+            Assert.assertTrue(w0.process.isAlive() && w1.process.isAlive());
+            System.out.println("STAGE12G_CONTROLLED_WHISPERER left_first="+leftFirst+
+                    " native_paid_casts=true creature_spell_draw=1");
+        }
+        // Four separate untouched naturally shuffled 60-card full games.
+        for(int seq=0;seq<2;seq++) {
+            Game natural=nativeWhispererGame(leftFirst);
+            Player left=natural.getPlayers().get(leftFirst?0:1);
+            Player right=natural.getPlayers().get(leftFirst?1:0);
+            try(Actor wl=new Actor(5);Actor wr=new Actor(5)) {
+                Assert.assertNotEquals(wl.process.pid(),wr.process.pid());
+                ExternalCreatureController lc=attach(natural,left,right,wl);
+                ExternalCreatureController rc=attach(natural,right,left,wr);
+                doRealNativeStartForMultiTurn(natural,lc,rc);
+                Assert.assertEquals(left.getLife(),20);
+                Assert.assertEquals(right.getLife(),20);
+                Assert.assertTrue(lc.openingCallbacks>0 && rc.openingCallbacks>0);
+                for(Player p:Arrays.asList(left,right)) {
+                    Assert.assertTrue(p.getCardsIn(ZoneType.Battlefield).isEmpty());
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                }
+                int steps=0;
+                while(!natural.isGameOver() && steps++<85000)
+                    natural.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(steps<85000 && natural.isGameOver());
+                Assert.assertNotNull(natural.getOutcome());
+                Assert.assertFalse(natural.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(natural.getOutcome().isWinner(winner.getRegisteredPlayer()));
+                for(Player p:Arrays.asList(left,right))
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                Assert.assertTrue(wl.process.isAlive() && wr.process.isAlive());
+                System.out.println("STAGE12G_NATURAL_WHISPERER left_first="+leftFirst+
+                        " sequence="+seq+" winner="+winner.getName());
+            }
+        }
+    }
+
+    @Test(timeOut=240000)
+    public void nativeBeastWhispererCastDrawLeftRegisteredFirst() throws Exception {
+        verifyNativeWhispererCastDrawAndNaturalGames(true);
+    }
+    @Test(timeOut=240000)
+    public void nativeBeastWhispererCastDrawRightRegisteredFirst() throws Exception {
+        verifyNativeWhispererCastDrawAndNaturalGames(false);
+    }
+
 }

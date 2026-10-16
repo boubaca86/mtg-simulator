@@ -43,12 +43,15 @@ LANDFALL_CREATURES = frozenset(('Kazandu Nectarpot',))
 # Stage12G: printed {2}{B} 2/2 ETB draw-one AND lose-one life.
 # Do not offer this mandatory life-loss creature when our public life <=1.
 RISK_DRAW_CREATURES = frozenset(('Phyrexian Rager',))
+# Stage12G: printed {2}{G}{G} engine rewards later creature casts.
+ENGINE_CREATURES = frozenset(('Beast Whisperer',))
 RAMP_SORCERIES = frozenset(('Rampant Growth',))
 SWARM_SORCERIES = frozenset(('Overrun',))
 KNOWN_SORCERIES = RAMP_SORCERIES | SWARM_SORCERIES
 CREATURES = (frozenset(('Llanowar Elves',)) | VANILLA_FIGHTERS |
              DRAW_CREATURES | FLYING_CREATURES | DEATHTOUCH_CREATURES |
-             DRAIN_CREATURES | LANDFALL_CREATURES | RISK_DRAW_CREATURES)
+             DRAIN_CREATURES | LANDFALL_CREATURES | RISK_DRAW_CREATURES |
+             ENGINE_CREATURES)
 
 def public_power(name):
     if name in VANILLA_FOURS:
@@ -207,7 +210,13 @@ for raw in sys.stdin.buffer:
     # At low public life, deploy the printed Landfall life engine before
     # vanilla attackers. Only native Forge land entries trigger real life gain.
     urgent_landfall = 0 < view['life_totals']['self'] <= 6
+    # Use only own visible Forests and own hand to set up a repeatable
+    # creature-cast draw engine. Forge alone checks actual mana, timing,
+    # stack ordering, draws and whether each spell resolves.
+    engine_window = (own_forests >= 4 and any(
+        name in CREATURES and name not in ENGINE_CREATURES for name in hand))
     creatures.sort(key=lambda i: (
+        0 if engine_window and hand[i] in ENGINE_CREATURES else
         0 if urgent_landfall and hand[i] in LANDFALL_CREATURES else
         0 if urgent_deathtouch and hand[i] in DEATHTOUCH_CREATURES else
         0 if drain_window and hand[i] in DRAIN_CREATURES else
