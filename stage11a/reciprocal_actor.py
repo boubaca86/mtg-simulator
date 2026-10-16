@@ -40,12 +40,15 @@ DEATHTOUCH_CREATURES = frozenset(('Sedge Scorpion',))
 DRAIN_CREATURES = frozenset(('Zulaport Cutthroat',))
 # Stage12G: printed {1}{G} 1/3 Landfall life engine, only public-land decisions.
 LANDFALL_CREATURES = frozenset(('Kazandu Nectarpot',))
+# Stage12G: printed {2}{B} 2/2 ETB draw-one AND lose-one life.
+# Do not offer this mandatory life-loss creature when our public life <=1.
+RISK_DRAW_CREATURES = frozenset(('Phyrexian Rager',))
 RAMP_SORCERIES = frozenset(('Rampant Growth',))
 SWARM_SORCERIES = frozenset(('Overrun',))
 KNOWN_SORCERIES = RAMP_SORCERIES | SWARM_SORCERIES
 CREATURES = (frozenset(('Llanowar Elves',)) | VANILLA_FIGHTERS |
              DRAW_CREATURES | FLYING_CREATURES | DEATHTOUCH_CREATURES |
-             DRAIN_CREATURES | LANDFALL_CREATURES)
+             DRAIN_CREATURES | LANDFALL_CREATURES | RISK_DRAW_CREATURES)
 
 def public_power(name):
     if name in VANILLA_FOURS:
@@ -149,9 +152,11 @@ for raw in sys.stdin.buffer:
     # No phase/turn/priority decision type is sent into the process.
     # The trusted Forge referee picks the first LEGAL item for its callback.
     lands = [i for i, name in enumerate(hand) if name in LANDS]
-    lands.sort(key=lambda i: (hand[i] != ('Swamp' if DRAIN_CREATURES.intersection(hand) else 'Forest'),
+    lands.sort(key=lambda i: (hand[i] != ('Swamp' if (DRAIN_CREATURES | RISK_DRAW_CREATURES).intersection(hand) else 'Forest'),
                               hand[i] != 'Forest', hand[i] != 'Island', i))
-    creatures = [i for i, name in enumerate(hand) if name in CREATURES]
+    creatures = [i for i, name in enumerate(hand)
+                 if name in CREATURES and not
+                 (name in RISK_DRAW_CREATURES and view['life_totals']['self'] <= 1)]
     # Stage12E: strategic basic-land acceleration from our own hand.
     # No library order, timing, stack or hidden game fields are provided.
     own_forests = sum(r.get('appearance') == 'face_up' and
@@ -206,6 +211,8 @@ for raw in sys.stdin.buffer:
         0 if urgent_landfall and hand[i] in LANDFALL_CREATURES else
         0 if urgent_deathtouch and hand[i] in DEATHTOUCH_CREATURES else
         0 if drain_window and hand[i] in DRAIN_CREATURES else
+        0 if len(hand) <= 3 and view['life_totals']['self'] > 1
+             and hand[i] in RISK_DRAW_CREATURES else
         1 if len(hand) <= 3 and hand[i] in DRAW_CREATURES else 2,
         -public_power(hand[i]) if hand[i] in VANILLA_FIGHTERS else 0, i))
     fighters = [

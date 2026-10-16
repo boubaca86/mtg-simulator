@@ -1,7 +1,7 @@
-name: Stage 12G - Native Kazandu Nectarpot Landfall
+name: Stage 12G - Native Phyrexian Rager Draw-Life Tradeoff
 
 # Two external persistent actor processes plus one authoritative Forge referee.
-# Stage12G extends 158 verified pinned Forge native tests with printed Kazandu Nectarpot {1}{G}, two original Forest mana payment, native Landfall from hand-played Forest and Rampant Growth private library search, two opposite-seat physical controlled fixtures and four untouched natural 60-card games.
+# Stage12G extends 160 verified pinned Forge native tests with printed Phyrexian Rager {2}{B}, two original Forests plus Swamp payment, mandatory private draw-one and lose-one life, low-life actor safety, opposite-seat physical controlled fixtures and four untouched natural 60-card games.
 # Registered 60-card decks, no hand curation, true London opening and 20 life; not full MTG or OS sandbox.
 on:
   push:
@@ -97,7 +97,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 stage10h/test_protocol.py | tee stage10u-evidence/stage10h-protocol.log
-      - name: Run native Kazandu Nectarpot landfall and 158 inherited Forge tests
+      - name: Run native Phyrexian Rager draw-life tradeoff and 160 inherited Forge tests
         shell: bash
         run: |
           set -euo pipefail
@@ -117,7 +117,7 @@ jobs:
           echo "Forge Maven exit: $code"
           tail -n 75 "$GITHUB_WORKSPACE/stage10u-evidence/maven.log"
           test "$code" -eq 0
-      - name: Verify exact 160 genuine Forge-native methods with independent XML gate
+      - name: Verify exact 162 genuine Forge-native methods with independent XML gate
         shell: bash
         run: |
           set -euo pipefail
@@ -128,7 +128,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stage12g-nectarpot-landfall-${{ github.run_id }}-${{ github.run_attempt }}
+          name: stage12g-rager-draw-life-${{ github.run_id }}-${{ github.run_attempt }}
           path: stage10u-evidence/
           if-no-files-found: warn
           retention-days: 14

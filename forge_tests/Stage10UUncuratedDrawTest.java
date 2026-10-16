@@ -768,6 +768,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
            !"Sedge Scorpion".equals(creature.getName()) &&
            !"Zulaport Cutthroat".equals(creature.getName()) &&
            !"Kazandu Nectarpot".equals(creature.getName()) &&
+           !"Phyrexian Rager".equals(creature.getName()) &&
            !supportedVanillaFighter(creature.getName())) return null;
         for(SpellAbility sa:creature.getSpellAbilities()) {
             if(!sa.isSpell() || sa.usesTargeting() || sa.getSubAbility()!=null) continue;
@@ -10759,6 +10760,158 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     @Test(timeOut=240000)
     public void nativeNectarpotLandfallRightRegisteredFirst() throws Exception {
         verifyNativeNectarpotLandfallAndNaturalGames(false);
+    }
+
+
+    /** Stage12G: printed Phyrexian Rager {2}{B} 2/2 has a mandatory
+     * ETB draw-one AND lose-one-life effect. External actors may prioritize
+     * this public-life-aware tradeoff but cannot see the drawn card early. */
+    private Game nativeRagerGame(boolean leftFirst) {
+        Map<String,Integer> counts=new TreeMap<>();
+        counts.put("Forest",40);counts.put("Swamp",8);
+        counts.put("Phyrexian Rager",4);
+        counts.put("Grizzly Bears",4);counts.put("Runeclaw Bear",4);
+        Assert.assertEquals(counts.values().stream().mapToInt(Integer::intValue).sum(),60);
+        RegisteredPlayer left=new RegisteredPlayer(mainDeck("12G Rager left",counts))
+                .setPlayer(new LobbyPlayerAi("rager-left",null));
+        RegisteredPlayer right=new RegisteredPlayer(mainDeck("12G Rager right",counts))
+                .setPlayer(new LobbyPlayerAi("rager-right",null));
+        List<RegisteredPlayer> reg=new ArrayList<>();
+        reg.add(leftFirst?left:right);reg.add(leftFirst?right:left);
+        GameRules rules=new GameRules(GameType.Constructed);
+        Match match=new Match(rules,reg,"Stage12G Rager");
+        Game game=new Game(reg,rules,match);frozenMain=new FrozenMain(game);
+        Assert.assertNull(game.getPhaseHandler().getPhase());
+        for(Player p:game.getPlayers()) Assert.assertEquals(frozenMain.owned(p),counts);
+        return game;
+    }
+
+    private void verifyNativeRagerRiskDrawAndNaturalGames(boolean leftFirst)
+            throws Exception {
+        Game fixture=nativeRagerGame(leftFirst);
+        Player p0=fixture.getPlayers().get(0),p1=fixture.getPlayers().get(1);
+        try(Actor w0=new Actor(5);Actor w1=new Actor(5)) {
+            Assert.assertNotEquals(w0.process.pid(),w1.process.pid());
+            ExternalCreatureController c0=attach(fixture,p0,p1,w0);
+            ExternalCreatureController c1=attach(fixture,p1,p0,w1);
+            doRealNativeStartForMultiTurn(fixture,c0,c1);
+            Player caster=fixture.getStartingPlayer();
+            Player opponent=caster==p0?p1:p0;
+            Actor worker=caster==p0?w0:w1;
+            for(Card c:new ArrayList<Card>(caster.getCardsIn(ZoneType.Hand)))
+                Assert.assertNotNull(fixture.getAction().moveToBottomOfLibrary(c,null));
+            Set<Integer> paidIds=new HashSet<>();
+            for(String name:Arrays.asList("Forest","Forest","Swamp")) {
+                Card land=caster.getCardsIn(ZoneType.Library).stream()
+                        .filter(c->name.equals(c.getName())).findFirst().orElseThrow();
+                paidIds.add(land.getId());
+                Assert.assertNotNull(fixture.getAction().moveToPlay(land,null,
+                        forge.game.ability.AbilityKey.newMap()));
+                land.setTapped(false);
+            }
+            Card rager=caster.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Phyrexian Rager".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Card bear=caster.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Grizzly Bears".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToHand(bear,null));
+            Assert.assertNotNull(fixture.getAction().moveToHand(rager,null));
+            Assert.assertEquals(caster.getCardsIn(ZoneType.Hand).size(),2);
+            Assert.assertEquals(fullPhysicalInventory(caster),frozenMain.owned(caster));
+            Assert.assertEquals(fullPhysicalInventory(opponent),frozenMain.owned(opponent));
+            // Negative control: at 1 life, mandatory Rager life loss is lethal.
+            Assert.assertTrue(caster.setLife(1,null));
+            JsonObject emergency=worker.ask(observation(caster,opponent));
+            JsonArray safe=emergency.getAsJsonArray("creature_hand_indices");
+            Assert.assertEquals(safe.size(),1);
+            Assert.assertEquals(caster.getCardsIn(ZoneType.Hand)
+                    .get(safe.get(0).getAsInt()).getName(),"Grizzly Bears");
+            // At six life and with only two cards, draw-one is worth the risk.
+            Assert.assertTrue(caster.setLife(6,null));
+            String projected=observation(caster,opponent);
+            JsonObject proposed=worker.ask(projected);
+            Assert.assertEquals(proposed.get("intent").getAsString(),"action_plan");
+            Assert.assertEquals(caster.getCardsIn(ZoneType.Hand)
+                    .get(proposed.getAsJsonArray("creature_hand_indices")
+                    .get(0).getAsInt()).getName(),"Phyrexian Rager");
+            for(String forbidden:Arrays.asList("phase","priority","stack",
+                    "library_top","opponent_hand","library_order"))
+                Assert.assertFalse(JsonParser.parseString(projected)
+                        .getAsJsonObject().has(forbidden));
+            opponent.shuffle(null);
+            Assert.assertEquals(observation(caster,opponent),projected);
+            Assert.assertEquals(worker.ask(projected),proposed);
+            int libraryBefore=caster.getCardsIn(ZoneType.Library).size();
+            boolean nativeDrawAndLoss=false,paid=false;
+            int steps=0;
+            while(!fixture.isGameOver() && steps++<3500) {
+                fixture.getPhaseHandler().mainLoopStep();
+                paid |= caster.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->paidIds.contains(c.getId()) && c.isTapped())
+                        .count()==3;
+                boolean onBoard=caster.getCardsIn(ZoneType.Battlefield).stream()
+                        .anyMatch(c->c.getId()==rager.getId());
+                if(onBoard && fixture.getStack().isEmpty() &&
+                   caster.getCardsIn(ZoneType.Library).size()==libraryBefore-1 &&
+                   caster.getLife()==5) {
+                    nativeDrawAndLoss=true;break;
+                }
+            }
+            Assert.assertTrue(steps<3500,"bounded native paid cast and ETB");
+            Assert.assertTrue(nativeDrawAndLoss,
+                    "Forge must natively draw exactly one private card and lose 1 life");
+            Assert.assertTrue(paid,"two original Forests and one Swamp pay {2}{B}");
+            Assert.assertEquals(caster.getCardsIn(ZoneType.Hand).size(),2);
+            Assert.assertEquals(opponent.getLife(),20);
+            Assert.assertEquals(fullPhysicalInventory(caster),frozenMain.owned(caster));
+            Assert.assertEquals(fullPhysicalInventory(opponent),frozenMain.owned(opponent));
+            Assert.assertTrue(w0.process.isAlive() && w1.process.isAlive());
+            System.out.println("STAGE12G_CONTROLLED_RAGER left_first="+leftFirst+
+                    " native_paid_cast=true draw=1 life_loss=1");
+        }
+        // Four independent untouched naturally shuffled 60-card full games.
+        for(int seq=0;seq<2;seq++) {
+            Game natural=nativeRagerGame(leftFirst);
+            Player left=natural.getPlayers().get(leftFirst?0:1);
+            Player right=natural.getPlayers().get(leftFirst?1:0);
+            try(Actor wl=new Actor(5);Actor wr=new Actor(5)) {
+                Assert.assertNotEquals(wl.process.pid(),wr.process.pid());
+                ExternalCreatureController lc=attach(natural,left,right,wl);
+                ExternalCreatureController rc=attach(natural,right,left,wr);
+                doRealNativeStartForMultiTurn(natural,lc,rc);
+                Assert.assertEquals(left.getLife(),20);
+                Assert.assertEquals(right.getLife(),20);
+                Assert.assertTrue(lc.openingCallbacks>0 && rc.openingCallbacks>0);
+                for(Player p:Arrays.asList(left,right)) {
+                    Assert.assertTrue(p.getCardsIn(ZoneType.Battlefield).isEmpty());
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                }
+                int steps=0;
+                while(!natural.isGameOver() && steps++<85000)
+                    natural.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(steps<85000 && natural.isGameOver());
+                Assert.assertNotNull(natural.getOutcome());
+                Assert.assertFalse(natural.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(natural.getOutcome().isWinner(winner.getRegisteredPlayer()));
+                for(Player p:Arrays.asList(left,right))
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                Assert.assertTrue(wl.process.isAlive() && wr.process.isAlive());
+                System.out.println("STAGE12G_NATURAL_RAGER left_first="+leftFirst+
+                        " sequence="+seq+" winner="+winner.getName());
+            }
+        }
+    }
+
+    @Test(timeOut=240000)
+    public void nativeRagerDrawLifeRiskLeftRegisteredFirst() throws Exception {
+        verifyNativeRagerRiskDrawAndNaturalGames(true);
+    }
+    @Test(timeOut=240000)
+    public void nativeRagerDrawLifeRiskRightRegisteredFirst() throws Exception {
+        verifyNativeRagerRiskDrawAndNaturalGames(false);
     }
 
 }
