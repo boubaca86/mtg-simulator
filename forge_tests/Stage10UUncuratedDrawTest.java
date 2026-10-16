@@ -653,7 +653,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
      * creatures 2/2, 3/3 and 4/4; Forge enforces all casting/attack rules. */
     private static boolean supportedVanillaFighter(String name) {
         return supportedVanillaBear(name) || "Centaur Courser".equals(name) ||
-                "Rumbling Baloth".equals(name);
+                "Rumbling Baloth".equals(name) ||
+                "Colossal Dreadmaw".equals(name);
     }
 
     /** No attacker phase, priority, combat IDs or hidden zone details reach
@@ -1004,10 +1005,13 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     source.getOwner()==controlled &&
                     controlled.getCardsIn(ZoneType.Battlefield).contains(source) &&
                     !source.isFaceDown() &&
-                    supportedVanillaBear(source.getName()) &&
+                    ((supportedVanillaBear(source.getName()) &&
+                      source.getNetPower()==5 && source.getNetToughness()==5 &&
+                      source.getNetCombatDamage()==5 && damageDealt==5) ||
+                     ("Colossal Dreadmaw".equals(source.getName()) &&
+                      source.getNetPower()==6 && source.getNetToughness()==6 &&
+                      source.getNetCombatDamage()==6 && damageDealt==6)) &&
                     source.hasKeyword("Trample") &&
-                    source.getNetPower()==5 && source.getNetToughness()==5 &&
-                    source.getNetCombatDamage()==5 && damageDealt==5 &&
                     defender==opponent && targets!=null &&
                     !targets.isEmpty() && targets.size()<=8) {
                 Map<Card,Integer> assignment=new LinkedHashMap<>();
@@ -11172,6 +11176,152 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     @Test(timeOut=240000)
     public void nativeWhispererEmergencyShieldRightRegisteredFirst() throws Exception {
         verifyWhispererShieldAndNaturalGames(false);
+    }
+
+    /** Stage12G: printed {4}{G}{G} 6/6 Trample uses six original Forests,
+     * then native Forge combat against an original 2/2 blocker. */
+    private Game nativeDreadmawGame(boolean leftFirst) {
+        Map<String,Integer> counts=new TreeMap<>();
+        counts.put("Forest",40);counts.put("Colossal Dreadmaw",4);
+        counts.put("Grizzly Bears",4);counts.put("Runeclaw Bear",4);
+        counts.put("Llanowar Elves",4);counts.put("Elvish Visionary",4);
+        Assert.assertEquals(counts.values().stream().mapToInt(Integer::intValue).sum(),60);
+        RegisteredPlayer left=new RegisteredPlayer(mainDeck("12G Dreadmaw left",counts))
+                .setPlayer(new LobbyPlayerAi("dreadmaw-left",null));
+        RegisteredPlayer right=new RegisteredPlayer(mainDeck("12G Dreadmaw right",counts))
+                .setPlayer(new LobbyPlayerAi("dreadmaw-right",null));
+        List<RegisteredPlayer> reg=new ArrayList<>();
+        reg.add(leftFirst?left:right);reg.add(leftFirst?right:left);
+        GameRules rules=new GameRules(GameType.Constructed);
+        Match match=new Match(rules,reg,"Stage12G");
+        Game game=new Game(reg,rules,match);frozenMain=new FrozenMain(game);
+        Assert.assertNull(game.getPhaseHandler().getPhase());
+        for(Player p:game.getPlayers()) Assert.assertEquals(frozenMain.owned(p),counts);
+        return game;
+    }
+
+    private void verifyNativeDreadmawAndNaturalGames(boolean leftFirst) throws Exception {
+        Game fixture=nativeDreadmawGame(leftFirst);
+        Player p0=fixture.getPlayers().get(0),p1=fixture.getPlayers().get(1);
+        try(Actor w0=new Actor(5);Actor w1=new Actor(5)) {
+            Assert.assertNotEquals(w0.process.pid(),w1.process.pid());
+            ExternalCreatureController c0=attach(fixture,p0,p1,w0);
+            ExternalCreatureController c1=attach(fixture,p1,p0,w1);
+            doRealNativeStartForMultiTurn(fixture,c0,c1);
+            Player assault=fixture.getStartingPlayer();
+            Player defense=assault==p0?p1:p0;
+            Actor worker=assault==p0?w0:w1;
+            ExternalCreatureController ac=assault==p0?c0:c1;
+            ExternalCreatureController dc=assault==p0?c1:c0;
+            // Controlled physical fixture: move only ORIGINAL registered cards.
+            for(Player p:Arrays.asList(assault,defense))
+                for(Card c:new ArrayList<Card>(p.getCardsIn(ZoneType.Hand)))
+                    Assert.assertNotNull(fixture.getAction().moveToBottomOfLibrary(c,null));
+            Set<Integer> paidLands=new HashSet<>();
+            for(int i=0;i<6;i++) {
+                Card forest=assault.getCardsIn(ZoneType.Library).stream()
+                        .filter(c->"Forest".equals(c.getName())).findFirst().orElseThrow();
+                paidLands.add(forest.getId());
+                Assert.assertNotNull(fixture.getAction().moveToPlay(forest,null,
+                        forge.game.ability.AbilityKey.newMap()));
+                forest.setTapped(false);
+            }
+            Card defenderBear=defense.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Grizzly Bears".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToPlay(defenderBear,null,
+                    forge.game.ability.AbilityKey.newMap()));
+            defenderBear.setTapped(false);defenderBear.setSickness(false);
+            Card dinosaur=assault.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Colossal Dreadmaw".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToHand(dinosaur,null));
+            Assert.assertTrue(defense.setLife(6,null));
+            Assert.assertEquals(assault.getLife(),20);
+            String projection=observation(assault,defense);
+            JsonObject proposal=worker.ask(projection);
+            Assert.assertEquals(proposal.get("intent").getAsString(),"action_plan");
+            Assert.assertEquals(proposal.getAsJsonArray("creature_hand_indices")
+                    .get(0).getAsInt(),0);
+            for(String forbidden:Arrays.asList("phase","priority","stack",
+                    "library_top","opponent_hand","library_order"))
+                Assert.assertFalse(JsonParser.parseString(projection)
+                        .getAsJsonObject().has(forbidden));
+            assault.shuffle(null);
+            Assert.assertEquals(observation(assault,defense),projection);
+            Assert.assertEquals(worker.ask(projection),proposal);
+            boolean paidSix=false,entered=false,trampled=false;
+            int steps=0;
+            while(!fixture.isGameOver() && steps++<7000) {
+                fixture.getPhaseHandler().mainLoopStep();
+                if(assault.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->paidLands.contains(c.getId()) && c.isTapped())
+                        .count()==6) paidSix=true;
+                entered |= assault.getCardsIn(ZoneType.Battlefield).stream()
+                        .anyMatch(c->c.getId()==dinosaur.getId() &&
+                                c.getNetPower()==6 && c.getNetToughness()==6 &&
+                                c.hasKeyword("Trample"));
+                boolean bearDead=defense.getCardsIn(ZoneType.Graveyard).stream()
+                        .anyMatch(c->c.getId()==defenderBear.getId());
+                if(paidSix && entered && bearDead && defense.getLife()<6 &&
+                        ac.attacksAuthorized>0 && dc.blocksAuthorized>0) {
+                    trampled=true;break;
+                }
+            }
+            Assert.assertTrue(steps<7000,"bounded real native Dreadmaw combat");
+            Assert.assertTrue(paidSix,"six original Forests pay genuine printed cost");
+            Assert.assertTrue(entered,"original printed 6/6 Trample entered");
+            Assert.assertTrue(trampled,"native excess damage passes original blocker");
+            Assert.assertTrue(ac.refereeDamageAssignments>0);
+            Assert.assertEquals(fullPhysicalInventory(assault),frozenMain.owned(assault));
+            Assert.assertEquals(fullPhysicalInventory(defense),frozenMain.owned(defense));
+            Assert.assertTrue(w0.process.isAlive() && w1.process.isAlive());
+            System.out.println("STAGE12G_CONTROLLED_DREADMAW left_first="+leftFirst+
+                    " paid6=true trample_damage=true native_block=true");
+        }
+        // Four independently instantiated, untouched naturally shuffled 60-card
+        // full Forge games (two per seat), no chosen seeds, hand curation or rerolls.
+        for(int seq=0;seq<2;seq++) {
+            Game natural=nativeDreadmawGame(leftFirst);
+            Player left=natural.getPlayers().get(leftFirst?0:1);
+            Player right=natural.getPlayers().get(leftFirst?1:0);
+            try(Actor wl=new Actor(5);Actor wr=new Actor(5)) {
+                Assert.assertNotEquals(wl.process.pid(),wr.process.pid());
+                ExternalCreatureController lc=attach(natural,left,right,wl);
+                ExternalCreatureController rc=attach(natural,right,left,wr);
+                doRealNativeStartForMultiTurn(natural,lc,rc);
+                Assert.assertEquals(left.getLife(),20);Assert.assertEquals(right.getLife(),20);
+                Assert.assertTrue(lc.openingCallbacks>0 && rc.openingCallbacks>0);
+                for(Player p:Arrays.asList(left,right)) {
+                    Assert.assertTrue(p.getCardsIn(ZoneType.Battlefield).isEmpty());
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                }
+                int steps=0;
+                while(!natural.isGameOver() && steps++<85000)
+                    natural.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(steps<85000 && natural.isGameOver());
+                Assert.assertNotNull(natural.getOutcome());
+                Assert.assertFalse(natural.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(natural.getOutcome().isWinner(winner.getRegisteredPlayer()));
+                for(Player p:Arrays.asList(left,right))
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                Assert.assertTrue(wl.process.isAlive() && wr.process.isAlive());
+                System.out.println("STAGE12G_NATURAL_DREADMAW left_first="+leftFirst+
+                        " sequence="+seq+" winner="+winner.getName());
+            }
+        }
+    }
+
+    @Test(timeOut=240000)
+    public void nativeDreadmawTrampleLeftRegisteredFirst() throws Exception {
+        verifyNativeDreadmawAndNaturalGames(true);
+    }
+
+    @Test(timeOut=240000)
+    public void nativeDreadmawTrampleRightRegisteredFirst() throws Exception {
+        verifyNativeDreadmawAndNaturalGames(false);
     }
 
 }

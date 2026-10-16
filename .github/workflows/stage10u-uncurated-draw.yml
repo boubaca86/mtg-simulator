@@ -1,7 +1,7 @@
-name: Stage 12G - Beast Whisperer Emergency Shield
+name: Stage 12G - Colossal Dreadmaw Native Trample
 
 # Two external persistent actor processes plus one authoritative Forge referee.
-# Stage12G extends 164 verified pinned Forge native tests with genuine paid Beast Whisperer 2/3 emergency block that kills a real Bear while preserving life and draw engine; two opposite-seat physical controlled fixtures and four untouched natural 60-card games.
+# Stage12G extends 166 verified pinned Forge native tests with genuine paid Colossal Dreadmaw 6/6 Trample combat; two opposite-seat physical controlled fixtures and four untouched natural 60-card games.
 # Registered 60-card decks, no hand curation, true London opening and 20 life; not full MTG or OS sandbox.
 on:
   push:
@@ -97,7 +97,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 stage10h/test_protocol.py | tee stage10u-evidence/stage10h-protocol.log
-      - name: Run native Beast Whisperer emergency shield and 164 inherited Forge tests
+      - name: Run native Colossal Dreadmaw trample and 166 inherited Forge tests
         shell: bash
         run: |
           set -euo pipefail
@@ -117,7 +117,7 @@ jobs:
           echo "Forge Maven exit: $code"
           tail -n 75 "$GITHUB_WORKSPACE/stage10u-evidence/maven.log"
           test "$code" -eq 0
-      - name: Verify exact 166 genuine Forge-native methods with independent XML gate
+      - name: Verify exact 168 genuine Forge-native methods with independent XML gate
         shell: bash
         run: |
           set -euo pipefail
@@ -128,7 +128,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stage12g-beast-whisperer-emergency-shield-${{ github.run_id }}-${{ github.run_attempt }}
+          name: stage12g-colossal-dreadmaw-native-trample-${{ github.run_id }}-${{ github.run_attempt }}
           path: stage10u-evidence/
           if-no-files-found: warn
           retention-days: 14

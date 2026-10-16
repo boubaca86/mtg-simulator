@@ -33,6 +33,9 @@ VANILLA_THREES = frozenset(('Centaur Courser',))
 # Stage11J: official vanilla {2}{G}{G} 4/4 extends visible size decisions.
 VANILLA_FOURS = frozenset(('Rumbling Baloth',))
 VANILLA_FIGHTERS = VANILLA_BEARS | VANILLA_THREES | VANILLA_FOURS
+# Stage12G: genuine printed {4}{G}{G} 6/6 Trample finisher.
+TRAMPLE_FINISHERS = frozenset(('Colossal Dreadmaw',))
+KNOWN_FIGHTERS = VANILLA_FIGHTERS | TRAMPLE_FINISHERS
 DRAW_CREATURES = frozenset(('Elvish Visionary',))
 FLYING_CREATURES = frozenset(('Scryb Sprites',))
 DEATHTOUCH_CREATURES = frozenset(('Sedge Scorpion',))
@@ -50,10 +53,13 @@ SWARM_SORCERIES = frozenset(('Overrun',))
 KNOWN_SORCERIES = RAMP_SORCERIES | SWARM_SORCERIES
 CREATURES = (frozenset(('Llanowar Elves',)) | VANILLA_FIGHTERS |
              DRAW_CREATURES | FLYING_CREATURES | DEATHTOUCH_CREATURES |
+             TRAMPLE_FINISHERS |
              DRAIN_CREATURES | LANDFALL_CREATURES | RISK_DRAW_CREATURES |
              ENGINE_CREATURES)
 
 def public_power(name):
+    if name in TRAMPLE_FINISHERS:
+        return 6
     if name in VANILLA_FOURS:
         return 4
     return 3 if name in VANILLA_THREES else 2
@@ -108,10 +114,10 @@ for raw in sys.stdin.buffer:
     if request_kind == 'own_hand_order':
         if len(hand) > 128:
             raise SystemExit('oversized own-hand ranking')
-        needed = max([2] + [5 if name in SWARM_SORCERIES else
+        needed = max([2] + [6 if name in TRAMPLE_FINISHERS else 5 if name in SWARM_SORCERIES else
                              4 if name in VANILLA_FOURS else 3
                             for name in hand
-                            if name in VANILLA_FOURS | VANILLA_THREES | SWARM_SORCERIES])
+                            if name in VANILLA_FOURS | VANILLA_THREES | SWARM_SORCERIES | TRAMPLE_FINISHERS])
         lands_in_hand = sorted((i for i, name in enumerate(hand) if name in LANDS),
                                key=lambda i: (hand[i] != 'Forest', i))
         preferred = set(lands_in_hand[:needed])
@@ -122,7 +128,7 @@ for raw in sys.stdin.buffer:
             if name in LANDS and i not in preferred:
                 return (1, 0, i)
             if name in CREATURES or name in KNOWN_SORCERIES:
-                return (2, public_power(name) if name in VANILLA_FIGHTERS else 1, i)
+                return (2, public_power(name) if name in KNOWN_FIGHTERS else 1, i)
             return (3, 0, i)
         ordering = sorted(range(len(hand)), key=discard_rank)
         print(json.dumps({'intent': 'hand_order', 'hand_priority': ordering},
@@ -170,10 +176,10 @@ for raw in sys.stdin.buffer:
     # life, known creatures/Forest and own hand, never game phase, priority,
     # tapped flags, hidden cards or future draws. Native Forge rules decide.
     own_fighters = sum(r.get('appearance') == 'face_up' and
-                       r.get('card') in VANILLA_FIGHTERS
+                       r.get('card') in KNOWN_FIGHTERS
                        for r in view['own_cards']['table'])
     public_safe = all(r.get('appearance') == 'face_up' and
-                      r.get('card') in (VANILLA_FIGHTERS | LANDS)
+                      r.get('card') in (KNOWN_FIGHTERS | LANDS)
                       for r in view['opponent_table'])
     swarm_window = (own_forests >= 5 and own_fighters >= 2 and
                     0 < view['life_totals']['opponent'] <= 10 and public_safe)
@@ -202,10 +208,10 @@ for raw in sys.stdin.buffer:
     # a private phase, mana, attacker or stack instruction to Forge.
     drain_window = (0 < view['life_totals']['self'] <= 5 and
         any(r.get('appearance') == 'face_up' and
-            r.get('card') in VANILLA_FIGHTERS
+            r.get('card') in KNOWN_FIGHTERS
             for r in view['own_cards']['table']) and
         any(r.get('appearance') == 'face_up' and
-            r.get('card') in VANILLA_FIGHTERS
+            r.get('card') in KNOWN_FIGHTERS
             for r in view['opponent_table']))
     # At low public life, deploy the printed Landfall life engine before
     # vanilla attackers. Only native Forge land entries trigger real life gain.
@@ -216,6 +222,7 @@ for raw in sys.stdin.buffer:
     engine_window = (own_forests >= 4 and any(
         name in CREATURES and name not in ENGINE_CREATURES for name in hand))
     creatures.sort(key=lambda i: (
+        0 if own_forests >= 6 and hand[i] in TRAMPLE_FINISHERS else
         0 if engine_window and hand[i] in ENGINE_CREATURES else
         0 if urgent_landfall and hand[i] in LANDFALL_CREATURES else
         0 if urgent_deathtouch and hand[i] in DEATHTOUCH_CREATURES else
@@ -223,11 +230,11 @@ for raw in sys.stdin.buffer:
         0 if len(hand) <= 3 and view['life_totals']['self'] > 1
              and hand[i] in RISK_DRAW_CREATURES else
         1 if len(hand) <= 3 and hand[i] in DRAW_CREATURES else 2,
-        -public_power(hand[i]) if hand[i] in VANILLA_FIGHTERS else 0, i))
+        -public_power(hand[i]) if hand[i] in KNOWN_FIGHTERS else 0, i))
     fighters = [
         i for i, record in enumerate(view['own_cards']['table'])
         if record.get('appearance') == 'face_up'
-        and record.get('card') in VANILLA_FIGHTERS
+        and record.get('card') in KNOWN_FIGHTERS
     ]
     # Stage12C: a real printed 1/1 Flying creature can evade even a
     # grounded visible 4/4. No readiness/phase/tap status is inferred.
@@ -242,7 +249,7 @@ for raw in sys.stdin.buffer:
     # reinforcement preference, not a command to put any card in play.
     targets = [i for i, record in enumerate(view['opponent_table'])
                if record.get('appearance') == 'face_up'
-               and record.get('card') in VANILLA_FIGHTERS]
+               and record.get('card') in KNOWN_FIGHTERS]
     # Stage11D: when PUBLIC opposing 2/2 Bears could deal lethal damage,
     # hold back the minimum number of our 2/2 Bears which, IF each legally
     # blocks one attacker, could prevent it. Attacking would tap a Bear and
@@ -315,7 +322,7 @@ for raw in sys.stdin.buffer:
     # Only grant this preference if every visible opponent permanent is
     # an identified printed grounded creature or ordinary basic land.
     # Unknown/facedown and any known flying creature disable the inference.
-    known_grounded = (VANILLA_FIGHTERS | DRAW_CREATURES |
+    known_grounded = (KNOWN_FIGHTERS | DRAW_CREATURES |
                       frozenset(('Llanowar Elves',)) | LANDS)
     if all(record.get('appearance') == 'face_up'
            and record.get('card') in known_grounded
@@ -367,7 +374,7 @@ for raw in sys.stdin.buffer:
         0 < opposing_life <= full_unblocked and
         opposing_life > guaranteed_unblocked and
         all(record.get('appearance') == 'face_up' and
-            record.get('card') in (VANILLA_FIGHTERS | LANDS)
+            record.get('card') in (KNOWN_FIGHTERS | LANDS)
             for record in view['opponent_table']))
     if public_lethal_reserve_override:
         active_attacks = fighters[:]
@@ -394,7 +401,7 @@ for raw in sys.stdin.buffer:
           and guaranteed_unblocked == 4
           and life > incoming + 4
           and all(record.get('appearance') == 'face_up'
-                  and record.get('card') in (VANILLA_FIGHTERS | LANDS)
+                  and record.get('card') in (KNOWN_FIGHTERS | LANDS)
                   for record in view['opponent_table'])):
         active_attacks = candidate_attackers[:]
     # Stage11O/11S: bounded NONLETHAL numerical overload. A vanilla
@@ -413,7 +420,7 @@ for raw in sys.stdin.buffer:
           and any(public_power(view['own_cards']['table'][i]['card'])
                   < public_largest_defender for i in candidate_attackers)
           and all(record.get('appearance') == 'face_up'
-                  and record.get('card') in (VANILLA_FIGHTERS | LANDS)
+                  and record.get('card') in (KNOWN_FIGHTERS | LANDS)
                   for record in view['opponent_table'])):
         active_attacks = candidate_attackers[:]
     # Stage11F: a healthy defender should still offer legal 2/2 blocks.
@@ -445,7 +452,7 @@ for raw in sys.stdin.buffer:
         and all(public_power(view['opponent_table'][i]['card']) == 4
                 for i in targets)
         and all(record.get('appearance') == 'face_up'
-                and record.get('card') in (VANILLA_FIGHTERS | LANDS)
+                and record.get('card') in (KNOWN_FIGHTERS | LANDS)
                 for record in view['opponent_table']))
     # Stage11W: an otherwise idle OWN face-up Llanowar Elves is a
     # legitimate 1/1 creature blocker. When exactly one known vanilla
@@ -530,7 +537,7 @@ for raw in sys.stdin.buffer:
         0 < life <= 4 and len(scorpions) == 1 and len(targets) == 1
         and view['opponent_table'][targets[0]]['card'] == 'Rumbling Baloth'
         and all(record.get('appearance') == 'face_up'
-                and record.get('card') in (VANILLA_FIGHTERS | LANDS)
+                and record.get('card') in (KNOWN_FIGHTERS | LANDS)
                 for record in view['opponent_table']))
     if emergency_deathtouch:
         block_pairs.append([scorpions[0],targets[0]])
