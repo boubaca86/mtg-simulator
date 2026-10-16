@@ -3120,7 +3120,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     private static Map<String,Integer> fullPhysicalInventory(Player player) {
         Map<String,Integer> counts=new TreeMap<>();
         for(ZoneType zone:Arrays.asList(ZoneType.Library,ZoneType.Hand,
-                ZoneType.Battlefield,ZoneType.Graveyard)) {
+                ZoneType.Battlefield,ZoneType.Graveyard,
+                ZoneType.Stack,ZoneType.Exile,ZoneType.Command,ZoneType.Ante)) {
             for(Card card:player.getCardsIn(zone)) {
                 Assert.assertEquals(card.getOwner(),player);
                 if(!card.isToken()) counts.merge(card.getName(),1,Integer::sum);
