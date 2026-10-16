@@ -682,7 +682,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     !(supportedVanillaFighter(blocker.getName()) ||
                       "Llanowar Elves".equals(blocker.getName()) ||
                       "Sedge Scorpion".equals(blocker.getName()) ||
-                      "Zulaport Cutthroat".equals(blocker.getName())) ||
+                      "Zulaport Cutthroat".equals(blocker.getName()) ||
+                      "Beast Whisperer".equals(blocker.getName())) ||
                     !supportedVanillaFighter(attacker.getName()) ||
                     committed.contains(blocker) ||
                     !combat.isAttacking(attacker) ||
@@ -11059,6 +11060,115 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     @Test(timeOut=240000)
     public void nativeBeastWhispererCastDrawRightRegisteredFirst() throws Exception {
         verifyNativeWhispererCastDrawAndNaturalGames(false);
+    }
+
+
+    /** Stage12G: paid original 2/3 Beast Whisperer blocks original 2/2
+     * Bear at life two, kills the Bear and preserves the card-draw engine.
+     * Only public-only external actor proposals; Forge resolves combat. */
+    private void verifyWhispererShieldAndNaturalGames(boolean leftFirst) throws Exception {
+        Game fixture=nativeWhispererGame(leftFirst);
+        Player p0=fixture.getPlayers().get(0),p1=fixture.getPlayers().get(1);
+        try(Actor w0=new Actor(5);Actor w1=new Actor(5)) {
+            Assert.assertNotEquals(w0.process.pid(),w1.process.pid());
+            ExternalCreatureController c0=attach(fixture,p0,p1,w0);
+            ExternalCreatureController c1=attach(fixture,p1,p0,w1);
+            doRealNativeStartForMultiTurn(fixture,c0,c1);
+            Player defense=fixture.getStartingPlayer();
+            Player offense=defense==p0?p1:p0;
+            Actor worker=defense==p0?w0:w1;
+            ExternalCreatureController dc=defense==p0?c0:c1;
+            ExternalCreatureController ac=defense==p0?c1:c0;
+            // Controlled physical fixture only; no natural-game manipulation.
+            for(Player p:Arrays.asList(defense,offense))
+                for(Card c:new ArrayList<Card>(p.getCardsIn(ZoneType.Hand)))
+                    Assert.assertNotNull(fixture.getAction().moveToBottomOfLibrary(c,null));
+            Card bear=offense.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Grizzly Bears".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToPlay(bear,null,
+                    forge.game.ability.AbilityKey.newMap()));
+            Card liveBear=offense.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->c.getId()==bear.getId()).findFirst().orElseThrow();
+            liveBear.setSickness(false);liveBear.setTapped(false);
+            Set<Integer> forests=new HashSet<>();
+            for(int k=0;k<4;k++) {
+                Card land=defense.getCardsIn(ZoneType.Library).stream()
+                        .filter(c->"Forest".equals(c.getName())).findFirst().orElseThrow();
+                forests.add(land.getId());
+                Assert.assertNotNull(fixture.getAction().moveToPlay(land,null,
+                        forge.game.ability.AbilityKey.newMap()));
+                land.setTapped(false);
+            }
+            Card engine=defense.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Beast Whisperer".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToHand(engine,null));
+            Assert.assertTrue(defense.setLife(2,null));
+            Assert.assertEquals(offense.getLife(),20);
+            Assert.assertEquals(fullPhysicalInventory(defense),frozenMain.owned(defense));
+            Assert.assertEquals(fullPhysicalInventory(offense),frozenMain.owned(offense));
+            String projection=observation(defense,offense);
+            JsonObject proposal=worker.ask(projection);
+            Assert.assertEquals(proposal.get("intent").getAsString(),"action_plan");
+            Assert.assertEquals(proposal.getAsJsonArray("creature_hand_indices").get(0).getAsInt(),0);
+            for(String forbidden:Arrays.asList("phase","priority","stack",
+                    "library_top","opponent_hand","library_order"))
+                Assert.assertFalse(JsonParser.parseString(projection)
+                        .getAsJsonObject().has(forbidden));
+            offense.shuffle(null);
+            Assert.assertEquals(observation(defense,offense),projection);
+            Assert.assertEquals(worker.ask(projection),proposal);
+            boolean paid=false,offered=false,shielded=false;
+            int steps=0;
+            while(!fixture.isGameOver() && steps++<3500) {
+                fixture.getPhaseHandler().mainLoopStep();
+                paid |= defense.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->forests.contains(c.getId()) && c.isTapped()).count()==4;
+                Card live=defense.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->c.getId()==engine.getId()).findFirst().orElse(null);
+                if(live!=null) {
+                    JsonObject reply=worker.ask(observation(defense,offense));
+                    int own=defense.getCardsIn(ZoneType.Battlefield).indexOf(live);
+                    int enemy=offense.getCardsIn(ZoneType.Battlefield).indexOf(liveBear);
+                    for(JsonElement item:reply.getAsJsonArray("block_pairs")) {
+                        JsonArray pair=item.getAsJsonArray();
+                        if(pair.get(0).getAsInt()==own && pair.get(1).getAsInt()==enemy)
+                            offered=true;
+                    }
+                }
+                boolean bearDead=offense.getCardsIn(ZoneType.Graveyard).stream()
+                        .anyMatch(c->c.getId()==bear.getId());
+                if(bearDead && live!=null && defense.getLife()==2 &&
+                        ac.attacksAuthorized>=1 && dc.blocksAuthorized>=1) {
+                    shielded=true;break;
+                }
+            }
+            Assert.assertTrue(steps<3500,"bounded native paid shield");
+            Assert.assertTrue(paid,"four original Forests pay genuine {2}{G}{G}");
+            Assert.assertTrue(offered,"actor offers public-only engine defense");
+            Assert.assertTrue(ac.attacksAuthorized>=1 && dc.blocksAuthorized>=1);
+            Assert.assertTrue(shielded,"native Bear dies; original 2/3 survives at life two");
+            Assert.assertEquals(defense.getLife(),2);
+            Assert.assertEquals(fullPhysicalInventory(defense),frozenMain.owned(defense));
+            Assert.assertEquals(fullPhysicalInventory(offense),frozenMain.owned(offense));
+            Assert.assertTrue(w0.process.isAlive() && w1.process.isAlive());
+            System.out.println("STAGE12G_CONTROLLED_ENGINE_SHIELD left_first="+leftFirst+
+                    " paid4=true native_block=true bear_dead=true engine_survives=true");
+        }
+        // Separately instantiated untouched natural 60-card games and
+        // inherited native Whisperer draw fixture; no curated draws/seeds.
+        verifyNativeWhispererCastDrawAndNaturalGames(leftFirst);
+    }
+
+    @Test(timeOut=240000)
+    public void nativeWhispererEmergencyShieldLeftRegisteredFirst() throws Exception {
+        verifyWhispererShieldAndNaturalGames(true);
+    }
+
+    @Test(timeOut=240000)
+    public void nativeWhispererEmergencyShieldRightRegisteredFirst() throws Exception {
+        verifyWhispererShieldAndNaturalGames(false);
     }
 
 }

@@ -551,6 +551,24 @@ for raw in sys.stdin.buffer:
                 for record in view['opponent_table']))
     if emergency_drain_chump:
         block_pairs.append([cutthroats[0], targets[0]])
+    # Stage12G: a 2/3 Beast Whisperer can defend against a known 2/2,
+    # kill that attacker, and survive at critical public life. Forge alone
+    # decides actual attackers, readiness, legality and combat damage.
+    whisperers = [i for i, r in enumerate(view['own_cards']['table'])
+                  if r.get('appearance') == 'face_up'
+                  and r.get('card') in ENGINE_CREATURES]
+    engine_shield = (0 < life <= 2 and len(whisperers) == 1
+        and not fighters and not elves and not scorpions and not cutthroats
+        and len(targets) == 1
+        and view['opponent_table'][targets[0]]['card'] in VANILLA_BEARS
+        and all(r.get('appearance') == 'face_up'
+                and r.get('card') in (VANILLA_BEARS | LANDS)
+                for r in view['opponent_table'])
+        and all(r.get('appearance') == 'face_up'
+                and r.get('card') in (ENGINE_CREATURES | LANDS)
+                for r in view['own_cards']['table']))
+    if engine_shield:
+        block_pairs.append([whisperers[0], targets[0]])
     if two_lane_emergency:
         strong = next(i for i in defensive_candidates
                       if public_power(view['own_cards']['table'][i]['card']) == 4)
