@@ -769,6 +769,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
            !"Zulaport Cutthroat".equals(creature.getName()) &&
            !"Kazandu Nectarpot".equals(creature.getName()) &&
            !"Phyrexian Rager".equals(creature.getName()) &&
+           !"Beast Whisperer".equals(creature.getName()) &&
            !supportedVanillaFighter(creature.getName())) return null;
         for(SpellAbility sa:creature.getSpellAbilities()) {
             if(!sa.isSpell() || sa.usesTargeting() || sa.getSubAbility()!=null) continue;
