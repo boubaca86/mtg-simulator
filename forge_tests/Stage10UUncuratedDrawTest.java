@@ -1036,7 +1036,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                     !(supportedVanillaFighter(source.getName()) ||
                       "Llanowar Elves".equals(source.getName()) ||
                       "Sedge Scorpion".equals(source.getName()) ||
-                      "Zulaport Cutthroat".equals(source.getName())) ||
+                      "Zulaport Cutthroat".equals(source.getName()) ||
+                      "Beast Whisperer".equals(source.getName())) ||
                     damageDealt!=("Rumbling Baloth".equals(source.getName())?4:
                             "Centaur Courser".equals(source.getName())?3:
                             ("Llanowar Elves".equals(source.getName()) ||
@@ -1053,7 +1054,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                         !(supportedVanillaFighter(target.getName()) ||
                           "Llanowar Elves".equals(target.getName()) ||
                           "Sedge Scorpion".equals(target.getName()) ||
-                          "Zulaport Cutthroat".equals(target.getName())) ||
+                          "Zulaport Cutthroat".equals(target.getName()) ||
+                          "Beast Whisperer".equals(target.getName())) ||
                         target.getController()!=opponent ||
                         !opponent.getCardsIn(ZoneType.Battlefield).contains(target)) {
                     throw new SecurityException("unregistered or unsupported combat target");
