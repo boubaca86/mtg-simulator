@@ -1042,13 +1042,15 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                       "Sedge Scorpion".equals(source.getName()) ||
                       "Zulaport Cutthroat".equals(source.getName()) ||
                       "Beast Whisperer".equals(source.getName())) ||
-                    damageDealt!=("Rumbling Baloth".equals(source.getName())?4:
+                    damageDealt!=("Colossal Dreadmaw".equals(source.getName())?6:
+                            "Rumbling Baloth".equals(source.getName())?4:
                             "Centaur Courser".equals(source.getName())?3:
                             ("Llanowar Elves".equals(source.getName()) ||
                              "Sedge Scorpion".equals(source.getName()) ||
                              "Zulaport Cutthroat".equals(source.getName()))?1:2) ||
                     source.getNetCombatDamage()!=damageDealt ||
-                    source.hasKeyword("Trample") ||
+                    (source.hasKeyword("Trample") &&
+                     !("Colossal Dreadmaw".equals(source.getName()) && defender==null)) ||
                     targets==null || targets.isEmpty() || targets.size()>8) {
                 throw new SecurityException("unsupported referee combat-damage allocation");
             }
