@@ -11326,4 +11326,172 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         verifyNativeDreadmawAndNaturalGames(false);
     }
 
+
+    /** Stage12G: a native paid Elvish Visionary cast while Beast Whisperer
+     * is already on the battlefield produces two DISTINCT Forge draws:
+     * one on creature-spell cast, one on Visionary battlefield entry.
+     * Actors prioritize this combo from public table and their own hand. */
+    private Game nativeVisionaryWhispererChainGame(boolean leftFirst) {
+        Map<String,Integer> counts=new TreeMap<>();
+        counts.put("Forest",40);counts.put("Beast Whisperer",4);
+        counts.put("Elvish Visionary",4);counts.put("Grizzly Bears",4);
+        counts.put("Runeclaw Bear",4);counts.put("Centaur Courser",4);
+        Assert.assertEquals(counts.values().stream().mapToInt(Integer::intValue).sum(),60);
+        RegisteredPlayer left=new RegisteredPlayer(mainDeck("12G Chain left",counts))
+                .setPlayer(new LobbyPlayerAi("chain-left",null));
+        RegisteredPlayer right=new RegisteredPlayer(mainDeck("12G Chain right",counts))
+                .setPlayer(new LobbyPlayerAi("chain-right",null));
+        List<RegisteredPlayer> reg=new ArrayList<>();
+        reg.add(leftFirst?left:right);reg.add(leftFirst?right:left);
+        GameRules rules=new GameRules(GameType.Constructed);
+        Match match=new Match(rules,reg,"Stage12G Visionary Whisperer Chain");
+        Game game=new Game(reg,rules,match);frozenMain=new FrozenMain(game);
+        Assert.assertNull(game.getPhaseHandler().getPhase());
+        for(Player p:game.getPlayers()) Assert.assertEquals(frozenMain.owned(p),counts);
+        return game;
+    }
+
+    private void verifyNativeVisionaryWhispererChainAndNaturalGames(boolean leftFirst)
+            throws Exception {
+        Game fixture=nativeVisionaryWhispererChainGame(leftFirst);
+        Player p0=fixture.getPlayers().get(0),p1=fixture.getPlayers().get(1);
+        try(Actor w0=new Actor(5);Actor w1=new Actor(5)) {
+            Assert.assertNotEquals(w0.process.pid(),w1.process.pid());
+            ExternalCreatureController c0=attach(fixture,p0,p1,w0);
+            ExternalCreatureController c1=attach(fixture,p1,p0,w1);
+            doRealNativeStartForMultiTurn(fixture,c0,c1);
+            Player caster=fixture.getStartingPlayer();
+            Player opponent=caster==p0?p1:p0;
+            Actor worker=caster==p0?w0:w1;
+            // Controlled physical fixture only: original registered cards.
+            for(Player p:Arrays.asList(caster,opponent))
+                for(Card c:new ArrayList<Card>(p.getCardsIn(ZoneType.Hand)))
+                    Assert.assertNotNull(fixture.getAction().moveToBottomOfLibrary(c,null));
+            Set<Integer> forestIds=new HashSet<>();
+            for(int k=0;k<6;k++) {
+                Card land=caster.getCardsIn(ZoneType.Library).stream()
+                        .filter(c->"Forest".equals(c.getName())).findFirst().orElseThrow();
+                forestIds.add(land.getId());
+                Assert.assertNotNull(fixture.getAction().moveToPlay(land,null,
+                        forge.game.ability.AbilityKey.newMap()));
+                land.setTapped(false);
+            }
+            // Put four vanilla Bears BEFORE Visionary in the own hand.
+            // The combo-specific preference must select Visionary first
+            // after Whisperer resolves, not the earlier hand-index Bears.
+            for(int k=0;k<4;k++) {
+                Card bear=caster.getCardsIn(ZoneType.Library).stream()
+                        .filter(c->"Grizzly Bears".equals(c.getName())).findFirst().orElseThrow();
+                Assert.assertNotNull(fixture.getAction().moveToHand(bear,null));
+            }
+            Card visionary=caster.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Elvish Visionary".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Card whisperer=caster.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Beast Whisperer".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToHand(visionary,null));
+            Assert.assertNotNull(fixture.getAction().moveToHand(whisperer,null));
+            Assert.assertEquals(caster.getCardsIn(ZoneType.Hand).size(),6);
+            Assert.assertEquals(fullPhysicalInventory(caster),frozenMain.owned(caster));
+            Assert.assertEquals(fullPhysicalInventory(opponent),frozenMain.owned(opponent));
+            String projection=observation(caster,opponent);
+            JsonObject initial=worker.ask(projection);
+            Assert.assertEquals(initial.get("intent").getAsString(),"action_plan");
+            Assert.assertEquals(caster.getCardsIn(ZoneType.Hand)
+                    .get(initial.getAsJsonArray("creature_hand_indices")
+                    .get(0).getAsInt()).getName(),"Beast Whisperer");
+            for(String forbidden:Arrays.asList("phase","priority","stack",
+                    "library_top","opponent_hand","library_order"))
+                Assert.assertFalse(JsonParser.parseString(projection)
+                        .getAsJsonObject().has(forbidden));
+            opponent.shuffle(null);
+            Assert.assertEquals(observation(caster,opponent),projection);
+            Assert.assertEquals(worker.ask(projection),initial);
+            int libraryBefore=caster.getCardsIn(ZoneType.Library).size();
+            boolean nativeDoubleDraw=false,paid=false,sawComboPreference=false;
+            int steps=0;
+            while(!fixture.isGameOver() && steps++<4500) {
+                fixture.getPhaseHandler().mainLoopStep();
+                paid |= caster.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->forestIds.contains(c.getId()) && c.isTapped())
+                        .count()==6;
+                boolean enginePresent=caster.getCardsIn(ZoneType.Battlefield).stream()
+                        .anyMatch(c->c.getId()==whisperer.getId());
+                boolean visionaryPresent=caster.getCardsIn(ZoneType.Battlefield).stream()
+                        .anyMatch(c->c.getId()==visionary.getId());
+                if(enginePresent && !visionaryPresent &&
+                   caster.getCardsIn(ZoneType.Hand).stream()
+                        .anyMatch(c->c.getId()==visionary.getId())) {
+                    JsonObject combo=worker.ask(observation(caster,opponent));
+                    Assert.assertEquals(caster.getCardsIn(ZoneType.Hand)
+                            .get(combo.getAsJsonArray("creature_hand_indices")
+                            .get(0).getAsInt()).getId(),visionary.getId());
+                    sawComboPreference=true;
+                }
+                if(enginePresent && visionaryPresent && fixture.getStack().isEmpty() &&
+                   caster.getCardsIn(ZoneType.Library).size()==libraryBefore-2 &&
+                   caster.getCardsIn(ZoneType.Hand).size()==6 &&
+                   caster.getLife()==20) {
+                    nativeDoubleDraw=true;break;
+                }
+            }
+            Assert.assertTrue(steps<4500,"bounded genuine paid dual-trigger chain");
+            Assert.assertTrue(paid,"six original Forests pay {2}{G}{G} then {1}{G}");
+            Assert.assertTrue(sawComboPreference,"public-only Visionary combo ranked before Bears");
+            Assert.assertTrue(nativeDoubleDraw,
+                    "Forge must draw one on Visionary cast and another on ETB");
+            Assert.assertEquals(opponent.getLife(),20);
+            Assert.assertEquals(fullPhysicalInventory(caster),frozenMain.owned(caster));
+            Assert.assertEquals(fullPhysicalInventory(opponent),frozenMain.owned(opponent));
+            Assert.assertTrue(w0.process.isAlive() && w1.process.isAlive());
+            System.out.println("STAGE12G_CONTROLLED_VISIONARY_WHISPERER left_first="+
+                    leftFirst+" paid6=true two_native_draw_triggers=true");
+        }
+        // Four separate uncurated naturally shuffled 60-card full games,
+        // two per seating order, no seeds, rerolls, private peek or hand edits.
+        for(int seq=0;seq<2;seq++) {
+            Game natural=nativeVisionaryWhispererChainGame(leftFirst);
+            Player left=natural.getPlayers().get(leftFirst?0:1);
+            Player right=natural.getPlayers().get(leftFirst?1:0);
+            try(Actor wl=new Actor(5);Actor wr=new Actor(5)) {
+                Assert.assertNotEquals(wl.process.pid(),wr.process.pid());
+                ExternalCreatureController lc=attach(natural,left,right,wl);
+                ExternalCreatureController rc=attach(natural,right,left,wr);
+                doRealNativeStartForMultiTurn(natural,lc,rc);
+                Assert.assertEquals(left.getLife(),20);
+                Assert.assertEquals(right.getLife(),20);
+                Assert.assertTrue(lc.openingCallbacks>0 && rc.openingCallbacks>0);
+                for(Player p:Arrays.asList(left,right)) {
+                    Assert.assertTrue(p.getCardsIn(ZoneType.Battlefield).isEmpty());
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                }
+                int steps=0;
+                while(!natural.isGameOver() && steps++<85000)
+                    natural.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(steps<85000 && natural.isGameOver());
+                Assert.assertNotNull(natural.getOutcome());
+                Assert.assertFalse(natural.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(natural.getOutcome().isWinner(winner.getRegisteredPlayer()));
+                for(Player p:Arrays.asList(left,right))
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                Assert.assertTrue(wl.process.isAlive() && wr.process.isAlive());
+                System.out.println("STAGE12G_NATURAL_VISIONARY_WHISPERER left_first="+
+                        leftFirst+" sequence="+seq+" winner="+winner.getName());
+            }
+        }
+    }
+
+    @Test(timeOut=240000)
+    public void nativeVisionaryWhispererDoubleDrawLeftRegisteredFirst() throws Exception {
+        verifyNativeVisionaryWhispererChainAndNaturalGames(true);
+    }
+
+    @Test(timeOut=240000)
+    public void nativeVisionaryWhispererDoubleDrawRightRegisteredFirst() throws Exception {
+        verifyNativeVisionaryWhispererChainAndNaturalGames(false);
+    }
+
 }

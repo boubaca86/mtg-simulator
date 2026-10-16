@@ -221,8 +221,18 @@ for raw in sys.stdin.buffer:
     # stack ordering, draws and whether each spell resolves.
     engine_window = (own_forests >= 4 and any(
         name in CREATURES and name not in ENGINE_CREATURES for name in hand))
+    # Stage12G: an already-visible Beast Whisperer and a hand-held Elvish
+    # Visionary create TWO independent native draw triggers from one paid
+    # creature spell: Whisperer on cast, Visionary on battlefield entry.
+    # Prefer Visionary ahead of ordinary Bears even with a large hand.
+    # This is public/own-hand ordering only, not a prediction of draws.
+    visionary_chain = (own_forests >= 2 and any(
+        r.get('appearance') == 'face_up' and
+        r.get('card') in ENGINE_CREATURES
+        for r in view['own_cards']['table']))
     creatures.sort(key=lambda i: (
         0 if own_forests >= 6 and hand[i] in TRAMPLE_FINISHERS else
+        0 if visionary_chain and hand[i] in DRAW_CREATURES else
         0 if engine_window and hand[i] in ENGINE_CREATURES else
         0 if urgent_landfall and hand[i] in LANDFALL_CREATURES else
         0 if urgent_deathtouch and hand[i] in DEATHTOUCH_CREATURES else
