@@ -11805,4 +11805,164 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         verifyNativeJungleHollowAndNaturalGames(false);
     }
 
+
+    /** Stage12G: real printed {R} Raging Goblin 1/1 Haste can attack
+     * during the very same genuine Forge turn in which it was cast.
+     * Controlled fixtures use only original registered physical cards;
+     * separate natural games retain untouched opening/shuffle/life. */
+    private Game nativeHasteGame(boolean leftFirst) {
+        Map<String,Integer> counts=new TreeMap<>();
+        counts.put("Mountain",24);counts.put("Forest",16);
+        counts.put("Raging Goblin",4);counts.put("Grizzly Bears",4);
+        counts.put("Runeclaw Bear",4);counts.put("Llanowar Elves",4);
+        counts.put("Elvish Visionary",4);
+        Assert.assertEquals(counts.values().stream().mapToInt(Integer::intValue).sum(),60);
+        RegisteredPlayer left=new RegisteredPlayer(mainDeck("12G Haste left",counts))
+                .setPlayer(new LobbyPlayerAi("haste-left",null));
+        RegisteredPlayer right=new RegisteredPlayer(mainDeck("12G Haste right",counts))
+                .setPlayer(new LobbyPlayerAi("haste-right",null));
+        List<RegisteredPlayer> reg=new ArrayList<>();
+        reg.add(leftFirst?left:right);reg.add(leftFirst?right:left);
+        GameRules rules=new GameRules(GameType.Constructed);
+        Match match=new Match(rules,reg,"Stage12G Haste");
+        Game game=new Game(reg,rules,match);frozenMain=new FrozenMain(game);
+        Assert.assertNull(game.getPhaseHandler().getPhase());
+        for(Player p:game.getPlayers()) Assert.assertEquals(frozenMain.owned(p),counts);
+        return game;
+    }
+
+    private void verifyNativeHasteSameTurnAndNaturalGames(boolean leftFirst)
+            throws Exception {
+        Game fixture=nativeHasteGame(leftFirst);
+        Player p0=fixture.getPlayers().get(0),p1=fixture.getPlayers().get(1);
+        try(Actor w0=new Actor(5);Actor w1=new Actor(5)) {
+            Assert.assertNotEquals(w0.process.pid(),w1.process.pid());
+            ExternalCreatureController c0=attach(fixture,p0,p1,w0);
+            ExternalCreatureController c1=attach(fixture,p1,p0,w1);
+            doRealNativeStartForMultiTurn(fixture,c0,c1);
+            Player caster=fixture.getStartingPlayer();
+            Player opponent=caster==p0?p1:p0;
+            Actor worker=caster==p0?w0:w1;
+            ExternalCreatureController ac=caster==p0?c0:c1;
+            // Physical controlled fixture ONLY: original registered cards.
+            for(Player p:Arrays.asList(caster,opponent))
+                for(Card c:new ArrayList<Card>(p.getCardsIn(ZoneType.Hand)))
+                    Assert.assertNotNull(fixture.getAction().moveToBottomOfLibrary(c,null));
+            Card mountain=caster.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Mountain".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToPlay(mountain,null,
+                    forge.game.ability.AbilityKey.newMap()));
+            mountain.setTapped(false);
+            for(int k=0;k<4;k++) {
+                Card bear=caster.getCardsIn(ZoneType.Library).stream()
+                        .filter(c->"Grizzly Bears".equals(c.getName()))
+                        .findFirst().orElseThrow();
+                Assert.assertNotNull(fixture.getAction().moveToHand(bear,null));
+            }
+            Card goblin=caster.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Raging Goblin".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToHand(goblin,null));
+            Assert.assertTrue(opponent.setLife(1,null));
+            Assert.assertEquals(caster.getLife(),20);
+            Assert.assertEquals(fullPhysicalInventory(caster),frozenMain.owned(caster));
+            Assert.assertEquals(fullPhysicalInventory(opponent),frozenMain.owned(opponent));
+            String view=observation(caster,opponent);
+            JsonObject plan=worker.ask(view);
+            Assert.assertEquals(plan.get("intent").getAsString(),"action_plan");
+            Assert.assertEquals(caster.getCardsIn(ZoneType.Hand)
+                    .get(plan.getAsJsonArray("creature_hand_indices")
+                    .get(0).getAsInt()).getId(),goblin.getId(),
+                    "public one-life lethal window prefers Haste over four Bears");
+            for(String forbidden:Arrays.asList("phase","priority","stack",
+                    "library_top","opponent_hand","library_order"))
+                Assert.assertFalse(JsonParser.parseString(view)
+                        .getAsJsonObject().has(forbidden));
+            opponent.shuffle(null);
+            Assert.assertEquals(observation(caster,opponent),view);
+            Assert.assertEquals(worker.ask(view),plan);
+            boolean nativePaid=false,enteredHaste=false,offered=false;
+            int castTurn=-1,damageTurn=-1,steps=0;
+            while(!fixture.isGameOver() && steps++<1800) {
+                fixture.getPhaseHandler().mainLoopStep();
+                Card live=caster.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->c.getId()==goblin.getId()).findFirst().orElse(null);
+                if(live!=null) {
+                    if(castTurn<0) castTurn=fixture.getPhaseHandler().getTurn();
+                    enteredHaste |= live.hasKeyword("Haste") &&
+                            live.getNetPower()==1 && live.getNetToughness()==1;
+                    nativePaid |= mountain.isTapped();
+                    JsonObject preference=worker.ask(observation(caster,opponent));
+                    int index=caster.getCardsIn(ZoneType.Battlefield).indexOf(live);
+                    for(JsonElement item:preference.getAsJsonArray("attack_table_indices"))
+                        if(item.getAsInt()==index) offered=true;
+                }
+                if(opponent.getLife()<=0) {
+                    damageTurn=fixture.getPhaseHandler().getTurn();
+                    if(fixture.isGameOver()) break;
+                }
+            }
+            Assert.assertTrue(steps<1800,"bounded real native Haste lethal");
+            Assert.assertTrue(nativePaid,"original Mountain paid genuine {R}");
+            Assert.assertTrue(enteredHaste,"original printed 1/1 has native Haste");
+            Assert.assertTrue(offered,"external actor offered same-turn Haste attack");
+            Assert.assertTrue(ac.attacksAuthorized>0,"Forge authorized native attacker");
+            Assert.assertTrue(castTurn>=0 && damageTurn>=0);
+            Assert.assertEquals(damageTurn,castTurn,
+                    "Haste must deal combat damage on the same Forge turn as cast");
+            Assert.assertTrue(fixture.isGameOver(),"Forge must end native lethal combat");
+            Assert.assertTrue(caster.hasWon() && !opponent.hasWon());
+            Assert.assertTrue(fixture.getOutcome().isWinner(caster.getRegisteredPlayer()));
+            Assert.assertEquals(fullPhysicalInventory(caster),frozenMain.owned(caster));
+            Assert.assertEquals(fullPhysicalInventory(opponent),frozenMain.owned(opponent));
+            Assert.assertTrue(w0.process.isAlive() && w1.process.isAlive());
+            System.out.println("STAGE12G_CONTROLLED_HASTE left_first="+leftFirst+
+                    " original_mountain_paid=true same_turn_native_lethal=true");
+        }
+        // Four distinct untouched natural 60-card games, two per seat.
+        for(int seq=0;seq<2;seq++) {
+            Game natural=nativeHasteGame(leftFirst);
+            Player left=natural.getPlayers().get(leftFirst?0:1);
+            Player right=natural.getPlayers().get(leftFirst?1:0);
+            try(Actor wl=new Actor(5);Actor wr=new Actor(5)) {
+                Assert.assertNotEquals(wl.process.pid(),wr.process.pid());
+                ExternalCreatureController lc=attach(natural,left,right,wl);
+                ExternalCreatureController rc=attach(natural,right,left,wr);
+                doRealNativeStartForMultiTurn(natural,lc,rc);
+                Assert.assertEquals(left.getLife(),20);
+                Assert.assertEquals(right.getLife(),20);
+                Assert.assertTrue(lc.openingCallbacks>0 && rc.openingCallbacks>0);
+                for(Player p:Arrays.asList(left,right)) {
+                    Assert.assertTrue(p.getCardsIn(ZoneType.Battlefield).isEmpty());
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                }
+                int steps=0;
+                while(!natural.isGameOver() && steps++<85000)
+                    natural.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(steps<85000 && natural.isGameOver());
+                Assert.assertNotNull(natural.getOutcome());
+                Assert.assertFalse(natural.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(natural.getOutcome().isWinner(winner.getRegisteredPlayer()));
+                for(Player p:Arrays.asList(left,right))
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                Assert.assertTrue(wl.process.isAlive() && wr.process.isAlive());
+                System.out.println("STAGE12G_NATURAL_HASTE left_first="+leftFirst+
+                        " sequence="+seq+" winner="+winner.getName());
+            }
+        }
+    }
+
+    @Test(timeOut=240000)
+    public void nativeRagingGoblinHasteLeftRegisteredFirst() throws Exception {
+        verifyNativeHasteSameTurnAndNaturalGames(true);
+    }
+
+    @Test(timeOut=240000)
+    public void nativeRagingGoblinHasteRightRegisteredFirst() throws Exception {
+        verifyNativeHasteSameTurnAndNaturalGames(false);
+    }
+
 }

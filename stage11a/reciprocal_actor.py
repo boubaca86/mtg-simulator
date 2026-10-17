@@ -38,6 +38,8 @@ TRAMPLE_FINISHERS = frozenset(('Colossal Dreadmaw',))
 KNOWN_FIGHTERS = VANILLA_FIGHTERS | TRAMPLE_FINISHERS
 DRAW_CREATURES = frozenset(('Elvish Visionary',))
 FLYING_CREATURES = frozenset(('Scryb Sprites',))
+# Stage12G: printed {R} 1/1 Haste may attack on its entry turn.
+HASTE_CREATURES = frozenset(('Raging Goblin',))
 DEATHTOUCH_CREATURES = frozenset(('Sedge Scorpion',))
 # Stage12G: printed {1}{B} 2/1 Lifelink, native damage restores life.
 LIFELINK_CREATURES = frozenset(('Child of Night',))
@@ -54,7 +56,7 @@ RAMP_SORCERIES = frozenset(('Rampant Growth',))
 SWARM_SORCERIES = frozenset(('Overrun',))
 KNOWN_SORCERIES = RAMP_SORCERIES | SWARM_SORCERIES
 CREATURES = (frozenset(('Llanowar Elves',)) | VANILLA_FIGHTERS |
-             DRAW_CREATURES | FLYING_CREATURES | DEATHTOUCH_CREATURES |
+             DRAW_CREATURES | FLYING_CREATURES | HASTE_CREATURES | DEATHTOUCH_CREATURES |
              LIFELINK_CREATURES |
              TRAMPLE_FINISHERS |
              DRAIN_CREATURES | LANDFALL_CREATURES | RISK_DRAW_CREATURES |
@@ -245,7 +247,14 @@ for raw in sys.stdin.buffer:
         r.get('appearance') == 'face_up' and
         r.get('card') in ENGINE_CREATURES
         for r in view['own_cards']['table']))
+    # Opponent public life at one and no visible creature blockers:
+    # prefer printed Haste to threaten an immediate native Forge win.
+    # No actor receives turn, sickness, priority or stack information.
+    urgent_haste = (0 < view['life_totals']['opponent'] <= 1 and
+        all(r.get('appearance') == 'face_up' and r.get('card') in LANDS
+            for r in view['opponent_table']))
     creatures.sort(key=lambda i: (
+        0 if urgent_haste and hand[i] in HASTE_CREATURES else
         0 if urgent_lifelink and hand[i] in LIFELINK_CREATURES else
         0 if own_forests >= 6 and hand[i] in TRAMPLE_FINISHERS else
         0 if visionary_chain and hand[i] in DRAW_CREATURES else
@@ -354,6 +363,16 @@ for raw in sys.stdin.buffer:
            and record.get('card') in known_grounded
            for record in view['opponent_table']):
         active_attacks.extend(flyers[:max(0, 8 - len(active_attacks))])
+    # Stage12G: propose real Haste attackers even on their casting turn
+    # if no publicly visible creature can block. Forge alone determines
+    # summoning sickness, legal attackers, combat damage and game outcome.
+    if all(r.get('appearance') == 'face_up' and r.get('card') in LANDS
+           for r in view['opponent_table']):
+        for i, r in enumerate(view['own_cards']['table']):
+            if (len(active_attacks) < 8 and r.get('appearance') == 'face_up'
+                    and r.get('card') in HASTE_CREATURES
+                    and i not in active_attacks):
+                active_attacks.append(i)
     # Stage11N: CR 508.1 / 509.1a. A vanilla defender can normally
     # block ONE attacker. Even if every own creature is smaller than
     # the largest visible blocker, a numerical attack can be lethal:
