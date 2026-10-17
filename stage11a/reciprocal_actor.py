@@ -512,6 +512,19 @@ for raw in sys.stdin.buffer:
                     and r.get('card') in LIFELINK_CREATURES
                     and i not in active_attacks):
                 active_attacks.append(i)
+    # Stage12H: public Deathtouch risk assessment, not referee authority.
+    # Preserve the only vanilla nontrampling 4/4 attacker against a
+    # visible printed Sedge Scorpion when opponent life >4. If that
+    # publicly visible life is <=4, offer the attack, leaving legality,
+    # blocker choices, damage and win/loss exclusively to Forge.
+    known_deathtouch = any(r.get('appearance') == 'face_up'
+        and r.get('card') in DEATHTOUCH_CREATURES
+        for r in view['opponent_table'])
+    preserve_high_value_ground_fighter = (
+        known_deathtouch and opposing_life > 4 and len(fighters) == 1
+        and view['own_cards']['table'][fighters[0]]['card'] in VANILLA_FOURS)
+    if preserve_high_value_ground_fighter:
+        active_attacks = [i for i in active_attacks if i != fighters[0]]
     # Stage11F: a healthy defender should still offer legal 2/2 blocks.
     # Attack and defense proposals coexist without assuming the phase.
     # A creature may have attacked already (and be tapped), so ONLY Forge

@@ -12527,4 +12527,174 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     }
 
 
+    /**
+     * Stage12H: strategic own-public vs opponent-public Deathtouch avoidance.
+     * Forge pays for real 4/4, actor conserves vs printed opposing 1/1 at
+     * public opponent 20 life, reacts to changed PUBLIC opponent life four,
+     * and Forge resolves legal native attack/deathtouch block and deaths.
+     */
+    private void verifyStage12HDeathtouchRiskAndNaturalGames(boolean first)
+            throws Exception {
+        Game controlled=nativeDeathtouchGame(first);
+        Player p0=controlled.getPlayers().get(0),p1=controlled.getPlayers().get(1);
+        try(Actor w0=new Actor(5);Actor w1=new Actor(5)) {
+            Assert.assertNotEquals(w0.process.pid(),w1.process.pid());
+            ExternalCreatureController c0=attach(controlled,p0,p1,w0);
+            ExternalCreatureController c1=attach(controlled,p1,p0,w1);
+            doRealNativeStartForMultiTurn(controlled,c0,c1);
+            Player assault=controlled.getStartingPlayer(),defense=assault==p0?p1:p0;
+            Actor assaultWorker=assault==p0?w0:w1,defenseWorker=assault==p0?w1:w0;
+            ExternalCreatureController ac=assault==p0?c0:c1,dc=assault==p0?c1:c0;
+            // Controlled physical ORIGINAL-card fixture. No edits to
+            // the four natural games that follow.
+            for(Player p:Arrays.asList(assault,defense))
+                for(Card c:new ArrayList<Card>(p.getCardsIn(ZoneType.Hand)))
+                    Assert.assertNotNull(controlled.getAction().moveToBottomOfLibrary(c,null));
+            Card scorpion=defense.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Sedge Scorpion".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(controlled.getAction().moveToPlay(scorpion,null,
+                    forge.game.ability.AbilityKey.newMap()));
+            Card liveScorpion=defense.getCardsIn(ZoneType.Battlefield).stream()
+                    .filter(c->c.getId()==scorpion.getId()).findFirst().orElseThrow();
+            liveScorpion.setTapped(false);liveScorpion.setSickness(false);
+            Assert.assertTrue(liveScorpion.hasKeyword("Deathtouch"));
+            Set<Integer> forestIds=new HashSet<>();
+            for(int i=0;i<4;i++) {
+                Card forest=assault.getCardsIn(ZoneType.Library).stream()
+                        .filter(c->"Forest".equals(c.getName())).findFirst().orElseThrow();
+                forestIds.add(forest.getId());
+                Assert.assertNotNull(controlled.getAction().moveToPlay(forest,null,
+                        forge.game.ability.AbilityKey.newMap()));
+                forest.setTapped(false);
+            }
+            Card baloth=assault.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Rumbling Baloth".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(controlled.getAction().moveToHand(baloth,null));
+            Assert.assertEquals(assault.getLife(),20);
+            Assert.assertEquals(defense.getLife(),20);
+            Assert.assertEquals(fullPhysicalInventory(assault),frozenMain.owned(assault));
+            Assert.assertEquals(fullPhysicalInventory(defense),frozenMain.owned(defense));
+            String before=observation(assault,defense);
+            JsonObject beginning=assaultWorker.ask(before);
+            Assert.assertEquals(beginning.get("intent").getAsString(),"action_plan");
+            Assert.assertEquals(beginning.getAsJsonArray("creature_hand_indices")
+                    .get(0).getAsInt(),assault.getCardsIn(ZoneType.Hand).indexOf(baloth));
+            JsonObject view=JsonParser.parseString(before).getAsJsonObject();
+            for(String forbidden:Arrays.asList("phase","priority","stack",
+                    "opponent_hand","library_top","library_order"))
+                Assert.assertFalse(view.has(forbidden));
+            defense.shuffle(null);
+            Assert.assertEquals(observation(assault,defense),before);
+            Assert.assertEquals(assaultWorker.ask(before),beginning);
+            // Actual native paid spell, not a hand-installed fake Baloth.
+            boolean paid=false;Card liveBaloth=null;int turns=0;
+            while(!controlled.isGameOver() && turns++<4500) {
+                controlled.getPhaseHandler().mainLoopStep();
+                liveBaloth=assault.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->c.getId()==baloth.getId()).findFirst().orElse(null);
+                if(liveBaloth!=null) {
+                    paid=assault.getCardsIn(ZoneType.Battlefield).stream()
+                            .filter(c->forestIds.contains(c.getId()) && c.isTapped())
+                            .count()==4;
+                    if(paid)break;
+                }
+            }
+            Assert.assertTrue(turns<4500 && paid,"Forge must pay printed 4/4's four Forest mana");
+            Assert.assertNotNull(liveBaloth);
+            Assert.assertEquals(liveBaloth.getNetPower(),4);
+            Assert.assertEquals(liveBaloth.getNetToughness(),4);
+            // CONTROLLED only: isolate combat preference independent of
+            // waiting a whole native turn for summoning sickness to expire.
+            liveBaloth.setSickness(false);liveBaloth.setTapped(false);
+            int ownIdx=assault.getCardsIn(ZoneType.Battlefield).indexOf(liveBaloth);
+            JsonObject healthy=assaultWorker.ask(observation(assault,defense));
+            for(JsonElement suggestion:healthy.getAsJsonArray("attack_table_indices"))
+                Assert.assertNotEquals(suggestion.getAsInt(),ownIdx,
+                    "at opponent life 20, conserve only 4/4 against known Deathtouch");
+            Assert.assertTrue(defense.setLife(4,null));
+            JsonObject urgent=assaultWorker.ask(observation(assault,defense));
+            boolean offeredAttack=false;
+            for(JsonElement suggestion:urgent.getAsJsonArray("attack_table_indices"))
+                if(suggestion.getAsInt()==ownIdx)offeredAttack=true;
+            Assert.assertTrue(offeredAttack,
+                "with changed public opponent life four, propose potential win");
+            JsonObject blockPlan=defenseWorker.ask(observation(defense,assault));
+            int scorpionIdx=defense.getCardsIn(ZoneType.Battlefield).indexOf(liveScorpion);
+            int opponentIdx=assault.getCardsIn(ZoneType.Battlefield).indexOf(liveBaloth);
+            boolean offeredBlock=false;
+            for(JsonElement suggestion:blockPlan.getAsJsonArray("block_pairs")) {
+                JsonArray pair=suggestion.getAsJsonArray();
+                if(pair.get(0).getAsInt()==scorpionIdx &&
+                        pair.get(1).getAsInt()==opponentIdx)offeredBlock=true;
+            }
+            Assert.assertTrue(offeredBlock,"independent defender offers legal Deathtouch");
+            Assert.assertTrue(CombatUtil.canBlock(liveBaloth,liveScorpion,true));
+            boolean dead=false;int steps=0;
+            while(!controlled.isGameOver() && steps++<6000) {
+                controlled.getPhaseHandler().mainLoopStep();
+                dead=assault.getCardsIn(ZoneType.Graveyard).stream()
+                        .anyMatch(c->c.getId()==baloth.getId()) &&
+                     defense.getCardsIn(ZoneType.Graveyard).stream()
+                        .anyMatch(c->c.getId()==scorpion.getId());
+                if(dead)break;
+            }
+            Assert.assertTrue(steps<6000 && dead,
+                    "actual native combat destroys both original physical creatures");
+            Assert.assertTrue(ac.attacksAuthorized>0 && dc.blocksAuthorized>0,
+                    "authoritative Forge allowed attack and Deathtouch block");
+            Assert.assertEquals(assault.getLife(),20);
+            Assert.assertEquals(defense.getLife(),4);
+            Assert.assertEquals(fullPhysicalInventory(assault),frozenMain.owned(assault));
+            Assert.assertEquals(fullPhysicalInventory(defense),frozenMain.owned(defense));
+            Assert.assertTrue(w0.process.isAlive() && w1.process.isAlive());
+            System.out.println("STAGE12H_CONTROLLED_DEATHTOUCH first="+first+
+                    " actual_paid_baloth=true public_hold_then_offer=true real_native_trade=true");
+        }
+        // Four untouched naturally shuffled 60-card Constructed full games,
+        // two per seating order, original decks/London opening/20 life.
+        for(int sequence=0;sequence<2;sequence++) {
+            Game natural=nativeDeathtouchGame(first);
+            Player left=natural.getPlayers().get(first?0:1);
+            Player right=natural.getPlayers().get(first?1:0);
+            try(Actor wl=new Actor(5);Actor wr=new Actor(5)) {
+                Assert.assertNotEquals(wl.process.pid(),wr.process.pid());
+                ExternalCreatureController lc=attach(natural,left,right,wl);
+                ExternalCreatureController rc=attach(natural,right,left,wr);
+                doRealNativeStartForMultiTurn(natural,lc,rc);
+                Assert.assertEquals(left.getLife(),20);
+                Assert.assertEquals(right.getLife(),20);
+                Assert.assertTrue(lc.openingCallbacks>0 && rc.openingCallbacks>0);
+                for(Player p:Arrays.asList(left,right)) {
+                    Assert.assertTrue(p.getCardsIn(ZoneType.Battlefield).isEmpty());
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                }
+                int fullSteps=0;
+                while(!natural.isGameOver() && fullSteps++<85000)
+                    natural.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(fullSteps<85000 && natural.isGameOver());
+                Assert.assertNotNull(natural.getOutcome());
+                Assert.assertFalse(natural.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(natural.getOutcome().isWinner(winner.getRegisteredPlayer()));
+                for(Player p:Arrays.asList(left,right))
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                Assert.assertTrue(wl.process.isAlive() && wr.process.isAlive());
+                System.out.println("STAGE12H_NATURAL_DEATHTOUCH first="+first+
+                        " sequence="+sequence+" winner="+winner.getName());
+            }
+        }
+    }
+
+    @Test(timeOut=240000)
+    public void stage12hPublicDeathtouchPreserveLeftRegisteredFirst() throws Exception {
+        verifyStage12HDeathtouchRiskAndNaturalGames(true);
+    }
+    @Test(timeOut=240000)
+    public void stage12hPublicDeathtouchPreserveRightRegisteredFirst() throws Exception {
+        verifyStage12HDeathtouchRiskAndNaturalGames(false);
+    }
+
 }
