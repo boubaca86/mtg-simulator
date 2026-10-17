@@ -685,9 +685,11 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                       "Sedge Scorpion".equals(blocker.getName()) ||
                       "Zulaport Cutthroat".equals(blocker.getName()) ||
                       "Beast Whisperer".equals(blocker.getName()) ||
-                      "Child of Night".equals(blocker.getName())) ||
+                      "Child of Night".equals(blocker.getName()) ||
+                      "Raging Goblin".equals(blocker.getName())) ||
                     !(supportedVanillaFighter(attacker.getName()) ||
-                      "Child of Night".equals(attacker.getName())) ||
+                      "Child of Night".equals(attacker.getName()) ||
+                      "Raging Goblin".equals(attacker.getName())) ||
                     committed.contains(blocker) ||
                     !combat.isAttacking(attacker) ||
                     !CombatUtil.canBlock(attacker,blocker,combat) ||
@@ -775,6 +777,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
            !"Phyrexian Rager".equals(creature.getName()) &&
            !"Beast Whisperer".equals(creature.getName()) &&
            !"Child of Night".equals(creature.getName()) &&
+           !"Raging Goblin".equals(creature.getName()) &&
            !supportedVanillaFighter(creature.getName())) return null;
         for(SpellAbility sa:creature.getSpellAbilities()) {
             if(!sa.isSpell() || sa.usesTargeting() || sa.getSubAbility()!=null) continue;
@@ -823,7 +826,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                 if(card.getController()==self && !card.isFaceDown() &&
                         (supportedVanillaFighter(card.getName()) ||
                          "Scryb Sprites".equals(card.getName()) ||
-                         "Child of Night".equals(card.getName())) &&
+                         "Child of Night".equals(card.getName()) ||
+                         "Raging Goblin".equals(card.getName())) &&
                         CombatUtil.canAttack(card,defender) &&
                         CombatUtil.getAttackCost(self.getGame(),card,defender)==null) {
                     authorized.add(n);
@@ -850,7 +854,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
             if(c.getController()!=self || c.isFaceDown() ||
                !(supportedVanillaFighter(c.getName()) ||
                  "Scryb Sprites".equals(c.getName()) ||
-                 "Child of Night".equals(c.getName())) ||
+                 "Child of Night".equals(c.getName()) ||
+                 "Raging Goblin".equals(c.getName())) ||
                !CombatUtil.canAttack(c,defender) ||
                CombatUtil.getAttackCost(game,c,defender)!=null) return;
             approved.add(c);
@@ -1047,13 +1052,15 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                       "Sedge Scorpion".equals(source.getName()) ||
                       "Zulaport Cutthroat".equals(source.getName()) ||
                       "Beast Whisperer".equals(source.getName()) ||
-                      "Child of Night".equals(source.getName())) ||
+                      "Child of Night".equals(source.getName()) ||
+                      "Raging Goblin".equals(source.getName())) ||
                     damageDealt!=("Colossal Dreadmaw".equals(source.getName())?6:
                             "Rumbling Baloth".equals(source.getName())?4:
                             "Centaur Courser".equals(source.getName())?3:
                             ("Llanowar Elves".equals(source.getName()) ||
                              "Sedge Scorpion".equals(source.getName()) ||
-                             "Zulaport Cutthroat".equals(source.getName()))?1:2) ||
+                             "Zulaport Cutthroat".equals(source.getName()) ||
+                             "Raging Goblin".equals(source.getName()))?1:2) ||
                     source.getNetCombatDamage()!=damageDealt ||
                     (source.hasKeyword("Trample") &&
                      !("Colossal Dreadmaw".equals(source.getName()) && defender==null)) ||
@@ -1068,7 +1075,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                           "Sedge Scorpion".equals(target.getName()) ||
                           "Zulaport Cutthroat".equals(target.getName()) ||
                           "Beast Whisperer".equals(target.getName()) ||
-                          "Child of Night".equals(target.getName())) ||
+                          "Child of Night".equals(target.getName()) ||
+                          "Raging Goblin".equals(target.getName())) ||
                         target.getController()!=opponent ||
                         !opponent.getCardsIn(ZoneType.Battlefield).contains(target)) {
                     throw new SecurityException("unregistered or unsupported combat target");
