@@ -11658,4 +11658,151 @@ public final class Stage10UUncuratedDrawTest extends AITest {
         verifyNativeChildLifelinkAndNaturalGames(false);
     }
 
+    /** Stage12G: original printed Jungle Hollow enters tapped, gains one life,
+     * and later pays black mana alongside a Forest for native Child of Night. */
+    private Game nativeJungleHollowGame(boolean leftFirst) {
+        Map<String,Integer> counts=new TreeMap<>();
+        counts.put("Forest",24);counts.put("Swamp",8);
+        counts.put("Jungle Hollow",4);counts.put("Child of Night",4);
+        counts.put("Grizzly Bears",4);counts.put("Runeclaw Bear",4);
+        counts.put("Llanowar Elves",4);counts.put("Elvish Visionary",4);
+        counts.put("Rumbling Baloth",4);
+        Assert.assertEquals(counts.values().stream().mapToInt(Integer::intValue).sum(),60);
+        RegisteredPlayer left=new RegisteredPlayer(mainDeck("12G Hollow left",counts))
+                .setPlayer(new LobbyPlayerAi("hollow-left",null));
+        RegisteredPlayer right=new RegisteredPlayer(mainDeck("12G Hollow right",counts))
+                .setPlayer(new LobbyPlayerAi("hollow-right",null));
+        List<RegisteredPlayer> reg=new ArrayList<>();
+        reg.add(leftFirst?left:right);reg.add(leftFirst?right:left);
+        GameRules rules=new GameRules(GameType.Constructed);
+        Match match=new Match(rules,reg,"Stage12G Jungle Hollow");
+        Game game=new Game(reg,rules,match);frozenMain=new FrozenMain(game);
+        Assert.assertNull(game.getPhaseHandler().getPhase());
+        for(Player p:game.getPlayers()) Assert.assertEquals(frozenMain.owned(p),counts);
+        return game;
+    }
+
+    private void verifyNativeJungleHollowAndNaturalGames(boolean leftFirst)
+            throws Exception {
+        Game fixture=nativeJungleHollowGame(leftFirst);
+        Player p0=fixture.getPlayers().get(0),p1=fixture.getPlayers().get(1);
+        try(Actor w0=new Actor(5);Actor w1=new Actor(5)) {
+            Assert.assertNotEquals(w0.process.pid(),w1.process.pid());
+            ExternalCreatureController c0=attach(fixture,p0,p1,w0);
+            ExternalCreatureController c1=attach(fixture,p1,p0,w1);
+            doRealNativeStartForMultiTurn(fixture,c0,c1);
+            Player caster=fixture.getStartingPlayer();
+            Player opponent=caster==p0?p1:p0;
+            Actor worker=caster==p0?w0:w1;
+            // Controlled physical fixture ONLY; all cards are original
+            // registered deck objects, never fabricated or duplicated.
+            for(Player p:Arrays.asList(caster,opponent))
+                for(Card c:new ArrayList<Card>(p.getCardsIn(ZoneType.Hand)))
+                    Assert.assertNotNull(fixture.getAction().moveToBottomOfLibrary(c,null));
+            Card hollow=caster.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Jungle Hollow".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Card forest=caster.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Forest".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Card child=caster.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Child of Night".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToHand(forest,null));
+            Assert.assertNotNull(fixture.getAction().moveToHand(hollow,null));
+            Assert.assertNotNull(fixture.getAction().moveToHand(child,null));
+            Assert.assertTrue(caster.setLife(3,null));
+            Assert.assertEquals(opponent.getLife(),20);
+            Assert.assertEquals(fullPhysicalInventory(caster),frozenMain.owned(caster));
+            Assert.assertEquals(fullPhysicalInventory(opponent),frozenMain.owned(opponent));
+            String projection=observation(caster,opponent);
+            JsonObject preference=worker.ask(projection);
+            Assert.assertEquals(preference.get("intent").getAsString(),"action_plan");
+            Assert.assertEquals(caster.getCardsIn(ZoneType.Hand)
+                    .get(preference.getAsJsonArray("land_hand_indices")
+                    .get(0).getAsInt()).getId(),hollow.getId(),
+                    "at three life prioritize printed tapped life-gain land over Forest");
+            for(String forbidden:Arrays.asList("phase","priority","stack",
+                    "library_top","opponent_hand","library_order"))
+                Assert.assertFalse(JsonParser.parseString(projection)
+                        .getAsJsonObject().has(forbidden));
+            opponent.shuffle(null);
+            Assert.assertEquals(observation(caster,opponent),projection);
+            Assert.assertEquals(worker.ask(projection),preference);
+            boolean enteredTapped=false,nativeGain=false,paidDualMana=false;
+            int steps=0;
+            while(!fixture.isGameOver() && steps++<8500) {
+                fixture.getPhaseHandler().mainLoopStep();
+                Card live=caster.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->c.getId()==hollow.getId()).findFirst().orElse(null);
+                if(live!=null) {
+                    enteredTapped |= live.isTapped();
+                    nativeGain |= caster.getLife()>=4;
+                }
+                boolean childEntered=caster.getCardsIn(ZoneType.Battlefield).stream()
+                        .anyMatch(c->c.getId()==child.getId());
+                boolean forestTapped=caster.getCardsIn(ZoneType.Battlefield).stream()
+                        .anyMatch(c->c.getId()==forest.getId() && c.isTapped());
+                if(enteredTapped && nativeGain && childEntered &&
+                        live!=null && live.isTapped() && forestTapped) {
+                    paidDualMana=true;break;
+                }
+            }
+            Assert.assertTrue(steps<8500,"bounded native tapped land and paid creature");
+            Assert.assertTrue(enteredTapped,"native Jungle Hollow ETB tapped");
+            Assert.assertTrue(nativeGain,"native Forge Jungle Hollow life trigger");
+            Assert.assertTrue(paidDualMana,
+                    "original Jungle Hollow plus Forest pay real {1}{B} creature");
+            Assert.assertEquals(fullPhysicalInventory(caster),frozenMain.owned(caster));
+            Assert.assertEquals(fullPhysicalInventory(opponent),frozenMain.owned(opponent));
+            Assert.assertTrue(w0.process.isAlive() && w1.process.isAlive());
+            System.out.println("STAGE12G_CONTROLLED_JUNGLE_HOLLOW left_first="+leftFirst+
+                    " tapped_etb=true native_life_gain=true paid_black_mana=true");
+        }
+        // Four distinct untouched naturally shuffled 60-card games:
+        // no controlled hands, seeded outcomes, rerolls or library inspection.
+        for(int seq=0;seq<2;seq++) {
+            Game natural=nativeJungleHollowGame(leftFirst);
+            Player left=natural.getPlayers().get(leftFirst?0:1);
+            Player right=natural.getPlayers().get(leftFirst?1:0);
+            try(Actor wl=new Actor(5);Actor wr=new Actor(5)) {
+                Assert.assertNotEquals(wl.process.pid(),wr.process.pid());
+                ExternalCreatureController lc=attach(natural,left,right,wl);
+                ExternalCreatureController rc=attach(natural,right,left,wr);
+                doRealNativeStartForMultiTurn(natural,lc,rc);
+                Assert.assertEquals(left.getLife(),20);
+                Assert.assertEquals(right.getLife(),20);
+                Assert.assertTrue(lc.openingCallbacks>0 && rc.openingCallbacks>0);
+                for(Player p:Arrays.asList(left,right)) {
+                    Assert.assertTrue(p.getCardsIn(ZoneType.Battlefield).isEmpty());
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                }
+                int steps=0;
+                while(!natural.isGameOver() && steps++<85000)
+                    natural.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(steps<85000 && natural.isGameOver());
+                Assert.assertNotNull(natural.getOutcome());
+                Assert.assertFalse(natural.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(natural.getOutcome().isWinner(winner.getRegisteredPlayer()));
+                for(Player p:Arrays.asList(left,right))
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                Assert.assertTrue(wl.process.isAlive() && wr.process.isAlive());
+                System.out.println("STAGE12G_NATURAL_JUNGLE_HOLLOW left_first="+
+                        leftFirst+" sequence="+seq+" winner="+winner.getName());
+            }
+        }
+    }
+
+    @Test(timeOut=240000)
+    public void nativeJungleHollowLeftRegisteredFirst() throws Exception {
+        verifyNativeJungleHollowAndNaturalGames(true);
+    }
+
+    @Test(timeOut=240000)
+    public void nativeJungleHollowRightRegisteredFirst() throws Exception {
+        verifyNativeJungleHollowAndNaturalGames(false);
+    }
+
 }

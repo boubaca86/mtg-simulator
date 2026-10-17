@@ -25,7 +25,7 @@ def _strict_json_float(token):
         raise SystemExit('nonfinite JSON number')
     return result
 
-LANDS = frozenset(('Forest', 'Island', 'Plains', 'Swamp', 'Mountain', 'Wastes'))
+LANDS = frozenset(('Forest', 'Island', 'Plains', 'Swamp', 'Mountain', 'Wastes', 'Jungle Hollow'))
 # Three DISTINCT vanilla 1G 2/2 card names, at most four copies each.
 VANILLA_BEARS = frozenset(('Grizzly Bears', 'Runeclaw Bear', 'Balduvian Bears'))
 # Stage11H: known public vanilla 3/3 for {2}{G}, unlike {1}{G} 2/2s.
@@ -164,8 +164,17 @@ for raw in sys.stdin.buffer:
     # No phase/turn/priority decision type is sent into the process.
     # The trusted Forge referee picks the first LEGAL item for its callback.
     lands = [i for i, name in enumerate(hand) if name in LANDS]
-    lands.sort(key=lambda i: (hand[i] != ('Swamp' if (DRAIN_CREATURES | RISK_DRAW_CREATURES | LIFELINK_CREATURES).intersection(hand) else 'Forest'),
-                              hand[i] != 'Forest', hand[i] != 'Island', i))
+    # Stage12G: printed Jungle Hollow enters tapped, gains one native life,
+    # and later produces black or green mana. At critical public life prefer
+    # the life-gain land, accepting the real tempo loss. At healthy life
+    # prioritize untapped basics. This is only an own-hand land preference;
+    # Forge alone authorizes land drops, ETB tapped, life triggers and mana.
+    urgent_hollow = 0 < view['life_totals']['self'] <= 5
+    lands.sort(key=lambda i: (
+        0 if urgent_hollow and hand[i] == 'Jungle Hollow' else
+        2 if hand[i] == 'Jungle Hollow' else 1,
+        hand[i] != ('Swamp' if (DRAIN_CREATURES | RISK_DRAW_CREATURES | LIFELINK_CREATURES).intersection(hand) else 'Forest'),
+        hand[i] != 'Forest', hand[i] != 'Island', i))
     creatures = [i for i, name in enumerate(hand)
                  if name in CREATURES and not
                  (name in RISK_DRAW_CREATURES and view['life_totals']['self'] <= 1)]
