@@ -647,6 +647,26 @@ for raw in sys.stdin.buffer:
                 for record in view['opponent_table']))
     if emergency_drain_chump:
         block_pairs.append([cutthroats[0], targets[0]])
+    # Stage12G: a printed 2/1 Child of Night with Lifelink can trade
+    # with a visible 2/2 Bear in emergency defense. Unlike chumping with
+    # a mana creature, its native two combat damage also restores two life.
+    # The actor sees only public names and life, not readiness or combat
+    # timing. Forge alone validates and resolves the actual block/damage.
+    children = [i for i, r in enumerate(view['own_cards']['table'])
+                if r.get('appearance') == 'face_up'
+                and r.get('card') in LIFELINK_CREATURES]
+    emergency_lifelink_trade = (
+        0 < life <= 2 and not fighters and len(children) == 1
+        and len(targets) == 1
+        and view['opponent_table'][targets[0]]['card'] in VANILLA_BEARS
+        and all(r.get('appearance') == 'face_up'
+                and r.get('card') in (VANILLA_BEARS | LANDS)
+                for r in view['opponent_table'])
+        and all(r.get('appearance') == 'face_up'
+                and r.get('card') in (LIFELINK_CREATURES | LANDS)
+                for r in view['own_cards']['table']))
+    if emergency_lifelink_trade:
+        block_pairs.insert(0, [children[0], targets[0]])
     # Stage12G: a 2/3 Beast Whisperer can defend against a known 2/2,
     # kill that attacker, and survive at critical public life. Forge alone
     # decides actual attackers, readiness, legality and combat damage.
