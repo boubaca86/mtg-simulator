@@ -40,6 +40,8 @@ DRAW_CREATURES = frozenset(('Elvish Visionary',))
 FLYING_CREATURES = frozenset(('Scryb Sprites',))
 # Stage12G: printed {R} 1/1 Haste may attack on its entry turn.
 HASTE_CREATURES = frozenset(('Raging Goblin',))
+# Printed Kird Ape is 1/1, but Forge's continuous Forest ability makes it 2/3.
+FOREST_SYNERGY_CREATURES = frozenset(('Kird Ape',))
 DEATHTOUCH_CREATURES = frozenset(('Sedge Scorpion',))
 # Stage12G: printed {1}{B} 2/1 Lifelink, native damage restores life.
 LIFELINK_CREATURES = frozenset(('Child of Night',))
@@ -56,7 +58,7 @@ RAMP_SORCERIES = frozenset(('Rampant Growth',))
 SWARM_SORCERIES = frozenset(('Overrun',))
 KNOWN_SORCERIES = RAMP_SORCERIES | SWARM_SORCERIES
 CREATURES = (frozenset(('Llanowar Elves',)) | VANILLA_FIGHTERS |
-             DRAW_CREATURES | FLYING_CREATURES | HASTE_CREATURES | DEATHTOUCH_CREATURES |
+             DRAW_CREATURES | FLYING_CREATURES | HASTE_CREATURES | FOREST_SYNERGY_CREATURES | DEATHTOUCH_CREATURES |
              LIFELINK_CREATURES |
              TRAMPLE_FINISHERS |
              DRAIN_CREATURES | LANDFALL_CREATURES | RISK_DRAW_CREATURES |
@@ -253,7 +255,18 @@ for raw in sys.stdin.buffer:
     urgent_haste = (0 < view['life_totals']['opponent'] <= 1 and
         all(r.get('appearance') == 'face_up' and r.get('card') in LANDS
             for r in view['opponent_table']))
+    # Kird Ape's Forest-dependent 2/3 is worth casting before a 2/2 Bear
+    # when a public Forest and Mountain are already under our control and
+    # the opponent has two life with no visible creature defenders.
+    # Actor sees no mana availability, timing, stack or library order.
+    urgent_ape = (own_forests >= 1 and
+        0 < view['life_totals']['opponent'] <= 2 and
+        any(r.get('appearance') == 'face_up' and r.get('card') == 'Mountain'
+            for r in view['own_cards']['table']) and
+        all(r.get('appearance') == 'face_up' and r.get('card') in LANDS
+            for r in view['opponent_table']))
     creatures.sort(key=lambda i: (
+        0 if urgent_ape and hand[i] in FOREST_SYNERGY_CREATURES else
         0 if urgent_haste and hand[i] in HASTE_CREATURES else
         0 if urgent_lifelink and hand[i] in LIFELINK_CREATURES else
         0 if own_forests >= 6 and hand[i] in TRAMPLE_FINISHERS else
@@ -371,6 +384,17 @@ for raw in sys.stdin.buffer:
         for i, r in enumerate(view['own_cards']['table']):
             if (len(active_attacks) < 8 and r.get('appearance') == 'face_up'
                     and r.get('card') in HASTE_CREATURES
+                    and i not in active_attacks):
+                active_attacks.append(i)
+    # Offer a Forest-enhanced Kird Ape as a potential native 2/3 attacker.
+    # The referee alone checks that it is untapped, not summoning-sick,
+    # legally attacking, and has actual continuous-effect power/toughness.
+    if own_forests >= 1 and all(
+            r.get('appearance') == 'face_up' and r.get('card') in LANDS
+            for r in view['opponent_table']):
+        for i, r in enumerate(view['own_cards']['table']):
+            if (len(active_attacks) < 8 and r.get('appearance') == 'face_up'
+                    and r.get('card') in FOREST_SYNERGY_CREATURES
                     and i not in active_attacks):
                 active_attacks.append(i)
     # Stage11N: CR 508.1 / 509.1a. A vanilla defender can normally

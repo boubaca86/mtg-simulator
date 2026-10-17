@@ -686,10 +686,12 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                       "Zulaport Cutthroat".equals(blocker.getName()) ||
                       "Beast Whisperer".equals(blocker.getName()) ||
                       "Child of Night".equals(blocker.getName()) ||
-                      "Raging Goblin".equals(blocker.getName())) ||
+                      "Raging Goblin".equals(blocker.getName()) ||
+                      "Kird Ape".equals(blocker.getName())) ||
                     !(supportedVanillaFighter(attacker.getName()) ||
                       "Child of Night".equals(attacker.getName()) ||
-                      "Raging Goblin".equals(attacker.getName())) ||
+                      "Raging Goblin".equals(attacker.getName()) ||
+                      "Kird Ape".equals(attacker.getName())) ||
                     committed.contains(blocker) ||
                     !combat.isAttacking(attacker) ||
                     !CombatUtil.canBlock(attacker,blocker,combat) ||
@@ -778,6 +780,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
            !"Beast Whisperer".equals(creature.getName()) &&
            !"Child of Night".equals(creature.getName()) &&
            !"Raging Goblin".equals(creature.getName()) &&
+           !"Kird Ape".equals(creature.getName()) &&
            !supportedVanillaFighter(creature.getName())) return null;
         for(SpellAbility sa:creature.getSpellAbilities()) {
             if(!sa.isSpell() || sa.usesTargeting() || sa.getSubAbility()!=null) continue;
@@ -827,7 +830,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                         (supportedVanillaFighter(card.getName()) ||
                          "Scryb Sprites".equals(card.getName()) ||
                          "Child of Night".equals(card.getName()) ||
-                         "Raging Goblin".equals(card.getName())) &&
+                         "Raging Goblin".equals(card.getName()) ||
+                      "Kird Ape".equals(card.getName())) &&
                         CombatUtil.canAttack(card,defender) &&
                         CombatUtil.getAttackCost(self.getGame(),card,defender)==null) {
                     authorized.add(n);
@@ -855,7 +859,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                !(supportedVanillaFighter(c.getName()) ||
                  "Scryb Sprites".equals(c.getName()) ||
                  "Child of Night".equals(c.getName()) ||
-                 "Raging Goblin".equals(c.getName())) ||
+                 "Raging Goblin".equals(c.getName()) ||
+                      "Kird Ape".equals(c.getName())) ||
                !CombatUtil.canAttack(c,defender) ||
                CombatUtil.getAttackCost(game,c,defender)!=null) return;
             approved.add(c);
@@ -1053,14 +1058,16 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                       "Zulaport Cutthroat".equals(source.getName()) ||
                       "Beast Whisperer".equals(source.getName()) ||
                       "Child of Night".equals(source.getName()) ||
-                      "Raging Goblin".equals(source.getName())) ||
+                      "Raging Goblin".equals(source.getName()) ||
+                      "Kird Ape".equals(source.getName())) ||
                     damageDealt!=("Colossal Dreadmaw".equals(source.getName())?6:
                             "Rumbling Baloth".equals(source.getName())?4:
                             "Centaur Courser".equals(source.getName())?3:
                             ("Llanowar Elves".equals(source.getName()) ||
                              "Sedge Scorpion".equals(source.getName()) ||
                              "Zulaport Cutthroat".equals(source.getName()) ||
-                             "Raging Goblin".equals(source.getName()))?1:2) ||
+                             "Raging Goblin".equals(source.getName()))?1:
+                             ("Kird Ape".equals(source.getName()) ? source.getNetPower() : 2)) ||
                     source.getNetCombatDamage()!=damageDealt ||
                     (source.hasKeyword("Trample") &&
                      !("Colossal Dreadmaw".equals(source.getName()) && defender==null)) ||
@@ -1076,7 +1083,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                           "Zulaport Cutthroat".equals(target.getName()) ||
                           "Beast Whisperer".equals(target.getName()) ||
                           "Child of Night".equals(target.getName()) ||
-                          "Raging Goblin".equals(target.getName())) ||
+                          "Raging Goblin".equals(target.getName()) ||
+                      "Kird Ape".equals(target.getName())) ||
                         target.getController()!=opponent ||
                         !opponent.getCardsIn(ZoneType.Battlefield).contains(target)) {
                     throw new SecurityException("unregistered or unsupported combat target");
@@ -11971,6 +11979,172 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     @Test(timeOut=240000)
     public void nativeRagingGoblinHasteRightRegisteredFirst() throws Exception {
         verifyNativeHasteSameTurnAndNaturalGames(false);
+    }
+
+    /** Stage12G: printed {R} Kird Ape becomes 2/3 with a Forest,
+     * then attacks for two native damage on a later Forge turn.
+     * Controlled fixtures use only original registered physical cards;
+     * separate natural games retain untouched opening/shuffle/life. */
+    private Game nativeForestApeGame(boolean leftFirst) {
+        Map<String,Integer> counts=new TreeMap<>();
+        counts.put("Mountain",20);counts.put("Forest",20);
+        counts.put("Kird Ape",4);counts.put("Grizzly Bears",4);
+        counts.put("Runeclaw Bear",4);counts.put("Llanowar Elves",4);
+        counts.put("Elvish Visionary",4);
+        Assert.assertEquals(counts.values().stream().mapToInt(Integer::intValue).sum(),60);
+        RegisteredPlayer left=new RegisteredPlayer(mainDeck("12G Forest left",counts))
+                .setPlayer(new LobbyPlayerAi("ape-left",null));
+        RegisteredPlayer right=new RegisteredPlayer(mainDeck("12G Forest right",counts))
+                .setPlayer(new LobbyPlayerAi("ape-right",null));
+        List<RegisteredPlayer> reg=new ArrayList<>();
+        reg.add(leftFirst?left:right);reg.add(leftFirst?right:left);
+        GameRules rules=new GameRules(GameType.Constructed);
+        Match match=new Match(rules,reg,"Stage12G Forest");
+        Game game=new Game(reg,rules,match);frozenMain=new FrozenMain(game);
+        Assert.assertNull(game.getPhaseHandler().getPhase());
+        for(Player p:game.getPlayers()) Assert.assertEquals(frozenMain.owned(p),counts);
+        return game;
+    }
+
+    private void verifyNativeForestApeAndNaturalGames(boolean leftFirst)
+            throws Exception {
+        Game fixture=nativeForestApeGame(leftFirst);
+        Player p0=fixture.getPlayers().get(0),p1=fixture.getPlayers().get(1);
+        try(Actor w0=new Actor(5);Actor w1=new Actor(5)) {
+            Assert.assertNotEquals(w0.process.pid(),w1.process.pid());
+            ExternalCreatureController c0=attach(fixture,p0,p1,w0);
+            ExternalCreatureController c1=attach(fixture,p1,p0,w1);
+            doRealNativeStartForMultiTurn(fixture,c0,c1);
+            Player caster=fixture.getStartingPlayer();
+            Player opponent=caster==p0?p1:p0;
+            Actor worker=caster==p0?w0:w1;
+            ExternalCreatureController ac=caster==p0?c0:c1;
+            // Physical controlled fixture ONLY: original registered cards.
+            for(Player p:Arrays.asList(caster,opponent))
+                for(Card c:new ArrayList<Card>(p.getCardsIn(ZoneType.Hand)))
+                    Assert.assertNotNull(fixture.getAction().moveToBottomOfLibrary(c,null));
+            Card mountain=caster.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Mountain".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToPlay(mountain,null,
+                    forge.game.ability.AbilityKey.newMap()));
+            mountain.setTapped(false);
+            Card forest=caster.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Forest".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToPlay(forest,null,
+                    forge.game.ability.AbilityKey.newMap()));
+            forest.setTapped(false);
+            for(int k=0;k<4;k++) {
+                Card bear=caster.getCardsIn(ZoneType.Library).stream()
+                        .filter(c->"Grizzly Bears".equals(c.getName()))
+                        .findFirst().orElseThrow();
+                Assert.assertNotNull(fixture.getAction().moveToHand(bear,null));
+            }
+            Card ape=caster.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Kird Ape".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToHand(ape,null));
+            Assert.assertTrue(opponent.setLife(2,null));
+            Assert.assertEquals(caster.getLife(),20);
+            Assert.assertEquals(fullPhysicalInventory(caster),frozenMain.owned(caster));
+            Assert.assertEquals(fullPhysicalInventory(opponent),frozenMain.owned(opponent));
+            String view=observation(caster,opponent);
+            JsonObject plan=worker.ask(view);
+            Assert.assertEquals(plan.get("intent").getAsString(),"action_plan");
+            Assert.assertEquals(caster.getCardsIn(ZoneType.Hand)
+                    .get(plan.getAsJsonArray("creature_hand_indices")
+                    .get(0).getAsInt()).getId(),ape.getId(),
+                    "public one-life lethal window prefers Forest over four Bears");
+            for(String forbidden:Arrays.asList("phase","priority","stack",
+                    "library_top","opponent_hand","library_order"))
+                Assert.assertFalse(JsonParser.parseString(view)
+                        .getAsJsonObject().has(forbidden));
+            opponent.shuffle(null);
+            Assert.assertEquals(observation(caster,opponent),view);
+            Assert.assertEquals(worker.ask(view),plan);
+            boolean nativePaid=false,enhancedApe=false,offered=false;
+            int castTurn=-1,damageTurn=-1,steps=0;
+            while(!fixture.isGameOver() && steps++<1800) {
+                fixture.getPhaseHandler().mainLoopStep();
+                Card live=caster.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->c.getId()==ape.getId()).findFirst().orElse(null);
+                if(live!=null) {
+                    if(castTurn<0) castTurn=fixture.getPhaseHandler().getTurn();
+                    enhancedApe |= live.getNetPower()==2 && live.getNetToughness()==3;
+                    nativePaid |= mountain.isTapped();
+                    JsonObject preference=worker.ask(observation(caster,opponent));
+                    int index=caster.getCardsIn(ZoneType.Battlefield).indexOf(live);
+                    for(JsonElement item:preference.getAsJsonArray("attack_table_indices"))
+                        if(item.getAsInt()==index) offered=true;
+                }
+                if(opponent.getLife()<=0) {
+                    damageTurn=fixture.getPhaseHandler().getTurn();
+                    if(fixture.isGameOver()) break;
+                }
+            }
+            Assert.assertTrue(steps<1800,"bounded real native Forest lethal");
+            Assert.assertTrue(nativePaid,"original Mountain paid genuine {R}");
+            Assert.assertTrue(caster.getCardsIn(ZoneType.Battlefield).contains(forest),
+                    "original controlled Forest grants Kird Ape its native 2/3");
+            Assert.assertTrue(enhancedApe,"original printed Kird Ape has native Forest-dependent 2/3");
+            Assert.assertTrue(offered,"external actor offered following-turn Forest attack");
+            Assert.assertTrue(ac.attacksAuthorized>0,"Forge authorized native attacker");
+            Assert.assertTrue(castTurn>=0 && damageTurn>=0);
+            Assert.assertTrue(damageTurn>castTurn,
+                    "Forest must deal combat damage on the same Forge turn as cast");
+            Assert.assertTrue(fixture.isGameOver(),"Forge must end native lethal combat");
+            Assert.assertTrue(caster.hasWon() && !opponent.hasWon());
+            Assert.assertTrue(fixture.getOutcome().isWinner(caster.getRegisteredPlayer()));
+            Assert.assertEquals(fullPhysicalInventory(caster),frozenMain.owned(caster));
+            Assert.assertEquals(fullPhysicalInventory(opponent),frozenMain.owned(opponent));
+            Assert.assertTrue(w0.process.isAlive() && w1.process.isAlive());
+            System.out.println("STAGE12G_CONTROLLED_HASTE left_first="+leftFirst+
+                    " original_mountain_paid=true forest_buffed_native_lethal=true");
+        }
+        // Four distinct untouched natural 60-card games, two per seat.
+        for(int seq=0;seq<2;seq++) {
+            Game natural=nativeForestApeGame(leftFirst);
+            Player left=natural.getPlayers().get(leftFirst?0:1);
+            Player right=natural.getPlayers().get(leftFirst?1:0);
+            try(Actor wl=new Actor(5);Actor wr=new Actor(5)) {
+                Assert.assertNotEquals(wl.process.pid(),wr.process.pid());
+                ExternalCreatureController lc=attach(natural,left,right,wl);
+                ExternalCreatureController rc=attach(natural,right,left,wr);
+                doRealNativeStartForMultiTurn(natural,lc,rc);
+                Assert.assertEquals(left.getLife(),20);
+                Assert.assertEquals(right.getLife(),20);
+                Assert.assertTrue(lc.openingCallbacks>0 && rc.openingCallbacks>0);
+                for(Player p:Arrays.asList(left,right)) {
+                    Assert.assertTrue(p.getCardsIn(ZoneType.Battlefield).isEmpty());
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                }
+                int steps=0;
+                while(!natural.isGameOver() && steps++<85000)
+                    natural.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(steps<85000 && natural.isGameOver());
+                Assert.assertNotNull(natural.getOutcome());
+                Assert.assertFalse(natural.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(natural.getOutcome().isWinner(winner.getRegisteredPlayer()));
+                for(Player p:Arrays.asList(left,right))
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                Assert.assertTrue(wl.process.isAlive() && wr.process.isAlive());
+                System.out.println("STAGE12G_NATURAL_HASTE left_first="+leftFirst+
+                        " sequence="+seq+" winner="+winner.getName());
+            }
+        }
+    }
+
+    @Test(timeOut=240000)
+    public void nativeKirdApeForestLeftRegisteredFirst() throws Exception {
+        verifyNativeForestApeAndNaturalGames(true);
+    }
+
+    @Test(timeOut=240000)
+    public void nativeKirdApeForestRightRegisteredFirst() throws Exception {
+        verifyNativeForestApeAndNaturalGames(false);
     }
 
 }
