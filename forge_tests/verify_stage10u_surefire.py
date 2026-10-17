@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail closed unless exactly one hundred and seventy-eight real Forge TestNG methods ran and passed."""
+"""Fail closed unless exactly one hundred and eighty real Forge TestNG methods ran and passed."""
 import argparse
 import json
 import sys
@@ -186,6 +186,8 @@ EXPECTED = {
     "nativeRagingGoblinHasteRightRegisteredFirst",
     "nativeKirdApeForestLeftRegisteredFirst",
     "nativeKirdApeForestRightRegisteredFirst",
+    "nativePhantomUnblockableLeftRegisteredFirst",
+    "nativePhantomUnblockableRightRegisteredFirst",
 }
 
 def verify(folder: Path) -> dict:

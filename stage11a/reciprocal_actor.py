@@ -42,6 +42,8 @@ FLYING_CREATURES = frozenset(('Scryb Sprites',))
 HASTE_CREATURES = frozenset(('Raging Goblin',))
 # Printed Kird Ape is 1/1, but Forge's continuous Forest ability makes it 2/3.
 FOREST_SYNERGY_CREATURES = frozenset(('Kird Ape',))
+# Stage12G: printed {1}{U}{U} Phantom Warrior cannot be blocked.
+UNBLOCKABLE_CREATURES = frozenset(('Phantom Warrior',))
 DEATHTOUCH_CREATURES = frozenset(('Sedge Scorpion',))
 # Stage12G: printed {1}{B} 2/1 Lifelink, native damage restores life.
 LIFELINK_CREATURES = frozenset(('Child of Night',))
@@ -58,7 +60,7 @@ RAMP_SORCERIES = frozenset(('Rampant Growth',))
 SWARM_SORCERIES = frozenset(('Overrun',))
 KNOWN_SORCERIES = RAMP_SORCERIES | SWARM_SORCERIES
 CREATURES = (frozenset(('Llanowar Elves',)) | VANILLA_FIGHTERS |
-             DRAW_CREATURES | FLYING_CREATURES | HASTE_CREATURES | FOREST_SYNERGY_CREATURES | DEATHTOUCH_CREATURES |
+             DRAW_CREATURES | FLYING_CREATURES | HASTE_CREATURES | FOREST_SYNERGY_CREATURES | UNBLOCKABLE_CREATURES | DEATHTOUCH_CREATURES |
              LIFELINK_CREATURES |
              TRAMPLE_FINISHERS |
              DRAIN_CREATURES | LANDFALL_CREATURES | RISK_DRAW_CREATURES |
@@ -124,7 +126,7 @@ for raw in sys.stdin.buffer:
         needed = max([2] + [6 if name in TRAMPLE_FINISHERS else 5 if name in SWARM_SORCERIES else
                              4 if name in VANILLA_FOURS else 3
                             for name in hand
-                            if name in VANILLA_FOURS | VANILLA_THREES | SWARM_SORCERIES | TRAMPLE_FINISHERS])
+                            if name in VANILLA_FOURS | VANILLA_THREES | SWARM_SORCERIES | TRAMPLE_FINISHERS | UNBLOCKABLE_CREATURES])
         lands_in_hand = sorted((i for i, name in enumerate(hand) if name in LANDS),
                                key=lambda i: (hand[i] != 'Forest', i))
         preferred = set(lands_in_hand[:needed])
@@ -492,6 +494,13 @@ for raw in sys.stdin.buffer:
                   and record.get('card') in (KNOWN_FIGHTERS | LANDS)
                   for record in view['opponent_table'])):
         active_attacks = candidate_attackers[:]
+    # Printed Phantom Warrior can attack past all blockers. Forge alone
+    # checks legal attacks, summoning sickness, taps, damage and outcome.
+    for i, r in enumerate(view['own_cards']['table']):
+        if (len(active_attacks) < 8 and r.get('appearance') == 'face_up'
+                and r.get('card') in UNBLOCKABLE_CREATURES
+                and i not in active_attacks):
+            active_attacks.append(i)
     # Stage12G: an identified printed Lifelink attacker can replenish
     # public life while applying pressure when only public basic lands
     # oppose it. This is an ATTACK PREFERENCE, never a claim of readiness

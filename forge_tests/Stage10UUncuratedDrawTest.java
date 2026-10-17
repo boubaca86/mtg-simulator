@@ -781,6 +781,7 @@ public final class Stage10UUncuratedDrawTest extends AITest {
            !"Child of Night".equals(creature.getName()) &&
            !"Raging Goblin".equals(creature.getName()) &&
            !"Kird Ape".equals(creature.getName()) &&
+           !"Phantom Warrior".equals(creature.getName()) &&
            !supportedVanillaFighter(creature.getName())) return null;
         for(SpellAbility sa:creature.getSpellAbilities()) {
             if(!sa.isSpell() || sa.usesTargeting() || sa.getSubAbility()!=null) continue;
@@ -831,7 +832,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                          "Scryb Sprites".equals(card.getName()) ||
                          "Child of Night".equals(card.getName()) ||
                          "Raging Goblin".equals(card.getName()) ||
-                      "Kird Ape".equals(card.getName())) &&
+                      "Kird Ape".equals(card.getName()) ||
+                      "Phantom Warrior".equals(card.getName())) &&
                         CombatUtil.canAttack(card,defender) &&
                         CombatUtil.getAttackCost(self.getGame(),card,defender)==null) {
                     authorized.add(n);
@@ -860,7 +862,8 @@ public final class Stage10UUncuratedDrawTest extends AITest {
                  "Scryb Sprites".equals(c.getName()) ||
                  "Child of Night".equals(c.getName()) ||
                  "Raging Goblin".equals(c.getName()) ||
-                      "Kird Ape".equals(c.getName())) ||
+                      "Kird Ape".equals(c.getName()) ||
+                 "Phantom Warrior".equals(c.getName())) ||
                !CombatUtil.canAttack(c,defender) ||
                CombatUtil.getAttackCost(game,c,defender)!=null) return;
             approved.add(c);
@@ -12146,5 +12149,232 @@ public final class Stage10UUncuratedDrawTest extends AITest {
     public void nativeKirdApeForestRightRegisteredFirst() throws Exception {
         verifyNativeForestApeAndNaturalGames(false);
     }
+
+    /** Stage12G: native printed {1}{U}{U} Phantom Warrior cannot be blocked. */
+    private Game nativePhantomWarriorGame(boolean leftRegisteredFirst) {
+        Map<String,Integer> counts=new TreeMap<>();
+        counts.put("Island",24);counts.put("Forest",16);
+        counts.put("Phantom Warrior",4);
+        counts.put("Rumbling Baloth",4);
+        counts.put("Grizzly Bears",4);
+        counts.put("Llanowar Elves",4);
+        counts.put("Elvish Visionary",4);
+        Assert.assertEquals(counts.values().stream().mapToInt(Integer::intValue).sum(),60);
+        RegisteredPlayer left=new RegisteredPlayer(mainDeck("12G Phantom left",counts))
+                .setPlayer(new LobbyPlayerAi("unblockable-left",null));
+        RegisteredPlayer right=new RegisteredPlayer(mainDeck("12G Phantom right",counts))
+                .setPlayer(new LobbyPlayerAi("unblockable-right",null));
+        List<RegisteredPlayer> registered=new ArrayList<>();
+        registered.add(leftRegisteredFirst?left:right);
+        registered.add(leftRegisteredFirst?right:left);
+        GameRules rules=new GameRules(GameType.Constructed);
+        Match match=new Match(rules,registered,"Stage12G");
+        Game game=new Game(registered,rules,match);
+        frozenMain=new FrozenMain(game);
+        Assert.assertNull(game.getPhaseHandler().getPhase());
+        for(Player p:game.getPlayers()) Assert.assertEquals(frozenMain.owned(p),counts);
+        return game;
+    }
+
+    private void verifyNativePhantomUnblockableAndNaturalGames(boolean leftRegisteredFirst)
+            throws Exception {
+        Game fixture=nativePhantomWarriorGame(leftRegisteredFirst);
+        Player p0=fixture.getPlayers().get(0),p1=fixture.getPlayers().get(1);
+        try(Actor worker0=new Actor(5);Actor worker1=new Actor(5)) {
+            Assert.assertNotEquals(worker0.process.pid(),worker1.process.pid());
+            ExternalCreatureController c0=attach(fixture,p0,p1,worker0);
+            ExternalCreatureController c1=attach(fixture,p1,p0,worker1);
+            doRealNativeStartForMultiTurn(fixture,c0,c1);
+            Player attacker=fixture.getStartingPlayer();
+            Player defender=attacker==p0?p1:p0;
+            Actor actor=attacker==p0?worker0:worker1;
+            ExternalCreatureController ac=attacker==p0?c0:c1;
+            ExternalCreatureController dc=attacker==p0?c1:c0;
+            // CONTROLLED PHYSICAL FIXTURE ONLY: return opening hands to
+            // original owners' libraries; natural games below do none of this.
+            for(Player player:Arrays.asList(attacker,defender)) {
+                for(Card c:new ArrayList<Card>(player.getCardsIn(ZoneType.Hand)))
+                    Assert.assertNotNull(fixture.getAction().moveToBottomOfLibrary(c,null));
+            }
+            // Keep the defender's original registered unblockable cards at the
+            // bottom in this fixture only, preventing an unrelated unblockable
+            // draw from making the grounded-evasion scenario ambiguous.
+            for(Card c:new ArrayList<Card>(defender.getCardsIn(ZoneType.Library))) {
+                if("Phantom Warrior".equals(c.getName()))
+                    Assert.assertNotNull(fixture.getAction().moveToBottomOfLibrary(c,null));
+            }
+            Card baloth=defender.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Rumbling Baloth".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToPlay(baloth,null,
+                    forge.game.ability.AbilityKey.newMap()));
+            baloth.setTapped(false);
+            List<Card> islands=new ArrayList<>();
+            for(int k=0;k<3;k++) {
+                Card island=attacker.getCardsIn(ZoneType.Library).stream()
+                        .filter(c->"Island".equals(c.getName())).findFirst().orElseThrow();
+                Assert.assertNotNull(fixture.getAction().moveToPlay(island,null,
+                        forge.game.ability.AbilityKey.newMap()));
+                island.setTapped(false);
+                islands.add(island);
+            }
+            Card sprite=attacker.getCardsIn(ZoneType.Library).stream()
+                    .filter(c->"Phantom Warrior".equals(c.getName()))
+                    .findFirst().orElseThrow();
+            Assert.assertNotNull(fixture.getAction().moveToHand(sprite,null));
+            Assert.assertEquals(attacker.getCardsIn(ZoneType.Hand).size(),1);
+            Assert.assertFalse(sprite.hasKeyword("Unblockable"));
+            Assert.assertFalse(baloth.hasKeyword("Unblockable"));
+            Assert.assertFalse(baloth.hasKeyword("Reach"));
+            // The card is still in hand here. CombatUtil.canBlock is
+            // meaningful only once the real creature has resolved in play.
+            Assert.assertEquals(fullPhysicalInventory(attacker),frozenMain.owned(attacker));
+            Assert.assertEquals(fullPhysicalInventory(defender),frozenMain.owned(defender));
+            String view=observation(attacker,defender);
+            JsonObject before=actor.ask(view);
+            Assert.assertEquals(before.get("intent").getAsString(),"action_plan");
+            Assert.assertEquals(before.getAsJsonArray("creature_hand_indices").get(0)
+                    .getAsInt(),0);
+            Assert.assertFalse(view.contains("\"phase\""));
+            Assert.assertFalse(view.contains("\"priority\""));
+            Assert.assertFalse(view.contains("\"opponent_hand\""));
+            Assert.assertFalse(view.contains("\"library_top\""));
+            defender.shuffle(null);
+            Assert.assertEquals(observation(attacker,defender),view,
+                    "opponent's hidden shuffled order never changes the actor view");
+            Assert.assertEquals(actor.ask(view),before);
+            boolean nativePaid=false,publicUnblockablePreference=false;
+            boolean nativeUnblockableRestriction=false;
+            boolean nativeAttack=false,realUnblockedDamage=false;
+            int steps=0, spriteBattlefieldSamples=0, untappedBalothSamples=0;
+            Card liveSprite=null, liveBaloth=null;
+            while(!fixture.isGameOver() && steps++<3000) {
+                // Explicit fixture-only readiness: even if Baloth attacked
+                // on the preceding turn, it is an UNTAPPED possible blocker
+                // for the real Unblockable combat. Never done in natural games.
+                // Forge can create a new current Card state on zone changes.
+                // Match the original physical ID, then query the LIVE battlefield
+                // instances: a stale hand Card cannot supply active Unblockable statics.
+                liveBaloth=defender.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->c.getId()==baloth.getId())
+                        .findFirst().orElse(null);
+                if(liveBaloth!=null &&
+                        fixture.getPhaseHandler().getPlayerTurn()==attacker &&
+                        liveBaloth.isTapped()) liveBaloth.setTapped(false);
+                fixture.getPhaseHandler().mainLoopStep();
+                liveSprite=attacker.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->c.getId()==sprite.getId())
+                        .findFirst().orElse(null);
+                liveBaloth=defender.getCardsIn(ZoneType.Battlefield).stream()
+                        .filter(c->c.getId()==baloth.getId())
+                        .findFirst().orElse(null);
+                if(liveSprite!=null && liveBaloth!=null) {
+                    spriteBattlefieldSamples++;
+                    if(!liveBaloth.isTapped()) untappedBalothSamples++;
+                    if(islands.stream().allMatch(Card::isTapped)) nativePaid=true;
+                    // Test the PRINTED evasion rule itself, not the
+                    // unrelated readiness of the defending creature.
+                    // The nextTurn form ignores tapped status, so this
+                    // cannot accidentally pass because Baloth attacked.
+                    nativeUnblockableRestriction |=
+                            StaticAbilityCantAttackBlock.cantBlockBy(liveSprite,liveBaloth)
+                            && !CombatUtil.canBlock(liveSprite,liveBaloth,true);
+                    if(!liveBaloth.isTapped() && !publicUnblockablePreference) {
+                        JsonObject preference=actor.ask(observation(attacker,defender));
+                        JsonArray attacks=preference.getAsJsonArray("attack_table_indices");
+                        int spriteIndex=attacker.getCardsIn(ZoneType.Battlefield).indexOf(liveSprite);
+                        for(JsonElement entry:attacks) {
+                            if(entry.getAsInt()==spriteIndex) publicUnblockablePreference=true;
+                        }
+                    }
+                }
+                nativeAttack |= ac.attacksAuthorized>0;
+                if(nativeAttack && defender.getLife()==18) {
+                    realUnblockedDamage=true;break;
+                }
+            }
+            Assert.assertTrue(steps<3000,"native cast and real combat must finish");
+            Assert.assertTrue(nativePaid,"three original Islands must pay printed {1}{U}{U} cast");
+            Assert.assertTrue(nativeUnblockableRestriction,
+                    "native printed unblockable restriction missing: samples="+spriteBattlefieldSamples+
+                    " ready="+untappedBalothSamples+" steps="+steps+
+                    " paid="+nativePaid+" attacker_turn="+
+                    (fixture.getPhaseHandler().getPlayerTurn()==attacker)+
+                    " sprite_zone="+(liveSprite==null?"not_in_play":liveSprite.getZone().getZoneType())+
+                    " baloth_tapped="+(liveBaloth!=null && liveBaloth.isTapped())+
+                    " unblockable="+(liveSprite!=null && liveSprite.hasKeyword("Unblockable"))+
+                    " direct_static="+(liveSprite!=null && liveBaloth!=null &&
+                            StaticAbilityCantAttackBlock.cantBlockBy(liveSprite,liveBaloth))+
+                    " nextturn_canblock="+(liveSprite!=null && liveBaloth!=null &&
+                            CombatUtil.canBlock(liveSprite,liveBaloth,true))+
+                    " attack_callbacks="+ac.attackCallbacks+
+                    " attacks_authorized="+ac.attacksAuthorized+
+                    " defender_life="+defender.getLife());
+            Assert.assertTrue(publicUnblockablePreference,
+                    "external actor must prefer unblockable 2/2 past grounded 4/4");
+            Assert.assertTrue(nativeAttack,"native Forge must declare the unblockable attacker");
+            Assert.assertTrue(realUnblockedDamage,"real Forge combat deals two player damage");
+            Assert.assertEquals(defender.getLife(),18);
+            Assert.assertTrue(defender.getCardsIn(ZoneType.Battlefield).contains(baloth));
+            Assert.assertTrue(attacker.getCardsIn(ZoneType.Battlefield).contains(sprite));
+            Assert.assertNotNull(liveBaloth,"registered Baloth remains physically on battlefield");
+            Assert.assertFalse(liveBaloth.isTapped(),
+                    "grounded Baloth was a ready but illegal Unblockable blocker");
+            Assert.assertEquals(dc.blocksAuthorized,0);
+            Assert.assertEquals(fullPhysicalInventory(attacker),frozenMain.owned(attacker));
+            Assert.assertEquals(fullPhysicalInventory(defender),frozenMain.owned(defender));
+            Assert.assertTrue(worker0.process.isAlive() && worker1.process.isAlive());
+            System.out.println("STAGE12G_CONTROLLED_PRINTED_FLYING left_first="+
+                    leftRegisteredFirst+" paid_cast=true native_unblocked_damage=2");
+        }
+        // Two independent untouched original 60-card naturally shuffled
+        // complete games per seat; no seed choice, mulligan or hand changes.
+        for(int sequence=0;sequence<2;sequence++) {
+            Game natural=nativePhantomWarriorGame(leftRegisteredFirst);
+            Player left=natural.getPlayers().get(leftRegisteredFirst?0:1);
+            Player right=natural.getPlayers().get(leftRegisteredFirst?1:0);
+            try(Actor workerL=new Actor(5);Actor workerR=new Actor(5)) {
+                Assert.assertNotEquals(workerL.process.pid(),workerR.process.pid());
+                ExternalCreatureController lc=attach(natural,left,right,workerL);
+                ExternalCreatureController rc=attach(natural,right,left,workerR);
+                doRealNativeStartForMultiTurn(natural,lc,rc);
+                Assert.assertEquals(left.getLife(),20);
+                Assert.assertEquals(right.getLife(),20);
+                Assert.assertTrue(lc.openingCallbacks>0 && rc.openingCallbacks>0);
+                for(Player p:Arrays.asList(left,right)) {
+                    Assert.assertTrue(p.getCardsIn(ZoneType.Battlefield).isEmpty());
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                }
+                int steps=0;
+                while(!natural.isGameOver() && steps++<85000)
+                    natural.getPhaseHandler().mainLoopStep();
+                Assert.assertTrue(steps<85000,"natural full game must finish");
+                Assert.assertTrue(natural.isGameOver());
+                Assert.assertNotNull(natural.getOutcome());
+                Assert.assertFalse(natural.getOutcome().isDraw());
+                Assert.assertTrue(left.hasWon()!=right.hasWon());
+                Player winner=left.hasWon()?left:right;
+                Assert.assertTrue(natural.getOutcome().isWinner(winner.getRegisteredPlayer()));
+                for(Player p:Arrays.asList(left,right))
+                    Assert.assertEquals(fullPhysicalInventory(p),frozenMain.owned(p));
+                Assert.assertTrue(workerL.process.isAlive() && workerR.process.isAlive());
+                System.out.println("STAGE12G_NATURAL_FLYING left_first="+
+                        leftRegisteredFirst+" sequence="+sequence+
+                        " winner="+winner.getName());
+            }
+        }
+    }
+
+    @Test(timeOut=240000)
+    public void nativePhantomUnblockableLeftRegisteredFirst() throws Exception {
+        verifyNativePhantomUnblockableAndNaturalGames(true);
+    }
+
+    @Test(timeOut=240000)
+    public void nativePhantomUnblockableRightRegisteredFirst() throws Exception {
+        verifyNativePhantomUnblockableAndNaturalGames(false);
+    }
+
+
 
 }
