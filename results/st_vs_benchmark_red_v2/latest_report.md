@@ -1,6 +1,6 @@
 # S.T vs Benchmark Red — V2 Fair-Search AI
 
-**Games:** 320,000
+**Games:** 320,500
 **S.T win rate:** 91.48%
 
 ## Fair-play checks
@@ -18,9 +18,9 @@
 | Eradicator S.T | 93.03% | 88.67% | +4.36 pp | 94.99% | 57.74% |
 | Drop Pod S.T | 92.92% | 88.77% | +4.15 pp | 93.18% | 57.41% |
 | Terminator S.T | 92.77% | 88.99% | +3.77 pp | 93.26% | 65.49% |
-| Pyroclast Squad S.T | 92.76% | 89.01% | +3.74 pp | 93.56% | 64.29% |
+| Pyroclast Squad S.T | 92.75% | 89.01% | +3.74 pp | 93.56% | 64.29% |
 | Exterminatus S.T | 88.88% | 92.21% | -3.33 pp | 0.00% | 0.00% |
-| Vindicator S.T | 90.12% | 92.32% | -2.20 pp | 92.48% | 4.24% |
+| Vindicator S.T | 90.12% | 92.32% | -2.20 pp | 92.49% | 4.24% |
 | Infernus S.T | 91.89% | 90.73% | +1.16 pp | 93.02% | 61.35% |
 | Whirlwind S.T | 91.12% | 92.12% | -1.00 pp | 93.52% | 47.76% |
 | Servo-Skull | 91.03% | 91.62% | -0.58 pp | 91.06% | 22.04% |
