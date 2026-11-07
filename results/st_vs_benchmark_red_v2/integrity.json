@@ -3,5 +3,5 @@
   "same_ai_architecture": true,
   "hidden_information": "own hand + public zones + opponent hand count only",
   "legality_failures": 0,
-  "last_run_utc": "2026-11-06T19:21:45.977879+00:00"
+  "last_run_utc": "2026-11-07T00:06:11.125944+00:00"
 }
