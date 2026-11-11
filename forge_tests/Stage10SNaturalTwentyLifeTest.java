@@ -596,6 +596,16 @@ public final class Stage10SNaturalTwentyLifeTest extends AITest {
         Assert.assertTrue(raw.length()<=8,"index value bound");
     }
 
+    private static void assertReplyRejected(String payload) {
+        JsonObject reply=JsonParser.parseString(payload).getAsJsonObject();
+        try {
+            validateReply(reply);
+        } catch(AssertionError expected) {
+            return;
+        }
+        Assert.fail("FORGED_PAYLOAD_ACCEPTED: "+payload);
+    }
+
     private static void validatePlanIndices(JsonObject reply,String field,int limit) {
         Assert.assertTrue(reply.has(field) && reply.get(field).isJsonArray(),
                 "plan missing its candidate indices");
@@ -1334,12 +1344,7 @@ public final class Stage10SNaturalTwentyLifeTest extends AITest {
             "{\"intent\":\"play_land\",\"hand_index\":0.5}",
             "{\"intent\":\"play_land\",\"hand_index\":-1}",
             "{\"intent\":\"pass\",\"opponent_hand\":[]}")) {
-            try {
-                validateReply(JsonParser.parseString(candidate).getAsJsonObject());
-                Assert.fail("referee must reject forged payload "+candidate);
-            } catch(AssertionError expected) {
-                Assert.assertNotNull(expected.getMessage());
-            }
+            assertReplyRejected(candidate);
         }
         Assert.assertEquals(active.getCardsIn(ZoneType.Hand).size(),initial);
         Assert.assertEquals(active.getLandsPlayedThisTurn(),0);
@@ -1459,12 +1464,7 @@ public final class Stage10SNaturalTwentyLifeTest extends AITest {
             "{\"intent\":\"cast_creature\",\"hand_index\":\"0\"}",
             "{\"intent\":\"cast_spell\",\"hand_index\":0}",
             "{\"intent\":\"pass\",\"hand_index\":0}")) {
-            try {
-                validateReply(JsonParser.parseString(candidate).getAsJsonObject());
-                Assert.fail("forged creature payload accepted "+candidate);
-            } catch(AssertionError expected) {
-                Assert.assertNotNull(expected.getMessage());
-            }
+            assertReplyRejected(candidate);
         }
         JsonObject unsupported=JsonParser.parseString(
             "{\"intent\":\"cast_creature\",\"hand_index\":0}").getAsJsonObject();
@@ -1585,12 +1585,7 @@ public final class Stage10SNaturalTwentyLifeTest extends AITest {
             "{\"intent\":\"attack\",\"table_indices\":[\"0\"]}",
             "{\"intent\":\"attack\",\"table_indices\":[]}",
             "{\"intent\":\"attack\",\"table_indices\":[0,1,2,3,4,5,6,7,8]}")) {
-            try {
-                validateReply(JsonParser.parseString(payload).getAsJsonObject());
-                Assert.fail("forged attack accepted: "+payload);
-            } catch(AssertionError expected) {
-                Assert.assertNotNull(expected.getMessage());
-            }
+            assertReplyRejected(payload);
         }
         JsonObject reply=JsonParser.parseString(
             "{\"intent\":\"attack\",\"table_indices\":[0]}").getAsJsonObject();
@@ -4230,6 +4225,8 @@ public final class Stage10SNaturalTwentyLifeTest extends AITest {
             int initialAttackerLibrary=attacker.getCardsIn(ZoneType.Library).size();
             int initialDefenderLibrary=defender.getCardsIn(ZoneType.Library).size();
             int steps=0,damageEvents=0,previousLife=20,previousDamageTurn=-1;
+            List<Integer> damageTurns=new ArrayList<>();
+            List<Integer> lifeAfterHits=new ArrayList<>();
             boolean sawPaidBearOnStack=false,sawRealBearOnBattlefield=false;
             while(!game.isGameOver() && steps++<6500) {
                 game.getPhaseHandler().mainLoopStep();
@@ -4257,6 +4254,8 @@ public final class Stage10SNaturalTwentyLifeTest extends AITest {
                     Assert.assertTrue(realTurn>previousDamageTurn,
                             "each damage event must occur on a DIFFERENT real Forge turn");
                     previousDamageTurn=realTurn;
+                    damageTurns.add(realTurn);
+                    lifeAfterHits.add(nowLife);
                     Assert.assertEquals(nowLife,20-2*damageEvents,
                             "20-life cumulative damage must be exactly tracked");
                     previousLife=nowLife;
@@ -4315,6 +4314,10 @@ public final class Stage10SNaturalTwentyLifeTest extends AITest {
                 Assert.assertFalse(view.has(denied),
                         "public actor view must not leak hidden information");
             }
+            // Referee-side evidence only. Never sent into either actor process.
+            System.out.println("STAGE10S_COMBAT_EVIDENCE hits="+damageEvents+
+                    " turns="+damageTurns+" life="+lifeAfterHits+
+                    " steps="+steps+" gameOver="+game.isGameOver());
         }
     }
 

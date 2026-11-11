@@ -1,12 +1,13 @@
-name: Stage 10S - Natural Twenty Life Combat
+name: Stage 10S - Native Twenty Life Victory
 
 # Two external persistent actor processes plus one authoritative Forge referee.
-# Stage10S verifies 20-life cumulative native combat over 3 and 10 different turns.
-# Legal registered decks, curated own-hand fixture, no test-set life; not full MTG or OS sandbox.
+# Stage10S verifies ten distinct native combats from the genuine 20-life start.
+# Legal test decks and curated own hand; not general MTG or an OS sandbox.
 on:
   push:
     branches:
       - expert-stage9a-forge-decision-pairs
+      - expert-stage10s-native-twenty-life
     paths:
       - .github/workflows/stage10s-natural-twenty-life.yml
       - stage9w/opening_hand_actor.py
@@ -20,12 +21,30 @@ on:
       - stage10o/controlled_delay_actor.py
       - forge_tests/Stage10SNaturalTwentyLifeTest.java
       - forge_tests/verify_stage10s_surefire.py
+      - forge_tests/test_verify_stage10s_surefire.py
+      - forge_tests/stage10s_rejection_integrity.py
+  pull_request:
+    paths:
+      - .github/workflows/stage10s-natural-twenty-life.yml
+      - stage9w/opening_hand_actor.py
+      - stage10b/action_plan_actor.py
+      - stage10d/multi_block_actor.py
+      - stage10d/test_protocol.py
+      - stage10e/menace_defense_actor.py
+      - stage10e/test_protocol.py
+      - stage10h/test_protocol.py
+      - stage10l/adversarial_actor.py
+      - stage10o/controlled_delay_actor.py
+      - forge_tests/Stage10SNaturalTwentyLifeTest.java
+      - forge_tests/verify_stage10s_surefire.py
+      - forge_tests/test_verify_stage10s_surefire.py
+      - forge_tests/stage10s_rejection_integrity.py
 
 permissions:
   contents: read
 
 jobs:
-  real-delayed-exchange-and-pinned-forge:
+  native-twenty-life-and-regressions:
     runs-on: ubuntu-24.04
     timeout-minutes: 75
     env:
@@ -70,7 +89,8 @@ jobs:
           test "$(git -C forge-src rev-parse HEAD)" = 4ec5f1a2c32fa90ecb983a72b9eb47aa5c5d7676
           git -C forge-src rev-parse HEAD > stage10s-evidence/forge-sha.txt
           git rev-parse HEAD > stage10s-evidence/feature-sha.txt
-          sha256sum stage9w/opening_hand_actor.py stage10b/action_plan_actor.py stage10d/multi_block_actor.py stage10d/test_protocol.py stage10e/menace_defense_actor.py stage10e/test_protocol.py forge_tests/Stage10SNaturalTwentyLifeTest.java stage10h/test_protocol.py stage10l/adversarial_actor.py stage10o/controlled_delay_actor.py forge_tests/verify_stage10s_surefire.py \
+          python3 -m unittest -v forge_tests.test_verify_stage10s_surefire
+          sha256sum stage9w/opening_hand_actor.py stage10b/action_plan_actor.py stage10d/multi_block_actor.py stage10d/test_protocol.py stage10e/menace_defense_actor.py stage10e/test_protocol.py forge_tests/Stage10SNaturalTwentyLifeTest.java stage10h/test_protocol.py stage10l/adversarial_actor.py stage10o/controlled_delay_actor.py forge_tests/verify_stage10s_surefire.py forge_tests/test_verify_stage10s_surefire.py forge_tests/stage10s_rejection_integrity.py \
             > stage10s-evidence/source-hashes.txt
           test -r "$STAGE10G_WORKER"
           test -r "$STAGE10G_LEGACY_PLAN_WORKER"
@@ -91,7 +111,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 stage10h/test_protocol.py | tee stage10s-evidence/stage10h-protocol.log
-      - name: Run natural twenty-life combat and 76 inherited methods
+      - name: Run native twenty-life combats and all 76 previous methods
         shell: bash
         run: |
           set -euo pipefail
@@ -111,18 +131,25 @@ jobs:
           echo "Forge Maven exit: $code"
           tail -n 75 "$GITHUB_WORKSPACE/stage10s-evidence/maven.log"
           test "$code" -eq 0
-      - name: Verify exact 78 genuine Forge-native twenty-life and inherited tests with independent XML gate
+      - name: Require exactly 78 named Forge methods with no failures or skips
         shell: bash
         run: |
           set -euo pipefail
           python3 forge_tests/verify_stage10s_surefire.py \
             --reports stage10s-evidence/surefire \
             | tee stage10s-evidence/gate.json
+      - name: Prove forged-command tests detect a disabled validator
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m forge_tests.stage10s_rejection_integrity \
+            --forge-root forge-src --baseline stage10s-evidence/surefire \
+            --evidence stage10s-evidence/rejection-integrity
       - name: Save build, per-method XML, source hashes and gate result
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: stage10s-natural-twenty-life-${{ github.run_id }}-${{ github.run_attempt }}
           path: stage10s-evidence/
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 14
