@@ -1,0 +1,19 @@
+name: Stage 8U read-only coverage contract
+on:
+  push:
+    branches: [expert-stage8u-readonly-coverage-contract]
+  pull_request:
+    paths:
+      - 'stage8u_candidate_coverage.py'
+      - 'test_stage8u_candidate_coverage.py'
+      - '.github/workflows/forge-expert-ai-stage8u-contract.yml'
+jobs:
+  synthetic-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify fail-closed public candidate coverage contract
+        run: python -m unittest -v test_stage8u_candidate_coverage
