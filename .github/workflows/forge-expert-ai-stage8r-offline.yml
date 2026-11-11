@@ -1,0 +1,106 @@
+name: Forge Expert AI Stage 8R — Offline Outcome Comparison
+on:
+  push:
+    branches: [main, expert-stage8r-offline-outcome-validation]
+    paths:
+      - 'stage8r_outcome_diagnostic.py'
+      - 'test_stage8r_outcome_diagnostic.py'
+      - 'STAGE8R_OFFLINE_DEVELOPMENT.md'
+      - '.github/workflows/forge-expert-ai-stage8r-offline.yml'
+  pull_request:
+    paths:
+      - 'stage8r_outcome_diagnostic.py'
+      - 'test_stage8r_outcome_diagnostic.py'
+      - 'STAGE8R_OFFLINE_DEVELOPMENT.md'
+      - '.github/workflows/forge-expert-ai-stage8r-offline.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  offline-development:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile and test Stage 8R without gameplay
+        run: |
+          python -m py_compile stage8r_outcome_diagnostic.py test_stage8r_outcome_diagnostic.py
+          python -m unittest -v test_stage8r_outcome_diagnostic test_stage8q_target_effect_features test_stage8o_outcome_policy test_stage8d_shadow_policy test_stage8c_target_features
+      - name: Verify source artifact digests and recover prior development corpora
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11491113213" --jq '.digest')" = "sha256:4179dbe7bd26bcb745efd9d5da800342f13638a85dd6abd97f449bf3d29a1d7c"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11495733848" --jq '.digest')" = "sha256:36037df0152a57fc6117f5cf91dcaa4cb3fd26288e4b07d6ce2028cffe93062e"
+          gh run download 37637623265 -n stage8l-public-outcome-trajectories -D input-8l
+          gh run download 37646582768 -n stage8n-public-exploration-corpus -D input-8n
+          test -s input-8l/stage8l-outcome-trajectories.jsonl
+          test -s input-8n/stage8n-outcome-trajectories.jsonl
+          python - <<'PY'
+          import json
+          a=json.load(open('input-8l/stage8l-outcome-trajectory-manifest.json'))
+          b=json.load(open('input-8n/stage8n-outcome-trajectory-manifest.json'))
+          assert a['games']==8 and a['trajectory_rows']==115
+          assert b['games']==16 and b['trajectory_rows']==216
+          assert a['reserved_untouched_evaluation_seed_families']==[20261032,20261033]
+          assert b['reserved_untouched_evaluation_seed_families']==[20261032,20261033]
+          assert a['model_input_contains_hidden_information'] is False
+          assert b['model_input_contains_hidden_information'] is False
+          assert a['forge_referee'] is True and b['forge_referee'] is True
+          assert a['promotion_allowed'] is False and b['promotion_allowed'] is False
+          PY
+      - name: Train and compare Stage 8R from past nonreserved development data
+        shell: bash
+        run: |
+          set -euo pipefail
+          python stage8r_outcome_diagnostic.py \
+            input-8l/stage8l-outcome-trajectories.jsonl \
+            input-8n/stage8n-outcome-trajectories.jsonl \
+            --checkpoint stage8r-checkpoint.json \
+            --report stage8r-report.json
+          PYTHONHASHSEED=812 python stage8r_outcome_diagnostic.py \
+            input-8l/stage8l-outcome-trajectories.jsonl \
+            input-8n/stage8n-outcome-trajectories.jsonl \
+            --checkpoint stage8r-checkpoint-repeat.json \
+            --report stage8r-report-repeat.json
+          cmp stage8r-checkpoint.json stage8r-checkpoint-repeat.json
+          cmp stage8r-report.json stage8r-report-repeat.json
+      - name: Enforce integrity and report whether the representation improves
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from stage8r_outcome_diagnostic import load
+          r=json.load(open('stage8r-report.json'))
+          m=json.load(open('stage8r-checkpoint.json'))
+          assert m['consumed_reserved_seeds']==[20261032,20261033]
+          assert set(m['training_seeds']).isdisjoint(m['consumed_reserved_seeds'])
+          assert set(m['training_seeds']).isdisjoint(m['future_proposed_holdout_seeds'])
+          assert m['promotion_allowed'] is False
+          assert m['broader_learned_control_allowed'] is False
+          assert m['strength_claim_allowed'] is False
+          assert r['new_gameplay_executed'] is False
+          assert r['reserved_gameplay_replayed'] is False
+          assert r['proposed_fresh_seed_families_unverified'] is True
+          assert len(r['grouped_development_comparison']['folds']) == 12
+          assert load(Path('stage8r-checkpoint.json'))['model_id']==m['model_id']
+          c = r['grouped_development_comparison']
+          print('8R CV', c['model'])
+          print('8O CV', c['stage8o_model'])
+          print('Constant baseline', c['constant_baseline'])
+          print('Stage 8Q better on both losses?', c['stage8q_representation_improved_both_metrics'])
+          print('This is diagnostic only. Do not authorize gameplay or promotion.')
+          PY
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: stage8r-offline-grouped-outcome-diagnostic
+          path: |
+            stage8r-checkpoint.json
+            stage8r-report.json
+          if-no-files-found: warn
